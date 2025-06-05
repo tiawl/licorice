@@ -4,7 +4,6 @@ shebangless () {
   sed '/^#\s*!/{:loop;N;s/.*\n$//;t loop;s/^\n\+//}' "${@}"
 }
 
-# executed by setup.sh
 compile () {
   on errexit inherit_errexit errtrace functrace noclobber nounset pipefail lastpipe extglob
 
@@ -20,7 +19,7 @@ compile () {
   name='murloc'
   version="$(git -C "${SDIR}" describe --match *.*.* --tags --abbrev=9)"
   version="${version%-*}"
-  version="${version%\.*}.${version#*-}"
+  version="${version%\.*}.${version##*[-.]}"
 
   on globstar
   for src in "${SDIR}/src"/**/*
