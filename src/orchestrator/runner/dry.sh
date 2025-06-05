@@ -20,9 +20,5 @@ runner_dry () { #HELP <yaml_file>|Display the runner bash script without executi
     error 'Can not find %s' "${1}"
   fi
 
-  gojq --yaml-input --raw-output "${jq[yml2bash]}" "${yml}" --args "${rainbow[@]}" --arg env "$(
-      declare -f init load_resources \
-        $(compgen -A function -X '!(container*|image*|volume*|network*|runner*)') \
-        $(exec -c bash --noprofile --norc -c 'source src/utils.sh; compgen -A function')
-    )"
+  gojq --yaml-input --raw-output "${jq[yml2bash]}" "${yml}" --args "${rainbow[@]}" --arg env "$(declare -f init load_resources "${fns[@]}")"
 }

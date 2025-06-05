@@ -1,13 +1,28 @@
 #! /usr/bin/env bash
 
-image_tag_compute() { #HELP <context> [<buildargs>]|Compute a tag from <context> and <buildargs>
+image_tag_compute() { #HELP <key> <dir_or_str> [<key> <dir_or_str>] [...]|Compute a tag from directories and arbitrary strings. Possible keys: 'directory'/'string'
   shift
 
   : "$({
-    tar --directory "${1}" --create --file=- --sort=name --mtime='UTC 2019-01-01' --group=0 --owner=0 --numeric-owner .
-    shift
+    while gt "${#}" '0'
+    do
+      if str eq "${1}" 'directory'
+      then
+        if is dir "${2}"
+        then
+          tar --directory "${2}" --create --file=- --sort=name --mtime='UTC 2019-01-01' --group=0 --owner=0 --numeric-owner .
+        else
+          error 'image tag compute: %s is not a directory' "${2}"
+        fi
+      elif str eq "${1}" 'string'
+      then
+        printf '%s' "${2}"
+      else
+        error 'image tag compute: unknown %s' "${1}"
+      fi
+      shift 2
+    done
     declare -f image_build
-    printf '%s\n' "${@}"
   } | sha256sum)"
   : "${_%% *}"
   printf '%s' "${_:0:20}"

@@ -116,6 +116,7 @@ help () {
 
 load_resources () {
   global -A sed jq buf
+  global -a fns
 $(on globstar
   for dir in sed jq
   do
@@ -135,7 +136,9 @@ $(on globstar
       printf '  buf[vendor_%s]=%s\n' "$(basename "${entry}" '.proto')" "'$(sed "s/'/'\"'\"'/g" "${entry}")'"
     fi
   done)
-  readonly sed jq buf
+
+  fns=( $(exec -c bash --noprofile --norc -c "source ${SDIR}/src/utils.sh; compgen -A function") \$(compgen -A function -X '!(container*|image*|volume*|network*|runner*)') )
+  readonly sed jq buf fns
 }
 
 ${name} () {

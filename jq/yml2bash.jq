@@ -277,14 +277,24 @@ def assign(level; mode): (
 
 def before_orchestrator(level; mode): {
   image: {
+    tag: {
+      compute: (try (
+        .image.tag.compute as $compute |
+          if $compute then [
+            ({assign: {vars: [[{literal: "assoc"}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
+            ({mutate: {name: {var: "assoc"}, type: "associative", value: $compute.buildargs}} | mutate($NOINDENT; $MODE.internal; mode)),
+            "assoc2json assoc"
+          ] else null end
+      ) catch null)
+    },
     build: (try (
       .image.build as $build |
         if $build then [
           ({assign: {vars: [[{literal: "assoc"}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
           ({mutate: {name: {var: "assoc"}, type: "associative", value: $build.args}} | mutate($NOINDENT; $MODE.internal; mode)),
           "assoc2json assoc"
-        ] else [] end
-    ) catch []),
+        ] else null end
+    ) catch null),
     merge: (try (
       .image.merge as $merge |
         if $merge then ([
@@ -293,8 +303,8 @@ def before_orchestrator(level; mode): {
           range($merge.chain | length) | {mutate: {name: {var: ("assoc" + tostring)}, type: "associative", value: ($merge.chain[.].args // [])}} | mutate($NOINDENT; $MODE.internal; mode)
         ] + [
           "assoc2json " + ([range($merge.chain | length) | "assoc" + tostring] | join(" "))
-        ]) else [] end
-    ) catch [])
+        ]) else null end
+    ) catch null)
   }
 };
 
@@ -329,8 +339,12 @@ def orchestrator(mode): {
         .image.tag.compute as $compute |
           if $compute then (
             "image tag compute " +
-              ($compute.context | sanitize(mode)) + " " +
-              ([$compute.buildargs[][] | sanitize(mode)] | join(" "))
+              ([$compute.directories[] | "directory " + sanitize(mode)] | join(" ")) +
+              (
+                if ($compute | has("buildargs")) then (
+                  " string " + ([{var: "assoc"}] | sanitize($MODE.internal))
+                ) else "" end
+              )
           ) else null end
       ) catch null)
     },
