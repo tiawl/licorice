@@ -20,5 +20,6 @@ runner_dry () { #HELP <yaml_file>|Display the runner bash script without executi
     error 'Can not find %s' "${1}"
   fi
 
-  gojq --yaml-input --raw-output "${jq[yml2bash]}" "${yml}" --args "${rainbow[@]}" --arg env "$(declare -f init load_resources "${fns[@]}")"
+  gojq --yaml-input --raw-output "${jq[yml2bash/common]}${jq[yml2bash/process_inventory]}" "${yml}" \
+    | gojq --raw-output "${jq[yml2bash/common]}${jq[yml2bash/write_script]}" --args "${rainbow[@]}" --arg env "$(declare -f init load_resources "${fns[@]}")"
 }

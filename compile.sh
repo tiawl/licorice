@@ -124,7 +124,9 @@ $(on globstar
     do
       if is file "${entry}"
       then
-        printf '  %s[%s]=%s\n' "${dir}" "$(basename "${entry}" ".${dir}")" "'$(shebangless "${entry}" | sed "s/'/'\"'\"'/g")'"
+        key="${entry#"${SDIR}/${dir}/"}"
+        key="${key%".${dir}"}"
+        printf '  %s[%s]=%s\n' "${dir}" "${key}" "'$(shebangless "${entry}" | sed "s/'/'\"'\"'/g")'"
       fi
     done
   done

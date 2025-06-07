@@ -36,10 +36,6 @@ def is_legit_varname: (
   test("^[a-zA-Z_][a-zA-Z0-9_]*$")
 );
 
-def exit: (
-  "runner: " + . + "\n" | halt_error(1)
-);
-
 def bad_varname: (
   "Bad variable name: \"" + . + "\"" | exit
 );
@@ -470,6 +466,17 @@ def orchestrator(mode): {
           ) else null end
       ) catch null)
     }
+  },
+  # TODO
+  runner: {
+    exec: (try (
+      .runner.exec as $exec |
+        if $exec then (
+          "runner exec " +
+            ($exec.file | sanitize(mode)) + " " +
+            ($exec.args | map(sanitize(mode)) | join(" "))
+        ) else null end
+    ) catch null)
   }
 };
 
@@ -1060,7 +1067,7 @@ def main(level): (
   } | define(level; $MODE.internal)
 );
 
-def write_runner_script: (
+def write_script: (
   -1 as $level |
   $ARGS.named.env + "\n" +
   internals($level) +
@@ -1068,33 +1075,4 @@ def write_runner_script: (
   $NAMESPACE.internal + "main \"${@}\""
 );
 
-def process_inventory: (
-  .inventory as $inventory |
-
-  def process_inventory_into_inventory(walk_path): (
-    if (type == "object") then (
-      if (has("inventory")) then (
-        if (.inventory | type != "string") then (
-          "process_inventory_into_inventory: \"inventory\" must be string typed" | exit
-        ) else . end |
-        .inventory as $inv |
-        if (walk_path | any(. == $inv)) then (
-          "process_inventory_into_inventory: Inventory cycle detected" | exit
-        ) else . end |
-        $inventory[.inventory] | process_inventory_into_inventory(walk_path + [.inventory])
-      ) else (
-        map_values(process_inventory_into_inventory(walk_path))
-      ) end
-    ) elif type == "array" then (
-      map(process_inventory_into_inventory(walk_path))
-    ) else . end
-  );
-
-  (.inventory | map_values(process_inventory_into_inventory([]))) as $inventory |
-  {
-    group: (.group | walk(if type == "object" and has("inventory") then ($inventory[.inventory]) else . end))
-  }
-);
-
-process_inventory |
-write_runner_script
+write_script
