@@ -23,6 +23,8 @@
   user: 1
 } as $MODE |
 -2 as $NOINDENT |
+.import as $IMPORT |
+.name as $NAME |
 
 def incr_indent_level(i): (
   if (. == $NOINDENT) then $NOINDENT else (. + i) end
@@ -467,17 +469,6 @@ def orchestrator(mode): {
       ) catch null)
     }
   },
-  # TODO
-  runner: {
-    exec: (try (
-      .runner.exec as $exec |
-        if $exec then (
-          "runner exec " +
-            ($exec.file | sanitize(mode)) + " " +
-            ($exec.args | map(sanitize(mode)) | join(" "))
-        ) else null end
-    ) catch null)
-  }
 };
 
 def readonly(level; mode): (
@@ -604,6 +595,24 @@ def define(level; mode): (
               " | " + (.pipe | group($NOINDENT; mode; false; false))
             ) else "" end
           ) + "\""
+      );
+
+      def runner_exec(level; mode): (
+        .runner.exec as $exec |
+        $exec.file | sub("^\\./"; "") as $exec_file |
+        $exec.args // [] as $exec_args |
+        ($NAMESPACE.internal + "runner_exec_" + ($exec_file | sub("\\.ya?ml$"; "") | gsub("[^a-zA-Z0-9]"; "_"))) as $fn_name |
+          {
+            define: {
+              name: $fn_name,
+              group: ($IMPORT[$exec.file].group // $IMPORT[$exec_file].group)
+            }
+          } | define(level; mode) + (
+            {
+              program: ($fn_name + " " + ($exec_args | map(sanitize(mode)) | join(" "))),
+              xtrace: ("runner exec " + $exec.file + " " + ($exec_args | map(sanitize(mode)) | join(" ")))
+            } | xtrace(mode) | map(indent(level)) | join("\n")
+          )
       );
 
       def traceable(level; mode): (
@@ -812,6 +821,8 @@ def define(level; mode): (
         skip(level; mode)
       ) elif (has("split")) then (
         split(level)
+      ) elif (has("runner")) then (
+        runner_exec(level; mode)
       ) elif (has("group")) then (
         group(level; mode; multilined; true)
       ) elif (has("raw")) then (
@@ -913,13 +924,7 @@ def define(level; mode): (
     if (.name | is_legit_varname | not) then (
       bad_varname
     ) else . end | (
-      (
-        if (mode == $MODE.internal) then (
-          $NAMESPACE.internal
-        ) else (
-          $NAMESPACE.user
-        ) end + .name + " ()\n"
-      ) | indent(level)
+      (.name + " ()\n") | indent(level)
     ) + $group + "\n"
 );
 
@@ -927,7 +932,7 @@ def internals(level): (
   [
     {
       define: {
-        name: "init_runner",
+        name: ($NAMESPACE.internal + "init_runner"),
         group: {
           commands: [
             {on: [[{literal: "errexit"}], [{literal: "inherit_errexit"}], [{literal: "errtrace"}], [{literal: "functrace"}], [{literal: "noclobber"}], [{literal: "nounset"}], [{literal: "pipefail"}], [{literal: "lastpipe"}], [{literal: "extglob"}]]},
@@ -941,7 +946,7 @@ def internals(level): (
     },
     {
       define: {
-        name: "call",
+        name: ($NAMESPACE.internal + "call"),
         group: {
           commands: [
             {assign: {vars: [[{literal: "authorized"}]], scope: "local"}},
@@ -967,7 +972,7 @@ def internals(level): (
     },
     {
       define: {
-        name: "autoincr",
+        name: ($NAMESPACE.internal + "autoincr"),
         group: {
           commands: [
             {assign: {vars: [[{literal: "ref"}]], type: "reference", scope: "local"}},
@@ -987,7 +992,7 @@ def internals(level): (
     },
     {
       define: {
-        name: "color",
+        name: ($NAMESPACE.internal + "color"),
         group: {
           commands: [
             {assign: {vars: [[{literal: "i"}]], scope: "local"}},
@@ -1008,7 +1013,7 @@ def internals(level): (
     },
     {
       define: {
-        name: "xtrace",
+        name: ($NAMESPACE.internal + "xtrace"),
         group: {
           commands: [
             {raw: {command: ($NAMESPACE.internal + "autoincr"), args: [[{literal: "reply"}]]}},
@@ -1022,7 +1027,7 @@ def internals(level): (
     },
     {
       define: {
-        name: "register",
+        name: ($NAMESPACE.internal + "register"),
         group: {
           commands: [
             {assign: {vars: [[{literal: "ref"}]], type: "reference", scope: "local"}},
@@ -1043,7 +1048,7 @@ def internals(level): (
 def main(level): (
   {
     define: {
-      name: "main",
+      name: ($NAMESPACE.internal + "main"),
       group: {
         commands: (
           [
@@ -1057,7 +1062,7 @@ def main(level): (
             },
             {mutate: {name: {var: "USER"}, value: [[{special: "USER", default: [{special: "last"}]}]]}},
             {print: {format: "%s", var: "HOME", args: [[{char: "tilde"}]]}},
-            {mutate: {name: {var: "RUNNER"}, value: [[{literal: (input_filename | sub(".*/";"") | sub("\\.yml$";""))}]]}},
+            {mutate: {name: {var: "RUNNER"}, value: [[{literal: $NAME}]]}},
             {readonly: [[{literal: "USER"}], [{literal: "HOME"}], [{literal: "RUNNER"}]]},
             {initialized: true}
           ] + .group.commands

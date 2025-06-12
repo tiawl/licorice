@@ -87,7 +87,7 @@ assoc2json () {
   do
     local -n ref
     ref="${1}"
-    ref="$(gojq --monochrome-output --null-input --compact-output '($ARGS.positional | [.[:$n], .[$n:]] | transpose | map({ (first): last }) | add) // {}' --argjson n "${#ref[@]}" --args "${!ref[@]}" "${ref[@]}")"
+    ref="$(gojq --monochrome-output --null-input --compact-output '($ARGS.positional | [.[:$n], .[$n:]] | transpose | map(last as $last | {(first): (if (($last | type == "number") or (($last | type == "string") and ($last | test("^[0-9]+$")))) then ($last | tostring) else (try ($last | fromjson) catch $last) end)}) | add) // {}' --argjson n "${#ref[@]}" --args "${!ref[@]}" "${ref[@]}")"
     unset -n ref
     shift
   done
