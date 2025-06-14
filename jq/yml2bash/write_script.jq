@@ -599,18 +599,17 @@ def define(level; mode): (
 
       def runner_exec(level; mode): (
         .runner.exec as $exec |
-        $exec.file | sub("^\\./"; "") as $exec_file |
         $exec.args // [] as $exec_args |
-        ($NAMESPACE.internal + "runner_exec_" + ($exec_file | sub("\\.ya?ml$"; "") | gsub("[^a-zA-Z0-9]"; "_"))) as $fn_name |
+        ($NAMESPACE.internal + "runner_exec_" + ($exec.imported | sub("\\.ya?ml$"; "") | gsub("[^a-zA-Z0-9]"; "_"))) as $fn_name |
           {
             define: {
               name: $fn_name,
-              group: ($IMPORT[$exec.file].group // $IMPORT[$exec_file].group)
+              group: $IMPORT[$exec.imported].group
             }
           } | define(level; mode) + (
             {
               program: ($fn_name + " " + ($exec_args | map(sanitize(mode)) | join(" "))),
-              xtrace: ("runner exec " + $exec.file + " " + ($exec_args | map(sanitize(mode)) | join(" ")))
+              xtrace: ("runner exec " + $exec.imported + " " + ($exec_args | map(sanitize(mode)) | join(" ")))
             } | xtrace(mode) | map(indent(level)) | join("\n")
           )
       );

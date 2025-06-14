@@ -35,6 +35,15 @@ dirname () {
   printf '%s\n' "${1:-/}"
 }
 
+normalizedpath () {
+  if is dir "${1}"
+  then
+    env -C "${1}" pwd
+  else
+    printf '%s/%s\n' "$(env -C "$(dirname "${1}")" pwd)" "$(basename "${1}")"
+  fi
+}
+
 is () {
   case "${1}" in
   ( 'not' ) shift; not is "${@}" ;;

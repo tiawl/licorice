@@ -25,7 +25,7 @@ def process_inventory: (
   (.inventory | map_values(process_inventory_into_inventory([]))) as $inventory |
   {
     name: .name,
-    import: (.import | walk(if type == "object" and has("inventory") then ($inventory[.inventory]) else . end)),
+    import: ((.import | walk(if type == "object" and has("inventory") then ($inventory[.inventory]) else . end)) // {}),
     group: (.group | walk(if type == "object" and has("inventory") then ($inventory[.inventory]) else . end))
   }
 );
