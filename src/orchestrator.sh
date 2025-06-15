@@ -26,6 +26,9 @@ init () {
   elif is socket '/var/run/docker.sock'
   then
     backend='docker'
+  elif is socket "/run/user/${UID}/podman/podman.sock"
+  then
+    backend='podman'
   else
     error 'No available backend'
   fi

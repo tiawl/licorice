@@ -58,5 +58,5 @@ runner_dry () { #HELP <yaml_file>|Display the runner bash script without executi
   readonly inv import
 
   gojq --raw-output "${jq[yml2bash/common]}${jq[yml2bash/write_script]}" --args "${rainbow[@]}" --arg env "$(declare -f init load_resources "${fns[@]}")" \
-    <<< "$(gojq --yaml-input --raw-output --monochrome-output --compact-output --arg ROOT "$(normalizedpath "$(dirname "${1}")")/" --argjson INV "${inv}" --argjson IMPORT "{\"import\": ${import}}" "${jq[yml2bash/common]}${jq[yml2bash/process_inventory]}"' * $IMPORT * $INV | walk(if type == "object" then with_entries(if .key == "imported" then .value |= $ARGS.named.ROOT + (. | sub("^[.]/"; "")) else . end) else . end)' "${1}")"
+    <<< "$(gojq --yaml-input --raw-output --monochrome-output --compact-output --arg ROOT "$(normalizedpath "$(dirname "${1}")")/" --argjson INV "${inv}" --argjson IMPORT "{\"import\": ${import}}" '. * $IMPORT * $INV | '"${jq[yml2bash/common]}${jq[yml2bash/process_inventory]}"' | .group |= walk(if type == "object" then with_entries(if .key == "imported" then .value |= $ARGS.named.ROOT + (. | sub("^[.]/"; "")) else . end) else . end)' "${1}")"
 }
