@@ -467,7 +467,28 @@ def orchestrator(mode): {
               ($get.container | sanitize(mode))
           ) else null end
       ) catch null)
-    }
+    },
+    create: (try (
+      .network.create as $create |
+        if $create then (
+          "network create " +
+            ($create.name | sanitize(mode))
+        ) else null end
+    ) catch null),
+    list: (try (
+      .network.list as $list |
+        if $list then (
+          "network list " +
+            ($list.pattern | sanitize(mode))
+        ) else null end
+    ) catch null),
+    created: (try (
+      .network.created as $created |
+        if $created then (
+          "network created " +
+            ($created.name | sanitize(mode))
+        ) else null end
+    ) catch null)
   },
 };
 

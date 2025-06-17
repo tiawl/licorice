@@ -45,7 +45,7 @@ runner_dry () { #HELP <yaml_file>|Display the runner bash script without executi
         ) end
       ) else (
         $IMPORT
-      ) end | ([.import | to_entries[] | select(.value == null) | .key | "if is not var \"import[" + . + "]\"; then import[" + . + "]=\"$(gojq --yaml-input --raw-output --monochrome-output --compact-output \".group |= walk(if type == \\\"object\\\" then with_entries(if .key == \\\"imported\\\" then .value |= \\\"$(dirname " + . + ")/\\\" + (. | sub(\\\"^[.]/\\\"; \\\"\\\")) else . end) else . end)\" " + . + ")\"; fi"] | join(";"))
+      ) end | ([.import | to_entries[] | select(.value == null) | .key | "if is not var \"import[" + . + "]\"; then import[" + . + "]=\"$(gojq --yaml-input --raw-output --monochrome-output --compact-output \".group |= walk(if type == \\\"object\\\" then with_entries(if .key == \\\"imported\\\" then .value |= \\\"$(normalizedpath \"$(dirname " + . + ")\")/\\\" + (. | sub(\\\"^[.]/\\\"; \\\"\\\")) else . end) else . end)\" " + . + ")\"; fi"] | join(";"))
     ')"
     assoc2json import
 
