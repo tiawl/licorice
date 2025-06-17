@@ -16,7 +16,7 @@ compile () {
 
   local name version len_cmd src desc
   local -a help split
-  name='murloc'
+  name='placid'
   version="$(git -C "${SDIR}" describe --match *.*.* --tags --abbrev=9)"
   version="${version%-*}"
   version="${version%\.*}.${version##*[-.]}"
