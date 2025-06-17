@@ -51,8 +51,8 @@ is () {
   ( 'file' ) [[ -f "${2}" ]] ;;
   ( 'dir' ) [[ -d "${2}" ]] ;;
   ( 'socket' ) [[ -S "${2}" ]] ;;
-  ( 'array' ) case "$(declare -p "${2}" 2> /dev/null)" in ( "declare -a ${2}" ) return 0 ;; ( * ) return 1 ;; esac ;;
-  ( 'map' ) case "$(declare -p "${2}" 2> /dev/null)" in ( "declare -A ${2}" ) return 0 ;; ( * ) return 1 ;; esac ;;
+  ( 'indexed' ) case "$(declare -p "${2}" 2> /dev/null)" in ( "declare -a ${2}="* ) return 0 ;; ( * ) return 1 ;; esac ;;
+  ( 'associative' ) case "$(declare -p "${2}" 2> /dev/null)" in ( "declare -A ${2}="* ) return 0 ;; ( * ) return 1 ;; esac ;;
   ( 'func' ) declare -F "${2}" > /dev/null ;;
   ( 'var' ) [[ -v "${2}" ]] ;;
   ( 'set' ) [[ -o "${2}" ]] || shopt -q "${2}" 2> /dev/null ;;
@@ -96,6 +96,10 @@ assoc2json () {
   do
     local -n ref
     ref="${1}"
+    if is associative "${!ref}"
+    then
+      unset ref[0]
+    fi
     ref="$(gojq --monochrome-output --null-input --compact-output '($ARGS.positional | [.[:$n], .[$n:]] | transpose | map(last as $last | {(first): (if (($last | type == "number") or (($last | type == "string") and ($last | test("^[0-9]+$")))) then ($last | tostring) else (try ($last | fromjson) catch $last) end)}) | add) // {}' --argjson n "${#ref[@]}" --args "${!ref[@]}" "${ref[@]}")"
     unset -n ref
     shift

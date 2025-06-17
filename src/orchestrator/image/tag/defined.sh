@@ -17,5 +17,5 @@ image_tag_defined () { #HELP <image> <tag>|Succeed if the <image>:<tag> is found
   exec 3>&${HTTP_CODE[1]}
 
   curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --write-out "%{stderr}%{scheme} %{response_code}\n" "${endpoint}" 2>&3 \
-    | gojq --exit-status '. | length > 0' > /dev/null
+    | gojq --exit-status 'length > 0' > /dev/null
 }
