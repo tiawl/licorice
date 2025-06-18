@@ -2,8 +2,8 @@
 
 network () {
   case "${1}" in
-  ( 'connect' ) : ;;
-  ( 'disconnect' ) : ;;
+  ( 'connect' ) network_connect "${@}" ;;
+  ( 'disconnect' ) network_disconnect "${@}" ;;
   ( 'create' ) network_create "${@}" ;;
   ( 'remove' ) : ;;
   ( 'list' ) network_list "${@}" ;;

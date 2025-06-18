@@ -16,5 +16,5 @@ network_ip_get () { #HELP <container> <network>|List <container> ip address on <
   exec 3>&${HTTP_CODE[1]}
 
   curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --write-out '%{stderr}%{scheme} %{response_code}\n' "${endpoint}" 2>&3 \
-    | gojq --raw-output '.NetworkSettings.Networks[$net].IPAddress' --arg net "${2:-bridge}"
+    | gojq --raw-output '.NetworkSettings.Networks[$net].IPAddress' --arg net "${2}"
 }

@@ -1,11 +1,11 @@
 #! /usr/bin/env bash
 
-network_create () { #HELP <network_name> <isolated>|Create a new network
+network_disconnect () { #HELP <network_name> <container_name>|Disconnect <container_name> from <network_name>
   shift
 
   local json endpoint logged_endpoint method http_code
-  json="{\"Name\":\"${1}\",\"Driver\":\"bridge\",\"EnableIPv4\":true,\"EnableIPv6\":true,\"ConfigOnly\":false,\"Scope\":\"local\",\"Internal\":${2}}"
-  endpoint="http://${version[docker_api]}/networks/create"
+  json="{\"Container\":\"${2}\",\"Force\":true}"
+  endpoint="http://${version[docker_api]}/networks/${1}/disconnect"
   logged_endpoint="${endpoint}?$(gojq --null-input --raw-output '['"${json}"' | to_entries[] | .key + "=" + (.value | tostring)] | join("&")')"
   method='POST'
   readonly json endpoint logged_endpoint method

@@ -464,15 +464,36 @@ def orchestrator(mode): {
         .network.ip.get as $get |
           if $get then (
             "network ip get " +
-              ($get.container | sanitize(mode))
+              ($get.container | sanitize(mode)) + " " +
+              ($get.network | sanitize(mode))
           ) else null end
       ) catch null)
     },
     create: (try (
       .network.create as $create |
         if $create then (
+          if ($create.isolated | type != "boolean") then (
+            "network.create.isolated must be a boolean" | exit
+          ) else null end |
           "network create " +
-            ($create.name | sanitize(mode))
+            ($create.name | sanitize(mode)) + " " +
+            ($create.isolated | tostring)
+        ) else null end
+    ) catch null),
+    connect: (try (
+      .network.connect as $connect |
+        if $connect then (
+          "network connect " +
+            ($connect.network | sanitize(mode)) + " " +
+            ($connect.container | sanitize(mode))
+        ) else null end
+    ) catch null),
+    disconnect: (try (
+      .network.disconnect as $disconnect |
+        if $disconnect then (
+          "network disconnect " +
+            ($disconnect.network | sanitize(mode)) + " " +
+            ($disconnect.container | sanitize(mode))
         ) else null end
     ) catch null),
     list: (try (
@@ -489,7 +510,7 @@ def orchestrator(mode): {
             ($created.name | sanitize(mode))
         ) else null end
     ) catch null)
-  },
+  }
 };
 
 def readonly(level; mode): (
@@ -554,6 +575,8 @@ def arithmetic(level; mode): (
     "( " + (
       if (has("addition")) then (
         .addition | ((.left | arithmetic_side(mode)) + " + " + (.right | arithmetic_side(mode)))
+      ) elif (has("substraction")) then (
+        .substraction | ((.left | arithmetic_side(mode)) + " - " + (.right | arithmetic_side(mode)))
       ) elif (has("remainder")) then (
         .remainder | ((.left | arithmetic_side(mode)) + " % " + (.right | arithmetic_side(mode)))
       ) else (
@@ -1019,7 +1042,7 @@ def internals(level): (
             {
               register: {
                 into: {var: "i"},
-                arithmetic: {addition: {left: {arithmetic: {remainder: {left: {parameter: 1}, right: {number: ($ARGS.positional | length)}}}}, right: {number: 1}}}
+                arithmetic: {remainder: {left: {arithmetic: {substraction: {left: {parameter: 1}, right: {number: 1}}}}, right: {number: ($ARGS.positional | length)}}}
               }
             },
             {assign: {vars: [[{literal: "colors"}]], type: "indexed", scope: "local"}},
