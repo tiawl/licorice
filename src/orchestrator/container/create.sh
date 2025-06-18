@@ -7,7 +7,7 @@ container_create () { #HELP <container_name> <image> <container_hostname>|Create
   img="${2}"
   json="{\"Hostname\":\"${3}\",\"Image\":\"${img}${sep[tag]}$(image tag list "${img}")\"}"
   endpoint="http://${version[docker_api]}/containers/create?name=${1}"
-  logged_endpoint="${endpoint}&$(gojq --null-input --raw-output '['"${json}"' | to_entries[] | .key + "=" + .value] | join("&")')"
+  logged_endpoint="${endpoint}&$(gojq --null-input --raw-output '['"${json}"' | to_entries[] | .key + "=" + (.value | tostring)] | join("&")')"
   method='POST'
   readonly json endpoint logged_endpoint method img
 
