@@ -3,8 +3,8 @@
 runner_dry () { #HELP <yaml_file>|Display the runner bash script without executing it
   shift
 
-  local rainbow filepath json inv
-  local -A import visited
+  local rainbow filepath json inv import visited
+  local -A raw_import raw_visited
   rainbow=( '21' '27' '33' '39' '45' '51' '50' '49' '48' '47' '46' '82' '118' '154' '190' '226' '220' '214' '208' '202' '196' '197' '198' '199' '200' '201' '165' '129' '93' '57' )
 
   shuffle rainbow
@@ -12,7 +12,7 @@ runner_dry () { #HELP <yaml_file>|Display the runner bash script without executi
 
   filepath="$(normalizedpath "${1}")"
 
-  while is not var "visited[${filepath}]"
+  while is not var "raw_visited[${filepath}]"
   do
     if is not file "${filepath}"
     then
@@ -45,12 +45,12 @@ runner_dry () { #HELP <yaml_file>|Display the runner bash script without executi
         ) end
       ) else (
         $IMPORT
-      ) end | ([.import | to_entries[] | select(.value == null) | .key | "if is not var \"import[" + . + "]\"; then import[" + . + "]=\"$(gojq --yaml-input --raw-output --monochrome-output --compact-output \".group |= walk(if type == \\\"object\\\" then with_entries(if .key == \\\"imported\\\" then .value |= \\\"$(normalizedpath \"$(dirname " + . + ")\")/\\\" + (. | sub(\\\"^[.]/\\\"; \\\"\\\")) else . end) else . end)\" " + . + ")\"; fi"] | join(";"))
+      ) end | ([.import | to_entries[] | select(.value == null) | .key | "if is not var \"raw_import[" + . + "]\"; then raw_import[" + . + "]=\"$(gojq --yaml-input --raw-output --monochrome-output --compact-output \".group |= walk(if type == \\\"object\\\" then with_entries(if .key == \\\"imported\\\" then .value |= \\\"$(normalizedpath \"$(dirname " + . + ")\")/\\\" + (. | sub(\\\"^[.]/\\\"; \\\"\\\")) else . end) else . end)\" " + . + ")\"; fi"] | join(";"))
     ')"
-    assoc2json import
+    import="$(json encode raw_import)"
 
-    visited["${filepath}"]='true'
-    assoc2json visited
+    raw_visited["${filepath}"]='true'
+    visited="$(json encode raw_visited)"
     filepath="$(normalizedpath "$(gojq --null-input --raw-output --monochrome-output --compact-output --argjson IMPORT "{\"import\": ${import}}" --argjson VISITED "${visited}" '[[$IMPORT.import, $VISITED][] | keys] | [.[0] - .[1], .[1] - .[0]] | add | unique[0] // empty')")"
   done
 

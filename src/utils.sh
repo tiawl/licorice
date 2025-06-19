@@ -91,19 +91,23 @@ global () {
   declare -g "${@}"
 }
 
-assoc2json () {
-  while gt "${#}" '0'
-  do
-    local -n ref
-    ref="${1}"
+json () {
+  local -n ref
+  ref="${2}"
+  case "${1}" in
+  ( encode )
     if is associative "${!ref}"
     then
-      unset ref[0]
-    fi
-    ref="$(gojq --monochrome-output --null-input --compact-output '($ARGS.positional | [.[:$n], .[$n:]] | transpose | map(last as $last | {(first): (if (($last | type == "number") or (($last | type == "string") and ($last | test("^[0-9]+$")))) then ($last | tostring) else (try ($last | fromjson) catch $last) end)}) | add) // {}' --argjson n "${#ref[@]}" --args "${!ref[@]}" "${ref[@]}")"
-    unset -n ref
-    shift
-  done
+      gojq --null-input --raw-output --monochrome-output --compact-output '($ARGS.positional | [.[:$n], .[$n:]] | transpose | map(last as $last | {(first): (if (($last | type == "number") or (($last | type == "string") and ($last | test("^[0-9]+$")))) then ($last | tostring) else (try ($last | fromjson) catch $last) end)}) | add) // {}' --argjson n "${#ref[@]}" --args "${!ref[@]}" "${ref[@]}"
+    elif is indexed "${!ref}"
+    then
+      gojq --null-input --raw-output --monochrome-output --compact-output '$ARGS.positional' --args "${p[@]}"
+    else
+      error 'Only usable with indexed and associative array'
+    fi ;;
+  esac
+  unset -n ref
+  shift
 }
 
 on () {

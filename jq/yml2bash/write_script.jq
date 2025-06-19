@@ -273,39 +273,6 @@ def assign(level; mode): (
   ) | indent(level)
 );
 
-def before_orchestrator(level; mode): {
-  image: {
-    tag: {
-      compute: (try (
-        .image.tag.compute as $compute |
-          if $compute then [
-            ({assign: {vars: [[{literal: "assoc"}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
-            ({mutate: {name: {var: "assoc"}, type: "associative", value: $compute.buildargs}} | mutate($NOINDENT; $MODE.internal; mode)),
-            "assoc2json assoc"
-          ] else null end
-      ) catch null)
-    },
-    build: (try (
-      .image.build as $build |
-        if $build then [
-          ({assign: {vars: [[{literal: "assoc"}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
-          ({mutate: {name: {var: "assoc"}, type: "associative", value: $build.args}} | mutate($NOINDENT; $MODE.internal; mode)),
-          "assoc2json assoc"
-        ] else null end
-    ) catch null),
-    merge: (try (
-      .image.merge as $merge |
-        if $merge then ([
-          {assign: {vars: [range($merge.chain | length) | [{literal: ("assoc" + tostring)}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)
-        ] + [
-          range($merge.chain | length) | {mutate: {name: {var: ("assoc" + tostring)}, type: "associative", value: ($merge.chain[.].args // [])}} | mutate($NOINDENT; $MODE.internal; mode)
-        ] + [
-          "assoc2json " + ([range($merge.chain | length) | "assoc" + tostring] | join(" "))
-        ]) else null end
-    ) catch null)
-  }
-};
-
 def orchestrator(mode): {
   image: {
     builder: {
@@ -588,21 +555,21 @@ def arithmetic(level; mode): (
   ("(" + (.arithmetic | arithmetic_inner(mode)) + ")") | indent(level)
 );
 
-def define(level; mode): (
-  def group(level; mode; multilined; indent_first): (
-    def command(level; mode; multilined): (
-      def switch(level; mode): (
+def define(level; mode; nested_register): (
+  def group(level; mode; multilined; indent_first; nested_register): (
+    def command(level; mode; multilined; nested_register): (
+      def switch(level; mode; nested_register): (
         .switch as $input | .switch |
           ("case " + (.evaluate | sanitize(mode)) + " in\n") | indent(level) + (
             $input.branches | map(
               . as $branch |
               ("( " + ($branch.pattern | sanitize(mode)) + " ) ") | indent(level) +
-              ($branch | group(level; mode; true; false)) + " ;;\n"
+              ($branch | group(level; mode; true; false; nested_register)) + " ;;\n"
             ) | join("")
           ) + ("esac" | indent(level))
       );
 
-      def raw(level; mode): (
+      def raw(level; mode; nested_register): (
         .raw |
           if (mode != $MODE.internal) then (
             "\"raw\" can only be used as internal user" | exit
@@ -612,36 +579,36 @@ def define(level; mode): (
           ) else . end |
           (.command + " " + (.args | map(sanitize(mode)) | join(" ")) + (
             if (has("pipe")) then (
-              " | " + (.pipe | group($NOINDENT; mode; false; false))
+              " | " + (.pipe | group($NOINDENT; mode; false; false; nested_register))
             ) else "" end
           )) | indent(level)
       );
 
-      def coproc(level; mode): (
+      def coproc(level; mode; nested_register): (
         .coproc |
           if (mode != $MODE.internal) then (
             "\"coproc\" can only be used as internal user" | exit
           ) else . end |
-          (group(level; mode; true; false)) as $group |
+          (group(level; mode; true; false; nested_register)) as $group |
           if (.name | test("^[A-Z_][A-Z0-9_]*$") | not) then (
             "Bad coproc name: \"" + . + "\"" | exit
           ) else . end |
           (("coproc " + .name + " ") | indent(level)) + $group
       );
 
-      def call(mode): (
+      def call(mode; nested_register): (
         .call |
           if (.command | test("\\s")) then (
             ".call.command must not contain space characters" | exit
           ) else . end |
           $NAMESPACE.internal + "call \"" + (($NAMESPACE.user + .command + " " + (.args | map(sanitize(mode)) | join(" "))) | remove_useless_quotes) + (
             if (has("pipe")) then (
-              " | " + (.pipe | group($NOINDENT; mode; false; false))
+              " | " + (.pipe | group($NOINDENT; mode; false; false; nested_register))
             ) else "" end
           ) + "\""
       );
 
-      def runner_exec(level; mode): (
+      def runner_exec(level; mode; nested_register): (
         .runner.exec as $exec |
         $exec.args // [] as $exec_args |
         ($NAMESPACE.internal + "runner_exec_" + ($exec.imported | sub("\\.ya?ml$"; "") | gsub("[^a-zA-Z0-9]"; "_"))) as $fn_name |
@@ -650,137 +617,36 @@ def define(level; mode): (
               name: $fn_name,
               group: $IMPORT[$exec.imported].group
             }
-          } | define(level; mode) + (
+          } | define(level; mode; nested_register) + (
             {
-              program: ($fn_name + " " + ($exec_args | map(sanitize(mode)) | join(" "))),
-              xtrace: ("runner exec " + $exec.imported + " " + ($exec_args | map(sanitize(mode)) | join(" ")))
+              program: ($fn_name + (if ($exec_args | length > 0) then " " else "" end) + ($exec_args | map(sanitize(mode)) | join(" "))),
+              xtrace: ("runner exec " + $exec.imported + (if ($exec_args | length > 0) then " " else "" end) + ($exec_args | map(sanitize(mode)) | join(" ")))
             } | xtrace(mode) | map(indent(level)) | join("\n")
           )
       );
 
-      def traceable(level; mode): (
-        if (isempty(.[])) then (
-          []
-        ) else (
-          def filter_orchestrator(expected_type): (
-            walk(
-              if (type == "object") then (
-                with_entries(select((.value != null) and (.value | (type == "object" and length == 0) | not)))
-              ) else . end
-            ) | .. | select(type == expected_type)
-          );
-
-          . as $input |
-          ((orchestrator(mode) | filter_orchestrator("string")) // null) as $program |
-          if ($program | type == "string") then (
-            {
-              before: ((before_orchestrator(level; mode) | filter_orchestrator("array")) // []),
-              program: $program,
-              xtrace: $program
-            }
-          ) elif ($input | has("call")) then (
-            {
-              program: ($input | call(mode)),
-              xtrace: ($input.call.command + " " + ($input.call.args | map(sanitize(mode)) | join(" ")))
-            }
-          ) else (
-            "Unknown traceable type: \"" + ($input | tostring) + "\"" | exit
-          ) end | xtrace(mode) | map(indent(level))
-        ) end
-      );
-
-      def deferrable(level; mode): (
-        traceable(level; mode)
-      );
-
-      def defer(level; mode): (
-        .defer |
-        deferrable(-1; mode) | map(
-          "defer '" + gsub("'"; "'\"'\"'") + "'" | indent(level)
-        ) | join("\n")
-      );
-
-      def conditionable(level; mode): (
-        traceable(level; mode)
-      );
-
-      def conditional(level; mode): (
-        def conditional_inner(level; mode): (
-          def conditional_op(mode): (
-            if (has("not")) then (
-              "{ ! " + (.not | conditional_op(mode)) + "; }"
-            ) else (
-              group($NOINDENT; mode; false; false)
-            ) end
-          );
-
-          {
-            cond: (
-              # "else" case
-              if ((type == "object") and (keys | length == 1) and (keys[0] == "group")) then (
-                ""
-              # "if" and "elif" cases
-              ) else (
-                conditional_op(mode)
-              ) end
-            ),
-            group: group(level; mode; true; false),
-          }
-        );
-
-        .if | . as $input |
-        if (has("group") | not) then (
-          ".if used without .if.group" | exit
-        ) else . end |
-        {
-          if: conditional_inner(level; mode),
-          else: []
-        } as $output | $input |
-          if (has("else")) then (
-            $output | setpath(["else"]; .else + [
-              $input.else[] | conditional_inner(level; mode)
-            ])
-          ) else (
-            $output
-          ) end |
-          (("if " + .if.cond + "; then ") | indent(level)) +
-          .if.group + (
-            if (.else | length > 0) then (
-              .else | map(
-                (
-                  if (.cond | length > 0) then (
-                    " elif " + .cond + "; then "
-                  ) else (
-                    " else "
-                  ) end
-                ) + .group
-              ) | join("")
-            ) else "" end
-          ) + " fi"
-      );
-
-      def sourceable(mode): (
-        if (has("call")) then call(mode)
+      def sourceable(mode; nested_register): (
+        if (has("call")) then call(mode; nested_register)
         elif (has("print")) then print(-1; mode)
         else ("Authorized tasks into source.from JSON array are \"call\" and \"print\"" | exit)
         end
       );
 
-      def source(level; mode): (
+      def source(level; mode; nested_register): (
         .source |
           if (has("string")) then (
             ("source /proc/self/fd/0 <<< " + (.string | map(sanitize(mode)) | join(" "))) | indent(level)
           ) elif (has("from")) then (
             (if (mode != $MODE.internal) then $MODE.quiet else mode end) as $mode |
               ("source <(\n" | indent(level)) +
-              (.from | map(sourceable($mode) | indent(level | incr_indent_level(1))) | join("\n")) + "\n" +
+              (.from | map(sourceable($mode; nested_register) | indent(level | incr_indent_level(1))) | join("\n")) + "\n" +
               (")" | indent(level))
             ) else (
             "Authorized fields into source JSON object are \"string\" and \"from\"" | exit
           ) end
       );
 
-      def register(level; mode): (
+      def register(level; mode; nested): (
         .register as $input | .register |
         (if (mode == $MODE.internal) then 0 else 1 end) as $offset |
           if (has("into") | not) then (
@@ -791,7 +657,7 @@ def define(level; mode): (
           ) else . end |
           if (has("group")) then (
             if (mode == $MODE.internal) then (
-              group(level | incr_indent_level($offset); mode; true; false) as $group |
+              group(level | incr_indent_level($offset); mode; true; false; nested) as $group |
               {
                 mutate: {
                   name: $input.into,
@@ -802,7 +668,7 @@ def define(level; mode): (
               if ((.into | has("var")) and (.into.var | is_legit_varname | not)) then (
                 .into | bad_varname
               ) else . end |
-              (group($NOINDENT; mode; false; false) | gsub("'"; "'\"'\"'")) as $group |
+              (group($NOINDENT; mode; false; false; true) | gsub("'"; "'\"'\"'")) as $group |
               if (.into | has("var")) then (
                 (($NAMESPACE.internal + "register '" + $NAMESPACE.user + $input.into.var + "' '" + $group + "'") | indent(level))
               ) elif ((.into | has("special")) and (.into.special == "last")) then (
@@ -826,6 +692,153 @@ def define(level; mode): (
           ) end
       );
 
+      def before_orchestrator(level; mode): {
+        image: {
+          tag: {
+            compute: (try (
+              .image.tag.compute as $compute |
+                if $compute then [
+                  ({assign: {vars: [[{literal: "raw_assoc"}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
+                  ({mutate: {name: {var: "raw_assoc"}, type: "associative", value: $compute.buildargs}} | mutate($NOINDENT; $MODE.internal; mode)),
+                  ({
+                    register: {
+                      group: {commands: [{raw: {command: "json", args: [[{literal: "encode"}], [{literal: "raw_assoc"}]]}}]},
+                      into: {var: "assoc"}
+                    }
+                  } | register($NOINDENT; $MODE.internal; nested_register))
+                ] else null end
+            ) catch null)
+          },
+          build: (try (
+            .image.build as $build |
+              if $build then [
+                ({assign: {vars: [[{literal: "assoc"}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
+                ({mutate: {name: {var: "assoc"}, type: "associative", value: $build.args}} | mutate($NOINDENT; $MODE.internal; mode)),
+                "json encode assoc"
+              ] else null end
+          ) catch null),
+          merge: (try (
+            .image.merge as $merge |
+              if $merge then ([
+                {assign: {vars: [range($merge.chain | length) | [{literal: ("raw_assoc" + tostring)}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)
+              ] + ([
+                  range($merge.chain | length) |
+                  [
+                    ({mutate: {name: {var: ("raw_assoc" + tostring)}, type: "associative", value: ($merge.chain[.].args // [])}} | mutate($NOINDENT; $MODE.internal; mode)),
+                    ({
+                      register: {
+                        group: {commands: [{raw: {command: "json", args: [[{literal: "encode"}], [{literal: ("raw_assoc" + tostring)}]]}}]},
+                        into: {var: ("assoc" + tostring)}
+                      }
+                    } | register(-1; $MODE.internal; nested_register) | split("\n")[])
+                  ]
+                ] | add)
+              ) else null end
+          ) catch null)
+        }
+      };
+
+      def traceable(level; mode; nested_register): (
+        if (isempty(.[])) then (
+          []
+        ) else (
+          def filter_orchestrator(expected_type): (
+            walk(
+              if (type == "object") then (
+                with_entries(select((.value != null) and (.value | (type == "object" and length == 0) | not)))
+              ) else . end
+            ) | .. | select(type == expected_type)
+          );
+
+          . as $input |
+          ((orchestrator(mode) | filter_orchestrator("string")) // null) as $program |
+          if ($program | type == "string") then (
+            {
+              before: ((before_orchestrator(level; mode) | filter_orchestrator("array")) // []),
+              program: $program,
+              xtrace: $program
+            }
+          ) elif ($input | has("call")) then (
+            {
+              program: ($input | call(mode; nested_register)),
+              xtrace: ($input.call.command + " " + ($input.call.args | map(sanitize(mode)) | join(" ")))
+            }
+          ) else (
+            "Unknown traceable type: \"" + ($input | tostring) + "\"" | exit
+          ) end | xtrace(mode) | map(indent(level))
+        ) end
+      );
+
+      def deferrable(level; mode; nested_register): (
+        traceable(level; mode; nested_register)
+      );
+
+      def defer(level; mode; nested_register): (
+        .defer |
+        deferrable(-1; mode; nested_register) | map(
+          "defer '" + gsub("'"; "'\"'\"'") + "'" | indent(level)
+        ) | join("\n")
+      );
+
+      def conditionable(level; mode; nested_register): (
+        traceable(level; mode; nested_register)
+      );
+
+      def conditional(level; mode; nested_register): (
+        def conditional_inner(level; mode; nested_register): (
+          def conditional_op(mode; nested_register): (
+            if (has("not")) then (
+              "{ ! " + (.not | conditional_op(mode; nested_register)) + "; }"
+            ) else (
+              group($NOINDENT; mode; false; false; nested_register)
+            ) end
+          );
+
+          {
+            cond: (
+              # "else" case
+              if ((type == "object") and (keys | length == 1) and (keys[0] == "group")) then (
+                ""
+              # "if" and "elif" cases
+              ) else (
+                conditional_op(mode; nested_register)
+              ) end
+            ),
+            group: group(level; mode; true; false; nested_register),
+          }
+        );
+
+        .if | . as $input |
+        if (has("group") | not) then (
+          ".if used without .if.group" | exit
+        ) else . end |
+        {
+          if: conditional_inner(level; mode; nested_register),
+          else: []
+        } as $output | $input |
+          if (has("else")) then (
+            $output | setpath(["else"]; .else + [
+              $input.else[] | conditional_inner(level; mode; nested_register)
+            ])
+          ) else (
+            $output
+          ) end |
+          (("if " + .if.cond + "; then ") | indent(level)) +
+          .if.group + (
+            if (.else | length > 0) then (
+              .else | map(
+                (
+                  if (.cond | length > 0) then (
+                    " elif " + .cond + "; then "
+                  ) else (
+                    " else "
+                  ) end
+                ) + .group
+              ) | join("")
+            ) else "" end
+          ) + " fi"
+      );
+
       is_unique_key_object |
 
       if (has("harden")) then (
@@ -835,17 +848,17 @@ def define(level; mode): (
       ) elif (has("mutate")) then (
         mutate(level; mode; mode)
       ) elif (has("define")) then (
-        define(level; mode)
+        define(level; mode; nested_register)
       ) elif (has("readonly")) then (
         readonly(level; mode)
       ) elif (has("if")) then (
-        conditional(level; mode)
+        conditional(level; mode; nested_register)
       ) elif (has("switch")) then (
-        switch(level; mode)
+        switch(level; mode; nested_register)
       ) elif (has("defer")) then (
-        defer(level; mode)
+        defer(level; mode; nested_register)
       ) elif (has("register")) then (
-        register(level; mode)
+        register(level; mode; nested_register)
       ) elif (has("parameters")) then (
         parameters(level; mode)
       ) elif (has("capture") or has("restore")) then (
@@ -853,7 +866,7 @@ def define(level; mode): (
       ) elif (has("on") or has("off")) then (
         on_off(level; mode)
       ) elif (has("source")) then (
-        source(level; mode)
+        source(level; mode; nested_register)
       ) elif (has("arithmetic")) then (
         arithmetic(level; mode)
       ) elif (has("print")) then (
@@ -865,17 +878,17 @@ def define(level; mode): (
       ) elif (has("split")) then (
         split(level)
       ) elif (has("runner")) then (
-        runner_exec(level; mode)
+        runner_exec(level; mode; nested_register)
       ) elif (has("group")) then (
-        group(level; mode; multilined; true)
+        group(level; mode; multilined; true; nested_register)
       ) elif (has("raw")) then (
-        raw(level; mode)
+        raw(level; mode; nested_register)
       ) elif (has("coproc")) then (
-        coproc(level; mode)
+        coproc(level; mode; nested_register)
       ) elif (has("initialized")) then (
         $MODE.user
       ) else (
-        traceable(level; mode) | join(if (multilined) then "\n" else "; " end)
+        traceable(level; mode; nested_register) | join(if (multilined) then "\n" else "; " end)
       ) end
     );
 
@@ -913,7 +926,7 @@ def define(level; mode): (
     );
 
     (
-      if (multilined) then (
+      if (multilined and (nested_register | not)) then (
         {
           first: "\n",
           between: "\n",
@@ -938,7 +951,7 @@ def define(level; mode): (
           output: []
         };
         . as $reduce_input |
-        ($item | command(level | incr_indent_level(1); $reduce_input.mode; multilined)) as $output |
+        ($item | command(level | incr_indent_level(1); $reduce_input.mode; multilined; nested_register)) as $output |
         if ($output | type == "string") then (
           {
             mode: $reduce_input.mode,
@@ -963,7 +976,7 @@ def define(level; mode): (
   );
 
   .define |
-    (group(level; mode; true; true)) as $group |
+    (group(level; mode; true; true; nested_register)) as $group |
     if (.name | is_legit_varname | not) then (
       bad_varname
     ) else . end | (
@@ -1085,7 +1098,7 @@ def internals(level): (
         }
       }
     }
-  ] | map(define(level; $MODE.internal)) | join("")
+  ] | map(define(level; $MODE.internal; false)) | join("")
 );
 
 def main(level): (
@@ -1112,7 +1125,7 @@ def main(level): (
         )
       }
     }
-  } | define(level; $MODE.internal)
+  } | define(level; $MODE.internal; false)
 );
 
 def write_script: (
