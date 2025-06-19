@@ -507,6 +507,18 @@ def skip(level; mode): (
   (": " + (.skip | map(sanitize(mode)) | join(" "))) | indent(level)
 );
 
+def json(level; mode): (
+  (
+    "json " + (.json |
+      if (has("encode")) then (
+        "encode " + (.encode[] | sanitize(mode))
+      ) else (
+        "Unknown json op" | exit
+      ) end
+    )
+  ) | indent(level)
+);
+
 def on_off(level; mode): (
   ((keys[0]) + " " + (values[] | map(sanitize(mode)) | join(" "))) | indent(level)
 );
@@ -702,7 +714,7 @@ def define(level; mode; nested_register): (
                   ({mutate: {name: {var: "raw_assoc"}, type: "associative", value: $compute.buildargs}} | mutate($NOINDENT; $MODE.internal; mode)),
                   ({
                     register: {
-                      group: {commands: [{raw: {command: "json", args: [[{literal: "encode"}], [{literal: "raw_assoc"}]]}}]},
+                      group: {commands: [{json: {encode: [[{literal: "raw_assoc"}]]}}]},
                       into: {var: "assoc"}
                     }
                   } | register($NOINDENT; $MODE.internal; nested_register))
@@ -714,7 +726,7 @@ def define(level; mode; nested_register): (
               if $build then [
                 ({assign: {vars: [[{literal: "assoc"}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
                 ({mutate: {name: {var: "assoc"}, type: "associative", value: $build.args}} | mutate($NOINDENT; $MODE.internal; mode)),
-                "json encode assoc"
+                ({json: {encode: [[{literal: "assoc"}]]}} | json(level; mode))
               ] else null end
           ) catch null),
           merge: (try (
@@ -727,7 +739,7 @@ def define(level; mode; nested_register): (
                     ({mutate: {name: {var: ("raw_assoc" + tostring)}, type: "associative", value: ($merge.chain[.].args // [])}} | mutate($NOINDENT; $MODE.internal; mode)),
                     ({
                       register: {
-                        group: {commands: [{raw: {command: "json", args: [[{literal: "encode"}], [{literal: ("raw_assoc" + tostring)}]]}}]},
+                        group: {commands: [{json: {encode: [[{literal: ("raw_assoc" + tostring)}]]}}]},
                         into: {var: ("assoc" + tostring)}
                       }
                     } | register(-1; $MODE.internal; nested_register) | split("\n")[])
@@ -865,6 +877,8 @@ def define(level; mode; nested_register): (
         capture_restore(level)
       ) elif (has("on") or has("off")) then (
         on_off(level; mode)
+      ) elif (has("json")) then (
+        json(level; mode)
       ) elif (has("source")) then (
         source(level; mode; nested_register)
       ) elif (has("arithmetic")) then (
