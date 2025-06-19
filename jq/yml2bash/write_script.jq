@@ -61,107 +61,12 @@ def is_unique_key_object: (
   ) else . end
 );
 
-def sanitize(mode): (
-  def expansion(mode): (
-    if (among(["default", "alternate", "replace", "prompt"]) == 2) then (
-      "You can only use one of \"default\", \"alternate\", \"replace\" or \"prompt\" fields for a same variable" | exit
-    ) else . end |
-    if (has("default")) then (
-      ":-" + (.default | sanitize(mode))
-    ) elif (has("alternate")) then (
-      ":+" + (.alternate | sanitize(mode))
-    ) elif (has("prompt") and .prompt) then (
-      "@P"
-    ) elif (has("replace")) then (
-      .replace |
-        if (has("all")) then (
-          "//" + (.all | sanitize(mode)) + (if (has("with")) then ("/" + (.with | sanitize(mode))) else "" end)
-        ) elif (has("first")) then (
-          "/" + (.first | sanitize(mode)) + (if (has("with")) then ("/" + (.with | sanitize(mode))) else "" end)
-        ) elif (has("start") and (.match == "shortest")) then (
-          "#" + (.start | sanitize(mode))
-        ) elif (has("start") and (.match == "longest")) then (
-          "##" + (.start | sanitize(mode))
-        ) elif (has("end") and (.match == "shortest")) then (
-          "%" + (.end | sanitize(mode))
-        ) elif (has("end") and (.match == "longest")) then (
-          "%%" + (.end | sanitize(mode))
-        ) else (
-          "Unknown field into \"replace\": " + (. | tostring) | exit
-        ) end
-    ) else "" end
-  );
-
-  def variable(name; mode): (
-    "\"${" + name + (
-      if (has("key")) then (
-        "[" + (.key | sanitize(mode)) + "]"
-      ) elif (has("index")) then (
-        "[" + (
-          if (.index | type == "number") then (
-            .index | tostring
-          ) else (
-            "The .var.index must be number typed" | exit
-          ) end
-        ) + "]"
-      ) else "" end
-    ) + expansion(mode) + "}\""
-  );
-
-  map(
-    . as $input |
-    if (has("literal")) then (
-      "'" + .literal + "'"
-    ) elif (has("char")) then (
-      if (.char == "asterisk") then (
-        "*"
-      ) elif (.char == "tilde") then (
-        "~"
-      ) elif (.char == "atsign") then (
-        "@"
-      ) elif (.char == "newline") then (
-        "$'\\n'"
-      ) else (
-        "Unknown char: \"" + .char + "\"" | exit
-      ) end
-    ) elif (has("var")) then (
-      if (.var | is_legit_varname) then (
-        variable(if (mode != $MODE.internal) then $NAMESPACE.user else "" end + .var; mode)
-      ) else (
-        $input.var | bad_varname
-      ) end
-    ) elif (has("parameter")) then (
-      if (.parameter | type == "number") then (
-        variable(.parameter | tostring; mode)
-      ) else (
-        "Positional parameter must be number typed" | exit
-      ) end
-    ) elif (has("special")) then (
-      variable(
-        if (.special == "last") then "_"
-        elif ((.special == "FUNCNAME") or (.special == "USER") or (.special == "UID") or (.special == "HOME") or (.special == "RUNNER") or (.special == "sep")) then .special
-        else (
-          "Unknown special variable: \"" + .special + "\"" | exit
-        ) end
-      ; mode)
-    ) elif (has("file")) then (
-      "\"$(< " + (.file | sanitize(mode)) + ")\""
-    ) elif (has("unsafe")) then (
-      if (mode != $MODE.internal) then (
-        "\"unsafe\" can only be used as internal user" | exit
-      ) else . end |
-      .unsafe
-    ) else (
-      "Unknown field object passing through sanitize(): \"" + keys[0] + "\"" | exit
-    ) end
-  ) | join("")
-);
 
 def xtrace(mode): (
   (.before // []) + (
     if (mode == $MODE.user) then (
       [
-        $NAMESPACE.internal + "xtrace \"" + (.xtrace | remove_useless_quotes) + "\"",
+        $NAMESPACE.internal + "xtrace \"$(echo " + .xtrace + ")\"",
         .program
       ]
     ) else (
@@ -170,23 +75,6 @@ def xtrace(mode): (
       ]
     ) end
   )
-);
-
-def harden(level; mode): (
-  (
-    .harden |
-    "harden " + (.command | sanitize(mode)) + (
-      if (has("as") and (.as | length > 0)) then (
-        " " + (
-          if (mode != $MODE.internal) then (
-            $NAMESPACE.user
-          ) else "" end
-        ) + (.as | sanitize(mode))
-      ) elif (mode != $MODE.internal) then (
-        " '" + $NAMESPACE.user + "'" + (.command | sanitize(mode)) | gsub("''"; "")
-      ) else "" end
-    )
-  ) | indent(level)
 );
 
 def default_type: (
@@ -207,375 +95,499 @@ def check_type_coherence: (
   ) else . end
 );
 
-def mutate(level; mode; value_mode): (
-  .mutate | default_type | check_type_coherence | . as $input |
-  if (has("value") | not) then (
-    "You forgot the .mutate.value mandatory field into: " + tostring | exit
-  ) else . end |
-  if (has("scope")) then (
-    "Use assign instead of mutate to attribute a scope for this variable: " + tostring | exit
-  ) else . end |
-  if ((.name | has("var") | not) and (.name | has("special") | not)) then (
-    "In .mutate.name you can only var or special: " + tostring | exit
-  ) else . end |
-  if ((.name | has("var")) and (.name.var | is_legit_varname | not)) then (
-    .name | bad_varname
-  ) else . end |
-  (
-    if ((.name | has("special")) and (.name.special == "last")) then (
-      ": "
-    ) else (
-      if (mode != $MODE.internal) then $NAMESPACE.user else "" end + .name.var + (
-        if (has("key")) then (
-          "[" + (.key | sanitize(mode)) + "]"
-        ) else "" end
-      ) + "="
-    ) end + (
-      if (($input.type == "indexed") or ($input.type == "associative")) then (
-        ("(" + ([.value[] | map(sanitize(value_mode)) | join(" ")] | join(" ")) + ")")
-      ) else (
-        .value[0] | sanitize(mode)
-      ) end
-    )
-  ) | indent(level)
-);
-
-def assign(level; mode): (
-  .assign | default_type | check_type_coherence |
-  if (has("scope") | not) then (
-    "You forgot the .assign.scope mandatory field into: " + tostring | exit
-  ) else . end |
-  if (has("value")) then (
-    "Use mutate instead of assign to change value of this variable: " + tostring | exit
-  ) else . end |
-  (
-    (
-      if (.scope == "global") then (
-        "global "
-      ) elif (.scope == "local") then (
-        "local "
-      ) else (
-        "Unknown .assign.scope: \"" + .type + "\"" | exit
-      ) end
-    ) + (
-      if (.type == "string") then (
-        ""
-      ) elif (.type == "associative") then (
-        "-A "
-      ) elif (.type == "indexed") then (
-        "-a "
-      ) elif (.type == "reference") then (
-        "-n "
-      ) else (
-        "Unknown .assign.type: \"" + .type + "\"" | exit
-      ) end
-    ) + (.vars | map(if (mode != $MODE.internal) then $NAMESPACE.user else "" end + (. | sanitize(mode))) | join(" "))
-  ) | indent(level)
-);
-
-def orchestrator(mode): {
-  image: {
-    builder: {
-      prune: (try (
-        .image.builder.prune as $prune |
-          if $prune then "image builder prune" else null end
-      ) catch null)
-    },
-    tag: {
-      defined: (try (
-        .image.tag.defined as $defined |
-          if $defined then (
-            "image tag defined " +
-              ($defined.image | sanitize(mode)) + " " +
-              ($defined.tag | sanitize(mode))
-          ) else null end
-      ) catch null),
-      create: (try (
-        .image.tag.create as $create |
-          if $create then (
-            "image tag create " +
-              ($create.from.image | sanitize(mode)) + " " +
-              ($create.from.tag | sanitize(mode)) + " " +
-              ($create.to.image | sanitize(mode)) + " " +
-              ($create.to.tag | sanitize(mode))
-          ) else null end
-      ) catch null),
-      compute: (try (
-        .image.tag.compute as $compute |
-          if $compute then (
-            "image tag compute " +
-              ([$compute.directories[] | "directory " + sanitize(mode)] | join(" ")) +
-              (
-                if ($compute | has("buildargs")) then (
-                  " string " + ([{var: "assoc"}] | sanitize($MODE.internal))
-                ) else "" end
-              )
-          ) else null end
-      ) catch null)
-    },
-    pull: (try (
-      .image.pull as $pull |
-        if $pull then (
-          "image pull " +
-            ($pull.registry | sanitize(mode)) + " " +
-            ($pull.library | sanitize(mode)) + " " +
-            ($pull.image | sanitize(mode)) + " " +
-            ($pull.tag | sanitize(mode))
-        ) else null end
-    ) catch null),
-    remove: (try (
-      .image.remove as $remove |
-        if $remove then (
-          "image remove " +
-            ($remove.image | sanitize(mode)) + " " +
-            ($remove.tag | sanitize(mode))
-        ) else null end
-    ) catch null),
-    prune: (try (
-      .image.prune as $prune |
-        if $prune then (
-          "image prune " +
-            ($prune | sanitize(mode))
-        ) else null end
-    ) catch null),
-    build: (try (
-      .image.build as $build |
-        if $build then (
-          "image build " +
-            ($build.image | sanitize(mode)) + " " +
-            ($build.tag | sanitize(mode)) + " " +
-            ($build.context | sanitize(mode)) + " " +
-            ([{var: "assoc"}] | sanitize($MODE.internal))
-        ) else null end
-    ) catch null),
-    merge: (try (
-      .image.merge as $merge |
-        if $merge then (
-          "image merge " +
-            ($merge.image | sanitize(mode)) + " " +
-            ($merge.tag | sanitize(mode)) + " " +
-            ($merge.base | sanitize(mode)) + " " +
-            ([range($merge.chain | length) | ($merge.chain[.].context | sanitize(mode)) + " " + ([{var: ("assoc" + tostring)}] | sanitize($MODE.internal))] | join(" "))
-        ) else null end
-    ) catch null)
-  },
-  container: {
-    resource: {
-      copy: (try (
-        .container.resource.copy as $copy |
-          if $copy then (
-            "container resource copy " +
-              ($copy.name | sanitize(mode)) + " " +
-              ($copy.src | sanitize(mode)) + " " +
-              ($copy.dest | sanitize(mode))
-          ) else null end
-      ) catch null)
-    },
-    status: {
-      get: (try (
-        .container.status.get as $get |
-          if $get then (
-            "container status get " +
-              ($get | sanitize(mode))
-          ) else null end
-      ) catch null),
-      created: (try (
-        .container.status.created as $created |
-          if $created then (
-            "container status created " +
-              ($created | sanitize(mode))
-          ) else null end
-      ) catch null),
-      running: (try (
-        .container.status.running as $running |
-          if $running then (
-            "container status running " +
-              ($running | sanitize(mode))
-          ) else null end
-      ) catch null),
-      healthy: (try (
-        .container.status.healthy as $healthy |
-          if $healthy then (
-            "container status healthy " +
-              ($healthy | sanitize(mode))
-          ) else null end
-      ) catch null)
-    },
-    create: (try (
-      .container.create as $create |
-        if $create then (
-          "container create " +
-            ($create.name | sanitize(mode)) + " " +
-            ($create.image | sanitize(mode)) + " " +
-            ($create.hostname | sanitize(mode))
-        ) else null end
-    ) catch null),
-    start: (try (
-      .container.start as $start |
-        if $start then (
-          "container start " +
-            ($start.name | sanitize(mode))
-        ) else null end
-    ) catch null),
-    stop: (try (
-      .container.stop as $stop |
-        if $stop then (
-          "container stop " +
-            ($stop.name | sanitize(mode))
-        ) else null end
-    ) catch null)
-  },
-  network: {
-    ip: {
-      get: (try (
-        .network.ip.get as $get |
-          if $get then (
-            "network ip get " +
-              ($get.container | sanitize(mode)) + " " +
-              ($get.network | sanitize(mode))
-          ) else null end
-      ) catch null)
-    },
-    create: (try (
-      .network.create as $create |
-        if $create then (
-          if ($create.isolated | type != "boolean") then (
-            "network.create.isolated must be a boolean" | exit
-          ) else null end |
-          "network create " +
-            ($create.name | sanitize(mode)) + " " +
-            ($create.isolated | tostring)
-        ) else null end
-    ) catch null),
-    connect: (try (
-      .network.connect as $connect |
-        if $connect then (
-          "network connect " +
-            ($connect.network | sanitize(mode)) + " " +
-            ($connect.container | sanitize(mode))
-        ) else null end
-    ) catch null),
-    disconnect: (try (
-      .network.disconnect as $disconnect |
-        if $disconnect then (
-          "network disconnect " +
-            ($disconnect.network | sanitize(mode)) + " " +
-            ($disconnect.container | sanitize(mode))
-        ) else null end
-    ) catch null),
-    list: (try (
-      .network.list as $list |
-        if $list then (
-          "network list " +
-            ($list.pattern | sanitize(mode))
-        ) else null end
-    ) catch null),
-    created: (try (
-      .network.created as $created |
-        if $created then (
-          "network created " +
-            ($created.name | sanitize(mode))
-        ) else null end
-    ) catch null)
-  }
-};
-
-def readonly(level; mode): (
-  ("readonly -- " + (.readonly | map(if (mode != $MODE.internal) then $NAMESPACE.user else "" end + (. | sanitize(mode))) | join(" "))) | indent(level)
-);
-
-def print(level; mode): (
-  (
-    .print |
-    "printf " + (
-      if (has("var")) then (
-        if (.var | is_legit_varname) then (
-          "-v " + (if (mode != $MODE.internal) then $NAMESPACE.user else "" end) + .var + " "
-        ) else (
-          .var | bad_varname
-        ) end
-      ) else "" end
-    ) + "-- '" + .format + "' " + (.args | map(sanitize(mode)) | join(" "))
-  ) | indent(level)
-);
-
 def return(level): (
   ("return " + (.return | tostring)) | indent(level)
-);
-
-def skip(level; mode): (
-  (": " + (.skip | map(sanitize(mode)) | join(" "))) | indent(level)
-);
-
-def json(level; mode): (
-  (
-    "json " + (.json |
-      if (has("encode")) then (
-        "encode " + (.encode[] | sanitize(mode))
-      ) else (
-        "Unknown json op" | exit
-      ) end
-    )
-  ) | indent(level)
-);
-
-def on_off(level; mode): (
-  ((keys[0]) + " " + (values[] | map(sanitize(mode)) | join(" "))) | indent(level)
 );
 
 def capture_restore(level): (
   if (.capture or .restore) then (keys[0] | indent(level)) else "" end
 );
 
-def parameters(level; mode): (
-  ("set -- " + (.parameters | map(sanitize(mode)) | join(" "))) | indent(level)
-);
+def define(level; mode; nested_register; user_defined): (
+  def group(level; mode; multilined; indent_first; nested_register): (
+    def sanitize(mode; quoted): (
+      def expansion(mode): (
+        if (among(["default", "alternate", "replace", "prompt"]) == 2) then (
+          "You can only use one of \"default\", \"alternate\", \"replace\" or \"prompt\" fields for a same variable" | exit
+        ) else . end |
+        if (has("default")) then (
+          ":-" + (.default | sanitize(mode; true))
+        ) elif (has("alternate")) then (
+          ":+" + (.alternate | sanitize(mode; true))
+        ) elif (has("prompt") and .prompt) then (
+          "@P"
+        ) elif (has("replace")) then (
+          .replace |
+            if (has("all")) then (
+              "//" + (.all | sanitize(mode; true)) + (if (has("with")) then ("/" + (.with | sanitize(mode; true))) else "" end)
+            ) elif (has("first")) then (
+              "/" + (.first | sanitize(mode; true)) + (if (has("with")) then ("/" + (.with | sanitize(mode; true))) else "" end)
+            ) elif (has("start") and (.match == "shortest")) then (
+              "#" + (.start | sanitize(mode; true))
+            ) elif (has("start") and (.match == "longest")) then (
+              "##" + (.start | sanitize(mode; true))
+            ) elif (has("end") and (.match == "shortest")) then (
+              "%" + (.end | sanitize(mode; true))
+            ) elif (has("end") and (.match == "longest")) then (
+              "%%" + (.end | sanitize(mode; true))
+            ) else (
+              "Unknown field into \"replace\": " + (. | tostring) | exit
+            ) end
+        ) else "" end
+      );
 
-def arithmetic(level; mode): (
-  def arithmetic_inner(mode): (
-    def arithmetic_side(mode): (
-      is_unique_key_object |
+      def variable(name; mode; quoted): (
+        (if (quoted) then "\"" else "" end) + "${" + name + (
+          if (has("key")) then (
+            "[" + (.key | sanitize(mode; false)) + "]"
+          ) elif (has("index")) then (
+            "[" + (
+              if (.index | type == "number") then (
+                .index | tostring
+              ) else (
+                "The .var.index must be number typed" | exit
+              ) end
+            ) + "]"
+          ) else "" end
+        ) + expansion(mode) + "}" + (if (quoted) then "\"" else "" end)
+      );
 
-      if ((has("parameter")) or (has("var"))) then (
-        [.] | sanitize(mode)
-      ) elif (has("number")) then (
-        if (.number | type == "number") then (
-          .number | tostring
+      map(
+        . as $input |
+        if (has("literal")) then (
+          (if (quoted) then "'" else "" end) + .literal + (if (quoted) then "'" else "" end)
+        ) elif (has("number")) then (
+          if (.number | type != "number") then (
+            (.number | tostring) + " is not number typed" | exit
+          ) else . end |
+          (if (quoted) then "\"" else "" end) + (.number | tostring) + (if (quoted) then "\"" else "" end)
+        ) elif (has("char")) then (
+          if (.char == "asterisk") then (
+            "*"
+          ) elif (.char == "tilde") then (
+            "~"
+          ) elif (.char == "atsign") then (
+            "@"
+          ) elif (.char == "newline") then (
+            "$'\\n'"
+          ) else (
+            "Unknown char: \"" + .char + "\"" | exit
+          ) end
+        ) elif (has("var")) then (
+          if (.var | is_legit_varname) then (
+            variable(if (mode != $MODE.internal) then $NAMESPACE.user else "" end + .var; mode; quoted)
+          ) else (
+            $input.var | bad_varname
+          ) end
+        ) elif (has("parameter")) then (
+          if (.parameter | type == "number") then (
+            variable(.parameter | tostring; mode; quoted)
+          ) else (
+            "Positional parameter must be number typed" | exit
+          ) end
+        ) elif (has("special")) then (
+          variable(
+            if (.special == "last") then "_"
+            elif ((.special == "FUNCNAME") or (.special == "USER") or (.special == "UID") or (.special == "HOME") or (.special == "RUNNER") or (.special == "sep")) then .special
+            else (
+              "Unknown special variable: \"" + .special + "\"" | exit
+            ) end
+          ; mode; quoted)
+        ) elif (has("file")) then (
+          (if (quoted) then "\"" else "" end) + "$(< " + (.file | sanitize(mode; true)) + ")" + (if (quoted) then "\"" else "" end)
+        ) elif (has("input")) then (
+          "<(" + ({group: .input} | group($NOINDENT; mode; false; false; false)) + ")"
+        ) elif (has("unsafe")) then (
+          if (mode != $MODE.internal) then (
+            "\"unsafe\" can only be used as internal user" | exit
+          ) else . end |
+          .unsafe
         ) else (
-          ".number arithmetic side must be number typed" | exit
+          "Unknown field object passing through sanitize(): \"" + keys[0] + "\"" | exit
         ) end
-      ) elif (has("arithmetic")) then (
-        .arithmetic | arithmetic_inner(mode)
-      ) else (
-        "Unknown arithmetic side: " + (. | tostring) | exit
-      ) end
+      ) | join("")
     );
 
-    "( " + (
-      if (has("addition")) then (
-        .addition | ((.left | arithmetic_side(mode)) + " + " + (.right | arithmetic_side(mode)))
-      ) elif (has("substraction")) then (
-        .substraction | ((.left | arithmetic_side(mode)) + " - " + (.right | arithmetic_side(mode)))
-      ) elif (has("remainder")) then (
-        .remainder | ((.left | arithmetic_side(mode)) + " % " + (.right | arithmetic_side(mode)))
-      ) else (
-        "Unknown arithmetic operand: " + tostring | exit
-      ) end
-    ) + " )"
-  );
+    def harden(level; mode): (
+      (
+        .harden |
+        "harden " + (.command | sanitize(mode; true)) + (
+          if (has("as") and (.as | length > 0)) then (
+            " " + (
+              if (mode != $MODE.internal) then (
+                $NAMESPACE.user
+              ) else "" end
+            ) + (.as | sanitize(mode; true))
+          ) elif (mode != $MODE.internal) then (
+            " '" + $NAMESPACE.user + "'" + (.command | sanitize(mode; true)) | gsub("''"; "")
+          ) else "" end
+        )
+      ) | indent(level)
+    );
 
-  ("(" + (.arithmetic | arithmetic_inner(mode)) + ")") | indent(level)
-);
+    def mutate(level; mode; value_mode): (
+      .mutate | default_type | check_type_coherence | . as $input |
+      if (has("value") | not) then (
+        "You forgot the .mutate.value mandatory field into: " + tostring | exit
+      ) else . end |
+      if (has("scope")) then (
+        "Use assign instead of mutate to attribute a scope for this variable: " + tostring | exit
+      ) else . end |
+      if ((.name | has("var") | not) and (.name | has("special") | not)) then (
+        "In .mutate.name you can only var or special: " + tostring | exit
+      ) else . end |
+      if ((.name | has("var")) and (.name.var | is_legit_varname | not)) then (
+        .name | bad_varname
+      ) else . end |
+      (
+        if ((.name | has("special")) and (.name.special == "last")) then (
+          ": "
+        ) else (
+          if (mode != $MODE.internal) then $NAMESPACE.user else "" end + .name.var + (
+            if (has("key")) then (
+              "[" + (.key | sanitize(mode; true)) + "]"
+            ) else "" end
+          ) + "="
+        ) end + (
+          if (($input.type == "indexed") or ($input.type == "associative")) then (
+            ("(" + ([.value[] | map(sanitize(value_mode; true)) | join(" ")] | join(" ")) + ")")
+          ) else (
+            .value[0] | sanitize(mode; true)
+          ) end
+        )
+      ) | indent(level)
+    );
 
-def define(level; mode; nested_register): (
-  def group(level; mode; multilined; indent_first; nested_register): (
+    def assign(level; mode): (
+      .assign | default_type | check_type_coherence |
+      if (has("scope") | not) then (
+        "You forgot the .assign.scope mandatory field into: " + tostring | exit
+      ) else . end |
+      if (has("value")) then (
+        "Use mutate instead of assign to change value of this variable: " + tostring | exit
+      ) else . end |
+      (
+        (
+          if (.scope == "global") then (
+            "global "
+          ) elif (.scope == "local") then (
+            "local "
+          ) else (
+            "Unknown .assign.scope: \"" + .type + "\"" | exit
+          ) end
+        ) + (
+          if (.type == "string") then (
+            ""
+          ) elif (.type == "associative") then (
+            "-A "
+          ) elif (.type == "indexed") then (
+            "-a "
+          ) elif (.type == "reference") then (
+            "-n "
+          ) else (
+            "Unknown .assign.type: \"" + .type + "\"" | exit
+          ) end
+        ) + (.vars | map(if (mode != $MODE.internal) then $NAMESPACE.user else "" end + (. | sanitize(mode; true))) | join(" "))
+      ) | indent(level)
+    );
+
+    def orchestrator(mode): {
+      image: {
+        builder: {
+          prune: (try (
+            .image.builder.prune as $prune |
+              if $prune then "image builder prune" else null end
+          ) catch null)
+        },
+        tag: {
+          defined: (try (
+            .image.tag.defined as $defined |
+              if $defined then (
+                "image tag defined " +
+                  ($defined.image | sanitize(mode; true)) + " " +
+                  ($defined.tag | sanitize(mode; true))
+              ) else null end
+          ) catch null),
+          create: (try (
+            .image.tag.create as $create |
+              if $create then (
+                "image tag create " +
+                  ($create.from.image | sanitize(mode; true)) + " " +
+                  ($create.from.tag | sanitize(mode; true)) + " " +
+                  ($create.to.image | sanitize(mode; true)) + " " +
+                  ($create.to.tag | sanitize(mode; true))
+              ) else null end
+          ) catch null),
+          compute: (try (
+            .image.tag.compute as $compute |
+              if $compute then (
+                "image tag compute " +
+                  ([$compute.directories[] | "directory " + sanitize(mode; true)] | join(" ")) +
+                  (
+                    if ($compute | has("buildargs")) then (
+                      " string " + ([{var: "assoc"}] | sanitize($MODE.internal; true))
+                    ) else "" end
+                  )
+              ) else null end
+          ) catch null)
+        },
+        pull: (try (
+          .image.pull as $pull |
+            if $pull then (
+              "image pull " +
+                ($pull.registry | sanitize(mode; true)) + " " +
+                ($pull.library | sanitize(mode; true)) + " " +
+                ($pull.image | sanitize(mode; true)) + " " +
+                ($pull.tag | sanitize(mode; true))
+            ) else null end
+        ) catch null),
+        remove: (try (
+          .image.remove as $remove |
+            if $remove then (
+              "image remove " +
+                ($remove.image | sanitize(mode; true)) + " " +
+                ($remove.tag | sanitize(mode; true))
+            ) else null end
+        ) catch null),
+        prune: (try (
+          .image.prune as $prune |
+            if $prune then (
+              "image prune " +
+                ($prune | sanitize(mode; true))
+            ) else null end
+        ) catch null),
+        build: (try (
+          .image.build as $build |
+            if $build then (
+              "image build " +
+                ($build.image | sanitize(mode; true)) + " " +
+                ($build.tag | sanitize(mode; true)) + " " +
+                ($build.context | sanitize(mode; true)) + " " +
+                ([{var: "assoc"}] | sanitize($MODE.internal; true))
+            ) else null end
+        ) catch null),
+        merge: (try (
+          .image.merge as $merge |
+            if $merge then (
+              "image merge " +
+                ($merge.image | sanitize(mode; true)) + " " +
+                ($merge.tag | sanitize(mode; true)) + " " +
+                ($merge.base | sanitize(mode; true)) + " " +
+                ([range($merge.chain | length) | ($merge.chain[.].context | sanitize(mode; true)) + " " + ([{var: ("assoc" + tostring)}] | sanitize($MODE.internal; true))] | join(" "))
+            ) else null end
+        ) catch null)
+      },
+      container: {
+        resource: {
+          copy: (try (
+            .container.resource.copy as $copy |
+              if $copy then (
+                "container resource copy " +
+                  ($copy.name | sanitize(mode; true)) + " " +
+                  ($copy.src | sanitize(mode; true)) + " " +
+                  ($copy.dest | sanitize(mode; true))
+              ) else null end
+          ) catch null)
+        },
+        status: {
+          get: (try (
+            .container.status.get as $get |
+              if $get then (
+                "container status get " +
+                  ($get | sanitize(mode; true))
+              ) else null end
+          ) catch null),
+          created: (try (
+            .container.status.created as $created |
+              if $created then (
+                "container status created " +
+                  ($created | sanitize(mode; true))
+              ) else null end
+          ) catch null),
+          running: (try (
+            .container.status.running as $running |
+              if $running then (
+                "container status running " +
+                  ($running | sanitize(mode; true))
+              ) else null end
+          ) catch null),
+          healthy: (try (
+            .container.status.healthy as $healthy |
+              if $healthy then (
+                "container status healthy " +
+                  ($healthy | sanitize(mode; true))
+              ) else null end
+          ) catch null)
+        },
+        create: (try (
+          .container.create as $create |
+            if $create then (
+              "container create " +
+                ($create.name | sanitize(mode; true)) + " " +
+                ($create.image | sanitize(mode; true)) + " " +
+                ($create.hostname | sanitize(mode; true))
+            ) else null end
+        ) catch null),
+        start: (try (
+          .container.start as $start |
+            if $start then (
+              "container start " +
+                ($start.name | sanitize(mode; true))
+            ) else null end
+        ) catch null),
+        stop: (try (
+          .container.stop as $stop |
+            if $stop then (
+              "container stop " +
+                ($stop.name | sanitize(mode; true))
+            ) else null end
+        ) catch null)
+      },
+      network: {
+        ip: {
+          get: (try (
+            .network.ip.get as $get |
+              if $get then (
+                "network ip get " +
+                  ($get.container | sanitize(mode; true)) + " " +
+                  ($get.network | sanitize(mode; true))
+              ) else null end
+          ) catch null)
+        },
+        create: (try (
+          .network.create as $create |
+            if $create then (
+              if ($create.isolated | type != "boolean") then (
+                "network.create.isolated must be a boolean" | exit
+              ) else null end |
+              "network create " +
+                ($create.name | sanitize(mode; true)) + " " +
+                ($create.isolated | tostring)
+            ) else null end
+        ) catch null),
+        connect: (try (
+          .network.connect as $connect |
+            if $connect then (
+              "network connect " +
+                ($connect.network | sanitize(mode; true)) + " " +
+                ($connect.container | sanitize(mode; true))
+            ) else null end
+        ) catch null),
+        disconnect: (try (
+          .network.disconnect as $disconnect |
+            if $disconnect then (
+              "network disconnect " +
+                ($disconnect.network | sanitize(mode; true)) + " " +
+                ($disconnect.container | sanitize(mode; true))
+            ) else null end
+        ) catch null),
+        list: (try (
+          .network.list as $list |
+            if $list then (
+              "network list " +
+                ($list.pattern | sanitize(mode; true))
+            ) else null end
+        ) catch null),
+        created: (try (
+          .network.created as $created |
+            if $created then (
+              "network created " +
+                ($created.name | sanitize(mode; true))
+            ) else null end
+        ) catch null)
+      }
+    };
+
+    def readonly(level; mode): (
+      ("readonly -- " + (.readonly | map(if (mode != $MODE.internal) then $NAMESPACE.user else "" end + (. | sanitize(mode; true))) | join(" "))) | indent(level)
+    );
+
+    def print(level; mode): (
+      (
+        .print |
+        "printf " + (
+          if (has("var")) then (
+            if (.var | is_legit_varname) then (
+              "-v " + (if (mode != $MODE.internal) then $NAMESPACE.user else "" end) + .var + " "
+            ) else (
+              .var | bad_varname
+            ) end
+          ) else "" end
+        ) + "-- '" + .format + "' " + (.args | map(sanitize(mode; true)) | join(" "))
+      ) | indent(level)
+    );
+
+    def skip(level; mode): (
+      (": " + (.skip | map(sanitize(mode; true)) | join(" "))) | indent(level)
+    );
+
+    def json(level; mode): (
+      (
+        "json " + (.json |
+          if (has("encode")) then (
+            "encode " + (.encode[] | sanitize(mode; true))
+          ) else (
+            "Unknown json op" | exit
+          ) end
+        )
+      ) | indent(level)
+    );
+
+    def color(level; mode): (
+      (.color | "_color " + (.index | sanitize(mode; true)) + " " + ((if (mode != $MODE.internal) then $NAMESPACE.user else "" end) + (.ref | sanitize(mode; true)))) | indent(level)
+    );
+
+    def on_off(level; mode): (
+      ((keys[0]) + " " + (values[] | map(sanitize(mode; true)) | join(" "))) | indent(level)
+    );
+
+    def parameters(level; mode): (
+      ("set -- " + (.parameters | map(sanitize(mode; true)) | join(" "))) | indent(level)
+    );
+
+    def arithmetic(level; mode): (
+      def arithmetic_inner(mode): (
+        def arithmetic_side(mode): (
+          if ((has("parameter")) or (has("var"))) then (
+            [.] | sanitize(mode; true)
+          ) elif (has("number")) then (
+            is_unique_key_object |
+            if (.number | type == "number") then (
+              .number | tostring
+            ) else (
+              ".number arithmetic side must be number typed" | exit
+            ) end
+          ) elif (has("arithmetic")) then (
+            is_unique_key_object |
+            .arithmetic | arithmetic_inner(mode)
+          ) else (
+            "Unknown arithmetic side: " + (. | tostring) | exit
+          ) end
+        );
+
+        "( " + (
+          if (has("addition")) then (
+            .addition | ((.left | arithmetic_side(mode)) + " + " + (.right | arithmetic_side(mode)))
+          ) elif (has("substraction")) then (
+            .substraction | ((.left | arithmetic_side(mode)) + " - " + (.right | arithmetic_side(mode)))
+          ) elif (has("remainder")) then (
+            .remainder | ((.left | arithmetic_side(mode)) + " % " + (.right | arithmetic_side(mode)))
+          ) else (
+            "Unknown arithmetic operand: " + tostring | exit
+          ) end
+        ) + " )"
+      );
+
+      ("(" + (.arithmetic | arithmetic_inner(mode)) + ")") | indent(level)
+    );
+
     def command(level; mode; multilined; nested_register): (
       def switch(level; mode; nested_register): (
         .switch as $input | .switch |
-          ("case " + (.evaluate | sanitize(mode)) + " in\n") | indent(level) + (
+          ("case " + (.evaluate | sanitize(mode; true)) + " in\n") | indent(level) + (
             $input.branches | map(
               . as $branch |
-              ("( " + ($branch.pattern | sanitize(mode)) + " ) ") | indent(level) +
+              ("( " + ($branch.pattern | sanitize(mode; true)) + " ) ") | indent(level) +
               ($branch | group(level; mode; true; false; nested_register)) + " ;;\n"
             ) | join("")
           ) + ("esac" | indent(level))
@@ -589,7 +601,7 @@ def define(level; mode; nested_register): (
           if (.command | test("\\s")) then (
             ".raw.command must not contain space characters" | exit
           ) else . end |
-          (.command + " " + (.args | map(sanitize(mode)) | join(" ")) + (
+          (.command + " " + (.args | map(sanitize(mode; true)) | join(" ")) + (
             if (has("pipe")) then (
               " | " + (.pipe | group($NOINDENT; mode; false; false; nested_register))
             ) else "" end
@@ -613,7 +625,7 @@ def define(level; mode; nested_register): (
           if (.command | test("\\s")) then (
             ".call.command must not contain space characters" | exit
           ) else . end |
-          $NAMESPACE.internal + "call \"" + (($NAMESPACE.user + .command + " " + (.args | map(sanitize(mode)) | join(" "))) | remove_useless_quotes) + (
+          $NAMESPACE.internal + "call \"" + (($NAMESPACE.user + .command + " " + (.args | map(sanitize(mode; true)) | join(" "))) | remove_useless_quotes) + (
             if (has("pipe")) then (
               " | " + (.pipe | group($NOINDENT; mode; false; false; nested_register))
             ) else "" end
@@ -623,16 +635,16 @@ def define(level; mode; nested_register): (
       def runner_exec(level; mode; nested_register): (
         .runner.exec as $exec |
         $exec.args // [] as $exec_args |
-        ($NAMESPACE.internal + "runner_exec_" + ($exec.imported | sub("\\.ya?ml$"; "") | gsub("[^a-zA-Z0-9]"; "_"))) as $fn_name |
+        ("runner_exec_" + ($exec.imported | sub("\\.ya?ml$"; "") | gsub("[^a-zA-Z0-9]"; "_"))) as $fn_name |
           {
             define: {
               name: $fn_name,
               group: $IMPORT[$exec.imported].group
             }
-          } | define(level; mode; nested_register) + (
+          } | define(level; mode; nested_register; false) + (
             {
-              program: ($fn_name + (if ($exec_args | length > 0) then " " else "" end) + ($exec_args | map(sanitize(mode)) | join(" "))),
-              xtrace: ("runner exec " + $exec.imported + (if ($exec_args | length > 0) then " " else "" end) + ($exec_args | map(sanitize(mode)) | join(" ")))
+              program: ($NAMESPACE.internal + $fn_name + (if ($exec_args | length > 0) then " " else "" end) + ($exec_args | map(sanitize(mode; true)) | join(" "))),
+              xtrace: ("runner exec " + $exec.imported + (if ($exec_args | length > 0) then " " else "" end) + ($exec_args | map(sanitize(mode; true)) | join(" ")))
             } | xtrace(mode) | map(indent(level)) | join("\n")
           )
       );
@@ -647,7 +659,7 @@ def define(level; mode; nested_register): (
       def source(level; mode; nested_register): (
         .source |
           if (has("string")) then (
-            ("source /proc/self/fd/0 <<< " + (.string | map(sanitize(mode)) | join(" "))) | indent(level)
+            ("source /proc/self/fd/0 <<< " + (.string | map(sanitize(mode; true)) | join(" "))) | indent(level)
           ) elif (has("from")) then (
             (if (mode != $MODE.internal) then $MODE.quiet else mode end) as $mode |
               ("source <(\n" | indent(level)) +
@@ -682,23 +694,27 @@ def define(level; mode; nested_register): (
               ) else . end |
               (group($NOINDENT; mode; false; false; true) | gsub("'"; "'\"'\"'")) as $group |
               if (.into | has("var")) then (
-                (($NAMESPACE.internal + "register '" + $NAMESPACE.user + $input.into.var + "' '" + $group + "'") | indent(level))
+                $NAMESPACE.internal + "register '" + $NAMESPACE.user + $input.into.var + "' '" + $group + "'"
               ) elif ((.into | has("special")) and (.into.special == "last")) then (
                 ": \"$(" + $group + ")\""
               ) else (
-                "In .register.into you can only var or special: " + tostring | exit
-              ) end
+                "In .register.into you can only use var or special \"last\": " + tostring | exit
+              ) end | indent(level)
             ) end
           ) elif (has("arithmetic")) then (
+            if ((.into | has("var")) and (.into.var | is_legit_varname | not)) then (
+              .into | bad_varname
+            ) else . end |
             arithmetic(-1; mode) as $arith |
-            {
-              mutate: {
-                name: $input.into,
-                value: [[{unsafe: ("\"$" + $arith + "\"")}]]
-              }
-            } | mutate(level | incr_indent_level($offset); $MODE.internal; mode)
+            if (.into | has("var")) then (
+              (if (mode != $MODE.internal) then $NAMESPACE.user else "" end) + $input.into.var + "=\"$" + $arith + "\""
+            ) elif ((.into | has("special")) and (.into.special == "last")) then (
+              ": \"$" + $arith + "\""
+            ) else (
+              "In .register.into you can only use var or special \"last\": " + tostring | exit
+            ) end | indent(level)
           ) elif (has("split")) then (
-            ("mapfile -t " + ($input.split | if (has("delimiter")) then ("-d " + (.delimiter | sanitize(mode))) else "" end) + " " + ($input.into | sanitize(mode)) + " <<< " + ($input.split.string | sanitize(mode))) | indent(level | incr_indent_level($offset))
+            ("mapfile -t " + ($input.split | if (has("delimiter")) then ("-d " + (.delimiter | sanitize(mode; true))) else "" end) + " " + ($input.into | sanitize(mode; true)) + " <<< " + ($input.split.string | sanitize(mode; true))) | indent(level | incr_indent_level($offset))
           ) else (
             "Authorized fields into register are: arithmetic and group" | exit
           ) end
@@ -773,7 +789,7 @@ def define(level; mode; nested_register): (
           ) elif ($input | has("call")) then (
             {
               program: ($input | call(mode; nested_register)),
-              xtrace: ($input.call.command + " " + ($input.call.args | map(sanitize(mode)) | join(" ")))
+              xtrace: ($input.call.command + " " + ($input.call.args | map(sanitize(mode; true)) | join(" ")))
             }
           ) else (
             "Unknown traceable type: \"" + ($input | tostring) + "\"" | exit
@@ -860,7 +876,7 @@ def define(level; mode; nested_register): (
       ) elif (has("mutate")) then (
         mutate(level; mode; mode)
       ) elif (has("define")) then (
-        define(level; mode; nested_register)
+        define(level; mode; nested_register; true)
       ) elif (has("readonly")) then (
         readonly(level; mode)
       ) elif (has("if")) then (
@@ -879,6 +895,8 @@ def define(level; mode; nested_register): (
         on_off(level; mode)
       ) elif (has("json")) then (
         json(level; mode)
+      ) elif (has("color")) then (
+        color(level; mode)
       ) elif (has("source")) then (
         source(level; mode; nested_register)
       ) elif (has("arithmetic")) then (
@@ -912,7 +930,7 @@ def define(level; mode; nested_register): (
         if (has("input")) then (
           .input | "<" + (
             if (has("var")) then (
-              if (.var | is_legit_varname) then ("&" + ([.] | sanitize(mode))) else (.var | bad_varname) end
+              if (.var | is_legit_varname) then ("&" + ([.] | sanitize(mode; true))) else (.var | bad_varname) end
             ) else (
               "Unknown input redirection: \"" + tostring + "\"" | exit
             ) end
@@ -928,7 +946,7 @@ def define(level; mode; nested_register): (
               ) elif (has("file")) then (
                 " " + .file
               ) elif (has("var")) then (
-                if (.var | is_legit_varname) then ("&" + ([.] | sanitize(mode))) else (.var | bad_varname) end
+                if (.var | is_legit_varname) then ("&" + ([.] | sanitize(mode; true))) else (.var | bad_varname) end
               ) else (
                 "Unknown right output redirection: \"" + tostring + "\"" | exit
               ) end
@@ -994,7 +1012,7 @@ def define(level; mode; nested_register): (
     if (.name | is_legit_varname | not) then (
       bad_varname
     ) else . end | (
-      (.name + " ()\n") | indent(level)
+      ((if (user_defined) then $NAMESPACE.user else $NAMESPACE.internal end) + .name + " ()\n") | indent(level)
     ) + $group + "\n"
 );
 
@@ -1002,7 +1020,7 @@ def internals(level): (
   [
     {
       define: {
-        name: ($NAMESPACE.internal + "init_runner"),
+        name: "init_runner",
         group: {
           commands: [
             {on: [[{literal: "errexit"}], [{literal: "inherit_errexit"}], [{literal: "errtrace"}], [{literal: "functrace"}], [{literal: "noclobber"}], [{literal: "nounset"}], [{literal: "pipefail"}], [{literal: "lastpipe"}], [{literal: "extglob"}]]},
@@ -1016,7 +1034,7 @@ def internals(level): (
     },
     {
       define: {
-        name: ($NAMESPACE.internal + "call"),
+        name: "call",
         group: {
           commands: [
             {assign: {vars: [[{literal: "authorized"}]], scope: "local"}},
@@ -1042,7 +1060,7 @@ def internals(level): (
     },
     {
       define: {
-        name: ($NAMESPACE.internal + "autoincr"),
+        name: "autoincr",
         group: {
           commands: [
             {assign: {vars: [[{literal: "ref"}]], type: "reference", scope: "local"}},
@@ -1062,7 +1080,7 @@ def internals(level): (
     },
     {
       define: {
-        name: ($NAMESPACE.internal + "color"),
+        name: "color",
         group: {
           commands: [
             {assign: {vars: [[{literal: "i"}]], scope: "local"}},
@@ -1083,7 +1101,7 @@ def internals(level): (
     },
     {
       define: {
-        name: ($NAMESPACE.internal + "xtrace"),
+        name: "xtrace",
         group: {
           commands: [
             {raw: {command: ($NAMESPACE.internal + "autoincr"), args: [[{literal: "reply"}]]}},
@@ -1097,7 +1115,7 @@ def internals(level): (
     },
     {
       define: {
-        name: ($NAMESPACE.internal + "register"),
+        name: "register",
         group: {
           commands: [
             {assign: {vars: [[{literal: "ref"}]], type: "reference", scope: "local"}},
@@ -1112,13 +1130,13 @@ def internals(level): (
         }
       }
     }
-  ] | map(define(level; $MODE.internal; false)) | join("")
+  ] | map(define(level; $MODE.internal; false; false)) | join("")
 );
 
 def main(level): (
   {
     define: {
-      name: ($NAMESPACE.internal + "main"),
+      name: "main",
       group: {
         commands: (
           [
@@ -1139,7 +1157,7 @@ def main(level): (
         )
       }
     }
-  } | define(level; $MODE.internal; false)
+  } | define(level; $MODE.internal; false; false)
 );
 
 def write_script: (

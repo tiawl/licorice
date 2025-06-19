@@ -9,5 +9,5 @@ runner_exec () { #HELP <yaml_file> [<arg1> <args2> ...]|Execute the runner descr
 
   shift
 
-  env --ignore-environment BASH="${BASH:-}" bash --norc --noprofile -s -c "${script}" -- "${@}"
+  env --ignore-environment BASH="${BASH:-}" bash --norc --noprofile <(printf '%s' "${script}") "${@}"
 }
