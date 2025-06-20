@@ -14,6 +14,6 @@ exec env --ignore-environment SDIR='/path/to/parent/dir/of/compile.sh' BASH_ENV=
 
 It will produce an executable into the `bin` directory of the project. You can now move it into your favorite bin location.
 
-## Licence
+## License
 
 This repository is dedicated to the public domain. See the LICENSE file for more details.

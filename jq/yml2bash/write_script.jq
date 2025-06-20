@@ -42,10 +42,6 @@ def bad_varname: (
   "Bad variable name: \"" + . + "\"" | exit
 );
 
-def remove_useless_quotes: (
-  gsub("\""; "'") | gsub("''"; "")
-);
-
 def among(k): (
   . as $input |
     reduce k[] as $item (0; . + ($input | if has($item) then 1 else 0 end))
@@ -625,7 +621,7 @@ def define(level; mode; nested_register; user_defined): (
           if (.command | test("\\s")) then (
             ".call.command must not contain space characters" | exit
           ) else . end |
-          $NAMESPACE.internal + "call \"" + (($NAMESPACE.user + .command + " " + (.args | map(sanitize(mode; true)) | join(" "))) | remove_useless_quotes) + (
+          $NAMESPACE.internal + "call \"$(echo " + (($NAMESPACE.user + .command + " " + (.args | map(sanitize(mode; true)) | join(" ")))) + ")" + (
             if (has("pipe")) then (
               " | " + (.pipe | group($NOINDENT; mode; false; false; nested_register))
             ) else "" end
