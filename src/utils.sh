@@ -324,8 +324,8 @@ bash_setup () {
   global -A sep version path
   sep[image]='/'
   sep[tag]=':'
-  sep[container]='.'
-  sep[network]='.'
+  sep[container]='-'
+  sep[network]='-'
   version[docker_api]='v1.50'
   path[docker_socket]='/var/run/docker.sock'
   readonly sep
