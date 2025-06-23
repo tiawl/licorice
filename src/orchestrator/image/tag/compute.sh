@@ -1,12 +1,12 @@
 #! /usr/bin/env bash
 
-image_tag_compute() { #HELP <key> <dir_or_str> [<key> <dir_or_str>] [...]|Compute a tag from directories and arbitrary strings. Possible keys: 'directory'/'string'
+image_tag_compute() { #HELP <key> <ctx_or_str> [<key> <ctx_or_str>] [...]|Compute a tag from contexts and arbitrary strings. Possible keys: 'context'/'string'
   shift
 
   : "$({
     while gt "${#}" '0'
     do
-      if str eq "${1}" 'directory'
+      if str eq "${1}" 'context'
       then
         if is dir "${2}"
         then

@@ -318,12 +318,7 @@ def define(level; mode; nested_register; user_defined): (
             .image.tag.compute as $compute |
               if $compute then (
                 "image tag compute " +
-                  ([$compute.directories[] | "directory " + sanitize(mode; true)] | join(" ")) +
-                  (
-                    if ($compute | has("buildargs")) then (
-                      " string " + ([{var: "assoc"}] | sanitize($MODE.internal; true))
-                    ) else "" end
-                  )
+                  ([range($compute | length) as $i | $compute[$i] | "context " + (.context | sanitize(mode; true)) + " string " + ([{var: ("assoc" + ($i | tostring))}] | sanitize($MODE.internal; true))] | join(" "))
               ) else null end
           ) catch null)
         },
@@ -721,16 +716,21 @@ def define(level; mode; nested_register; user_defined): (
           tag: {
             compute: (try (
               .image.tag.compute as $compute |
-                if $compute then [
-                  ({assign: {vars: [[{literal: "raw_assoc"}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
-                  ({mutate: {name: {var: "raw_assoc"}, type: "associative", value: $compute.buildargs}} | mutate($NOINDENT; $MODE.internal; mode)),
-                  ({
-                    register: {
-                      group: {commands: [{json: {encode: [[{literal: "raw_assoc"}]]}}]},
-                      into: {var: "assoc"}
-                    }
-                  } | register($NOINDENT; $MODE.internal; nested_register))
-                ] else null end
+                if $compute then ([
+                  {assign: {vars: [range($compute | length) | [{literal: ("raw_assoc" + tostring)}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)
+                ] + ([
+                    range($compute | length) |
+                    [
+                      ({mutate: {name: {var: ("raw_assoc" + tostring)}, type: "associative", value: ($compute[.].args // [])}} | mutate($NOINDENT; $MODE.internal; mode)),
+                      ({
+                        register: {
+                          group: {commands: [{json: {encode: [[{literal: ("raw_assoc" + tostring)}]]}}]},
+                          into: {var: ("assoc" + tostring)}
+                        }
+                      } | register(-1; $MODE.internal; nested_register) | split("\n")[])
+                    ]
+                  ] | add)
+                ) else null end
             ) catch null)
           },
           build: (try (
