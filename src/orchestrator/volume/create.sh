@@ -1,14 +1,14 @@
 #! /usr/bin/env bash
 
-network_disconnect () { #HELP <network_name> <container_name>|Disconnect <container_name> from <network_name>
+volume_create () { #HELP <volume_name>|Create a new volume
   shift
 
-  local json endpoint logged_endpoint method http_code
-  json="{\"Container\":\"${2}\",\"Force\":true}"
-  endpoint="http://${version[docker_api]}/networks/${1}/disconnect"
+  local json endpoint logged_endpoint method img http_code
+  json="{\"Name\":\"${1}\"}"
+  endpoint="http://${version[docker_api]}/volumes/create"
   logged_endpoint="${endpoint}?$(gojq --null-input --raw-output --argjson JSON "${json}" '[$JSON | to_entries[] | .key + "=" + (.value | tostring)] | join("&")')"
   method='POST'
-  readonly json endpoint logged_endpoint method
+  readonly json endpoint logged_endpoint method img
 
   printf '%s %s\n' "${method}" "${logged_endpoint//\"/\\\"}" >&2
 

@@ -1,13 +1,13 @@
 #! /usr/bin/env bash
 
-container_create () { #HELP <container_name> <image> <hostname>|Create a new container from <image>
+container_create () { #HELP <container_name> <image> <hostname> [<volumes>]|Create a new container from <image>
   shift
 
   local json endpoint logged_endpoint method img http_code
   img="${2}"
-  json="{\"Hostname\":\"${3}\",\"Image\":\"${img}${sep[tag]}$(image tag list "${img}")\"}"
+  json="{\"Hostname\":\"${3}\",\"Image\":\"${img}${sep[tag]}$(image tag list "${img}")\",\"Mounts\":${4}}"
   endpoint="http://${version[docker_api]}/containers/create?name=${1}"
-  logged_endpoint="${endpoint}&$(gojq --null-input --raw-output '['"${json}"' | to_entries[] | .key + "=" + (.value | tostring)] | join("&")')"
+  logged_endpoint="${endpoint}&$(gojq --null-input --raw-output --argjson JSON "${json}" '[$JSON | to_entries[] | .key + "=" + (.value | tostring)] | join("&")')"
   method='POST'
   readonly json endpoint logged_endpoint method img
 

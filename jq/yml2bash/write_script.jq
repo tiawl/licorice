@@ -410,13 +410,22 @@ def define(level; mode; nested_register; user_defined): (
               ) else null end
           ) catch null)
         },
+        # TODO: remove volumes here and manage this into before_orchestrator function
         create: (try (
           .container.create as $create |
             if $create then (
               "container create " +
                 ($create.name | sanitize(mode; true)) + " " +
                 ($create.image | sanitize(mode; true)) + " " +
-                ($create.hostname | sanitize(mode; true))
+                ($create.hostname | sanitize(mode; true)) + " " +
+                (
+                  $create.volumes | map(
+                  {
+                    Source: (.source | sanitize(mode; true)),
+                    Target: (.target | sanitize(mode; true)),
+                    Type: "volume"
+                  }) | tostring | @json
+                )
             ) else null end
         ) catch null),
         start: (try (
@@ -483,6 +492,29 @@ def define(level; mode; nested_register; user_defined): (
           .network.created as $created |
             if $created then (
               "network created " +
+                ($created.name | sanitize(mode; true))
+            ) else null end
+        ) catch null)
+      },
+      volume: {
+        create: (try (
+          .volume.create as $create |
+            if $create then (
+              "volume create " +
+                ($create.name | sanitize(mode; true))
+            ) else null end
+        ) catch null),
+        list: (try (
+          .volume.list as $list |
+            if $list then (
+              "volume list " +
+                ($list.pattern | sanitize(mode; true))
+            ) else null end
+        ) catch null),
+        created: (try (
+          .volume.created as $created |
+            if $created then (
+              "volume created " +
                 ($created.name | sanitize(mode; true))
             ) else null end
         ) catch null)

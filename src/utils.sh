@@ -326,6 +326,7 @@ bash_setup () {
   sep[tag]=':'
   sep[container]='-'
   sep[network]='-'
+  sep[volume]='_'
   version[docker_api]='v1.50'
   path[docker_socket]='/var/run/docker.sock'
   readonly sep
