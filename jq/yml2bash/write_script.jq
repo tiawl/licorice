@@ -242,6 +242,11 @@ def define(level; mode; nested_register; user_defined): (
           if (mode != $MODE.internal) then $NAMESPACE.user else "" end + .name.var + (
             if (has("key")) then (
               "[" + (.key | sanitize(mode; true)) + "]"
+            ) elif (has("index")) then (
+              if (.index | type != "number") then (
+                "mutate: index field must be number typed" | exit
+              ) else . end |
+              "[" + (.index | tostring) + "]"
             ) else "" end
           ) + "="
         ) end + (
@@ -410,7 +415,6 @@ def define(level; mode; nested_register; user_defined): (
               ) else null end
           ) catch null)
         },
-        # TODO: remove volumes here and manage this into before_orchestrator function
         create: (try (
           .container.create as $create |
             if $create then (
@@ -418,14 +422,7 @@ def define(level; mode; nested_register; user_defined): (
                 ($create.name | sanitize(mode; true)) + " " +
                 ($create.image | sanitize(mode; true)) + " " +
                 ($create.hostname | sanitize(mode; true)) + " " +
-                (
-                  $create.volumes | map(
-                  {
-                    Source: (.source | sanitize(mode; true)),
-                    Target: (.target | sanitize(mode; true)),
-                    Type: "volume"
-                  }) | tostring | @json
-                )
+                ([{var: "idx"}] | sanitize($MODE.internal; true))
             ) else null end
         ) catch null),
         start: (try (
@@ -750,7 +747,10 @@ def define(level; mode; nested_register; user_defined): (
               .image.tag.compute as $compute |
                 if $compute then ([
                   {assign: {vars: [range($compute | length) | [{literal: ("raw_assoc" + tostring)}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)
-                ] + ([
+                ] + [
+                  {assign: {vars: [range($compute | length) | [{literal: ("assoc" + tostring)}]], scope: "local"}} | assign($NOINDENT; $MODE.internal)
+                ] + (
+                  [
                     range($compute | length) |
                     [
                       ({mutate: {name: {var: ("raw_assoc" + tostring)}, type: "associative", value: ($compute[.].args // [])}} | mutate($NOINDENT; $MODE.internal; mode)),
@@ -768,16 +768,25 @@ def define(level; mode; nested_register; user_defined): (
           build: (try (
             .image.build as $build |
               if $build then [
-                ({assign: {vars: [[{literal: "assoc"}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
-                ({mutate: {name: {var: "assoc"}, type: "associative", value: $build.args}} | mutate($NOINDENT; $MODE.internal; mode)),
-                ({json: {encode: [[{literal: "assoc"}]]}} | json(level; mode))
+                ({assign: {vars: [[{literal: "raw_assoc"}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
+                ({assign: {vars: [[{literal: "assoc"}]], scope: "local"}} | assign($NOINDENT; $MODE.internal)),
+                ({mutate: {name: {var: "raw_assoc"}, type: "associative", value: $build.args}} | mutate($NOINDENT; $MODE.internal; mode)),
+                ({
+                  register: {
+                    group: {commands: [{json: {encode: [[{literal: "raw_assoc"}]]}}]},
+                    into: {var: "assoc"}
+                  }
+                } | register($NOINDENT; $MODE.internal; nested_register))
               ] else null end
           ) catch null),
           merge: (try (
             .image.merge as $merge |
               if $merge then ([
                 {assign: {vars: [range($merge.chain | length) | [{literal: ("raw_assoc" + tostring)}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)
-              ] + ([
+              ] + [
+                {assign: {vars: [range($merge.chain | length) | [{literal: ("assoc" + tostring)}]], scope: "local"}} | assign($NOINDENT; $MODE.internal)
+              ] + (
+                [
                   range($merge.chain | length) |
                   [
                     ({mutate: {name: {var: ("raw_assoc" + tostring)}, type: "associative", value: ($merge.chain[.].args // [])}} | mutate($NOINDENT; $MODE.internal; mode)),
@@ -790,6 +799,51 @@ def define(level; mode; nested_register; user_defined): (
                   ]
                 ] | add)
               ) else null end
+          ) catch null)
+        },
+        container: {
+          create: (try (
+            .container.create as $create |
+            if $create then (
+              [
+                {assign: {vars: [range($create.volumes | length) | [{literal: ("raw_assoc" + tostring)}]], type: "associative", scope: "local"}} | assign($NOINDENT; $MODE.internal)
+              ] + [
+                {assign: {vars: [range($create.volumes | length) | [{literal: ("assoc" + tostring)}]], scope: "local"}} | assign($NOINDENT; $MODE.internal)
+              ] + (
+                [
+                  range($create.volumes | length) | [
+                    ({mutate: {name: {var: ("raw_assoc" + tostring)}, type: "associative", value: ($create.volumes[.] | [
+                        {
+                          key: [{literal: "Source"}],
+                          value: .source
+                        },{
+                          key: [{literal: "Target"}],
+                          value: .target
+                        },{
+                          key: [{literal: "Type"}],
+                          value: [{literal: "volume"}]
+                        }
+                      ] // [])}} | mutate($NOINDENT; $MODE.internal; mode)),
+                    ({
+                      register: {
+                        group: {commands: [{json: {encode: [[{literal: ("raw_assoc" + tostring)}]]}}]},
+                        into: {var: ("assoc" + tostring)}
+                      }
+                    } | register(-1; $MODE.internal; nested_register) | split("\n")[])
+                  ]
+                ] | add
+              ) + [
+                ({assign: {vars: [[{literal: "raw_idx"}]], type: "indexed", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
+                ({assign: {vars: [[{literal: "idx"}]], scope: "local"}} | assign($NOINDENT; $MODE.internal)),
+                ({mutate: {name: {var: "raw_idx"}, type: "indexed", value: ([[[range($create.volumes | length) | {var: ("assoc" + tostring)}]]] // [])}} | mutate($NOINDENT; $MODE.internal; $MODE.internal)),
+                ({
+                  register: {
+                    group: {commands: [{json: {encode: [[{literal: "raw_idx"}]]}}]},
+                    into: {var: "idx"}
+                  }
+                } | register(-1; $MODE.internal; nested_register) | split("\n")[])
+              ]
+            ) else null end
           ) catch null)
         }
       };

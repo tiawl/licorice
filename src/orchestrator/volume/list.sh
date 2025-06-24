@@ -17,5 +17,5 @@ volume_list () { #HELP <pattern>|List volumes matching <pattern>
   exec 3>&${HTTP_CODE[1]}
 
   curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --write-out "%{stderr}%{scheme} %{response_code}\n" "${endpoint}" 2>&3 \
-    | gojq --raw-output '.[].RepoTags[]'
+    | gojq --raw-output '.Volumes[].Name'
 }

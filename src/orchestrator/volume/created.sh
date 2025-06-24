@@ -17,5 +17,5 @@ volume_created () { #HELP <name>|Succeed if a volume with <name> is found. Fail 
   exec 3>&${HTTP_CODE[1]}
 
   curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --write-out "%{stderr}%{scheme} %{response_code}\n" "${endpoint}" 2>&3 \
-    | gojq --exit-status 'length > 0' > /dev/null
+    | gojq --exit-status '.Volumes | length > 0' > /dev/null
 }

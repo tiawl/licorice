@@ -5,7 +5,7 @@ container_create () { #HELP <container_name> <image> <hostname> [<volumes>]|Crea
 
   local json endpoint logged_endpoint method img http_code
   img="${2}"
-  json="{\"Hostname\":\"${3}\",\"Image\":\"${img}${sep[tag]}$(image tag list "${img}")\",\"Mounts\":${4}}"
+  json="{\"Hostname\":\"${3}\",\"Image\":\"${img}${sep[tag]}$(image tag list "${img}")\",\"HostConfig\":{\"Mounts\":${4}}}"
   endpoint="http://${version[docker_api]}/containers/create?name=${1}"
   logged_endpoint="${endpoint}&$(gojq --null-input --raw-output --argjson JSON "${json}" '[$JSON | to_entries[] | .key + "=" + (.value | tostring)] | join("&")')"
   method='POST'
