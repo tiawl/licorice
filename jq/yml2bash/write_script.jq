@@ -438,6 +438,16 @@ def define(level; mode; nested_register; user_defined): (
               "container stop " +
                 ($stop.name | sanitize(mode; true))
             ) else null end
+        ) catch null),
+        exec: (try (
+          .container.exec as $exec |
+            if $exec then (
+              "container exec " +
+                ($exec.name | sanitize(mode; true)) + " " +
+                ($exec.detached | sanitize(mode; true)) + " " +
+                ($exec.user | sanitize(mode; true)) + " " +
+                ([{var: "idx"}] | sanitize($MODE.internal; true))
+            ) else null end
         ) catch null)
       },
       network: {
@@ -836,6 +846,22 @@ def define(level; mode; nested_register; user_defined): (
                 ({assign: {vars: [[{literal: "raw_idx"}]], type: "indexed", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
                 ({assign: {vars: [[{literal: "idx"}]], scope: "local"}} | assign($NOINDENT; $MODE.internal)),
                 ({mutate: {name: {var: "raw_idx"}, type: "indexed", value: ([[[range($create.volumes | length) | {var: ("assoc" + tostring)}]]] // [])}} | mutate($NOINDENT; $MODE.internal; $MODE.internal)),
+                ({
+                  register: {
+                    group: {commands: [{json: {encode: [[{literal: "raw_idx"}]]}}]},
+                    into: {var: "idx"}
+                  }
+                } | register(-1; $MODE.internal; nested_register) | split("\n")[])
+              ]
+            ) else null end
+          ) catch null),
+          exec: (try (
+            .container.exec as $exec |
+            if $exec then (
+              [
+                ({assign: {vars: [[{literal: "raw_idx"}]], type: "indexed", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
+                ({assign: {vars: [[{literal: "idx"}]], scope: "local"}} | assign($NOINDENT; $MODE.internal)),
+                ({mutate: {name: {var: "raw_idx"}, type: "indexed", value: $exec.command}} | mutate($NOINDENT; $MODE.internal; $MODE.internal)),
                 ({
                   register: {
                     group: {commands: [{json: {encode: [[{literal: "raw_idx"}]]}}]},

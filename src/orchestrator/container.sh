@@ -10,6 +10,7 @@ container () {
   ( 'down' ) : ;;
   ( 'status' ) container_status "${@}" ;;
   ( 'resource' ) container_resource "${@}" ;;
+  ( 'exec' ) container_exec "${@}" ;;
   ( * ) return 1 ;;
   esac
 }

@@ -18,7 +18,7 @@ basename () {
   set -- "${1%"${1##*[!/]}"}" "${2:-}"
   set -- "${1##*/}" "${2:-}"
   set -- "${1%"${2:-}"}"
-  printf '%s\n' "${1:-/}"
+  printf '%s' "${1:-/}"
 }
 
 dirname () {
@@ -32,7 +32,7 @@ dirname () {
 
   set -- "${1%/*}"
   set -- "${1%%"${1##*[!/]}"}"
-  printf '%s\n' "${1:-/}"
+  printf '%s' "${1:-/}"
 }
 
 normalizedpath () {
@@ -327,7 +327,7 @@ bash_setup () {
   sep[container]='-'
   sep[network]='-'
   sep[volume]='_'
-  version[docker_api]='v1.50'
+  version[docker_api]='v1.51'
   path[docker_socket]='/var/run/docker.sock'
   readonly sep
 }

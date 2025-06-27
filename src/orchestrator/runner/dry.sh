@@ -20,7 +20,9 @@ runner_dry () { #HELP <yaml_file>|Display the runner bash script without executi
     fi
 
     json="$(gojq --yaml-input --raw-output --monochrome-output --compact-output '.' "${filepath}")"
-    inv="$(gojq --null-input --raw-output --monochrome-output --compact-output --argjson JSON "${json}" --argjson INV "${inv:-"{\"inventory\": {}}"}" "${jq[yml2bash/common]}"'
+    inv="$(gojq --null-input --raw-output --monochrome-output --compact-output --slurpfile JSON <(printf '%s' "${json}") --slurpfile INV <(printf '%s' "${inv:-"{\"inventory\": {}}"}") "${jq[yml2bash/common]}"'
+      (if ($JSON | type == "array") then $JSON[0] else $JSON end) as $JSON |
+      (if ($INV | type == "array") then $INV[0] else $INV end) as $INV |
       $JSON |
       if (has("inventory")) then (
         if (.inventory | keys | any(IN($INV.inventory | keys[]))) then (
@@ -32,9 +34,14 @@ runner_dry () { #HELP <yaml_file>|Display the runner bash script without executi
         $INV
       ) end
     ')"
-    json="$(gojq --null-input --raw-output --monochrome-output --compact-output --argjson JSON "${json}" --argjson INV "${inv}" '$JSON * $INV | '"${jq[yml2bash/common]}${jq[yml2bash/process_inventory]}")"
+    json="$(gojq --null-input --raw-output --monochrome-output --compact-output --slurpfile JSON <(printf '%s' "${json}") --slurpfile INV <(printf '%s' "${inv}") '
+      (if ($JSON | type == "array") then $JSON[0] else $JSON end) as $JSON |
+      (if ($INV | type == "array") then $INV[0] else $INV end) as $INV |
+      $JSON * $INV | '"${jq[yml2bash/common]}${jq[yml2bash/process_inventory]}")"
 
-    source /proc/self/fd/0 <<< "$(gojq --null-input --raw-output --monochrome-output --compact-output --argjson JSON "${json}" --argjson IMPORT "{\"import\": ${import:-"{}"}}" --arg ROOT "$(dirname "${filepath}")/" "${jq[yml2bash/common]}"'
+    source /proc/self/fd/0 <<< "$(gojq --null-input --raw-output --monochrome-output --compact-output --slurpfile JSON <(printf '%s' "${json}") --slurpfile IMPORT <(printf '{"import": %s}' "${import:-"{}"}") --rawfile ROOT <(dirname "${filepath}"; printf '/') "${jq[yml2bash/common]}"'
+      (if ($JSON | type == "array") then $JSON[0] else $JSON end) as $JSON |
+      (if ($IMPORT | type == "array") then $IMPORT[0] else $IMPORT end) as $IMPORT |
       $JSON |
       if (has("import")) then (
         {import: (.import | map({($ARGS.named.ROOT + .): null}) | add)} as $json_import |
@@ -51,11 +58,27 @@ runner_dry () { #HELP <yaml_file>|Display the runner bash script without executi
 
     raw_visited["${filepath}"]='true'
     visited="$(json encode raw_visited)"
-    filepath="$(normalizedpath "$(gojq --null-input --raw-output --monochrome-output --compact-output --argjson IMPORT "{\"import\": ${import}}" --argjson VISITED "${visited}" '[[$IMPORT.import, $VISITED][] | keys] | [.[0] - .[1], .[1] - .[0]] | add | unique[0] // empty')")"
+    filepath="$(normalizedpath "$(gojq --null-input --raw-output --monochrome-output --compact-output --slurpfile IMPORT <(printf '{"import": %s}' "${import}") --slurpfile VISITED <(printf '%s' "${visited}") '
+      (if ($VISITED | type == "array") then $VISITED[0] else $VISITED end) as $VISITED |
+      (if ($IMPORT | type == "array") then $IMPORT[0] else $IMPORT end) as $IMPORT |
+      [[$IMPORT.import, $VISITED][] | keys] | [.[0] - .[1], .[1] - .[0]] | add | unique[0] // empty')")"
   done
 
   readonly inv import
 
-  gojq --raw-output "${jq[yml2bash/common]}${jq[yml2bash/write_script]}" --args "${rainbow[@]}" --arg env "$(declare -f init load_resources "${fns[@]}")" \
-    <<< "$(gojq --yaml-input --raw-output --monochrome-output --compact-output --arg ROOT "$(normalizedpath "$(dirname "${1}")")/" --argjson INV "${inv}" --argjson IMPORT "{\"import\": ${import}}" '. * $IMPORT * $INV | '"${jq[yml2bash/common]}${jq[yml2bash/process_inventory]}"' | .group |= walk(if type == "object" then with_entries(if .key == "imported" then .value |= $ARGS.named.ROOT + (. | sub("^[.]/"; "")) else . end) else . end)' "${1}")"
+  set -x
+  gojq --raw-output "${jq[yml2bash/common]}${jq[yml2bash/write_script]}" --args "${rainbow[@]}" --rawfile env <(declare -f init load_resources "${fns[@]}") \
+    <<< "$(gojq --yaml-input --raw-output --monochrome-output --compact-output --rawfile ROOT <(normalizedpath "$(dirname "${1}")"; printf '/') --slurpfile INV <(printf '%s' "${inv}") --slurpfile IMPORT <(printf '{"import": %s}' "${import}") '
+            (if ($IMPORT | type == "array") then $IMPORT[0] else $IMPORT end) as $IMPORT |
+            (if ($INV | type == "array") then $INV[0] else $INV end) as $INV |
+            . * $IMPORT * $INV | '"${jq[yml2bash/common]}${jq[yml2bash/process_inventory]}"' |
+            .group |= walk(
+              if (type == "object") then (
+                with_entries(
+                  if (.key == "imported") then (
+                    .value |= $ARGS.named.ROOT + (. | sub("^[.]/"; ""))
+                  ) else . end
+                )
+              ) else . end
+            )' "${1}")"
 }
