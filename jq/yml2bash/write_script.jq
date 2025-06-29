@@ -292,7 +292,7 @@ def define(level; mode; nested_register; user_defined): (
       ) | indent(level)
     );
 
-    def orchestrator(mode): {
+    def core(mode): {
       image: {
         builder: {
           prune: (try (
@@ -750,7 +750,7 @@ def define(level; mode; nested_register; user_defined): (
           ) end
       );
 
-      def before_orchestrator(level; mode): {
+      def before_core(level; mode): {
         image: {
           tag: {
             compute: (try (
@@ -878,7 +878,7 @@ def define(level; mode; nested_register; user_defined): (
         if (isempty(.[])) then (
           []
         ) else (
-          def filter_orchestrator(expected_type): (
+          def filter_core(expected_type): (
             walk(
               if (type == "object") then (
                 with_entries(select((.value != null) and (.value | (type == "object" and length == 0) | not)))
@@ -887,10 +887,10 @@ def define(level; mode; nested_register; user_defined): (
           );
 
           . as $input |
-          ((orchestrator(mode) | filter_orchestrator("string")) // null) as $program |
+          ((core(mode) | filter_core("string")) // null) as $program |
           if ($program | type == "string") then (
             {
-              before: ((before_orchestrator(level; mode) | filter_orchestrator("array")) // []),
+              before: ((before_core(level; mode) | filter_core("array")) // []),
               program: $program,
               xtrace: $program
             }

@@ -7,6 +7,8 @@ shebangless () {
 compile () {
   on errexit inherit_errexit errtrace functrace noclobber nounset pipefail lastpipe extglob
 
+  bash_setup
+
   harden base64
   harden cat
   harden git
@@ -14,19 +16,24 @@ compile () {
   harden rm
   harden sed
 
-  local name version len_cmd src desc
+  local name len_cmd src cmd desc
   local -a help split
   name='placid'
-  version="$(git -C "${SDIR}" describe --match *.*.* --tags --abbrev=9)"
-  version="${version%-*}"
-  version="${version%\.*}.${version##*[-.]}"
+  namespace[root]="${name}${sep[namespace]}"
+  namespace[internal]="${namespace[root]}internal${sep[namespace]}"
+  namespace[core]="${namespace[root]}core${sep[namespace]}"
+  version["${name}"]="$(git -C "${SDIR}" describe --match *.*.* --tags --abbrev=9)"
+  version["${name}"]="${version["${name}"]%-*}"
+  version["${name}"]="${version["${name}"]%\.*}.${version["${name}"]##*[-.]}"
 
   on globstar
-  for src in "${SDIR}/src"/**/*
+  for src in "${SDIR}/src/core"/**/*.sh
   do
     if is file "${src}"
     then
-      desc="$(sed -n 's/^\([a-zA-Z_][a-zA-Z0-9_]*\)\s*()\s*{\s*#HELP/\1/p' "${src}" | sed ':loop; s/^\([ a-z]\+\)_/\1 /; t loop')"
+      cmd="${src#"${SDIR}/src/core/"}"
+      cmd="${cmd%.sh}"
+      desc="$(sed -n 's/^\s*___\s*()\s*{\s*#HELP/'"${cmd//\// }"'/p' "${src}")"
       if str not empty "${desc:-}"
       then
         help+=( "${desc}" )
@@ -42,7 +49,7 @@ compile () {
     len_cmd="$(( ${#split[0]} > ${len_cmd} ? ${#split[0]} : ${len_cmd} ))"
   done
 
-  readonly name version help len_cmd
+  readonly name help len_cmd
 
   rm -rf "${SDIR}/bin"
   mkdir -p "${SDIR}/bin"
@@ -50,21 +57,29 @@ compile () {
   cat <<EOF > "${SDIR}/bin/${name}"
 #! /usr/bin/env bash
 
-$(on globstar
-  for src in "${SDIR}/src"/**/*
-  do
-    if is file "${src}"
-    then
-      sed 's/.*#SKIP$//g' "${src}" | shebangless
-      printf '\n'
-    fi
-  done)
+$(exec -c bash --noprofile --norc -O extglob -c '
+    source "${1}"/src/utils.sh
+    on globstar
+    for src in "${1}"/src/core/**/*.sh
+    do
+      if is file "${src}"
+      then
+        source "${src}"
+        def="$(declare -f ___)"
+        funcname="${src#"${1}/src/core/"}"
+        funcname="${funcname%.sh}"
+        source /proc/self/fd/0 <<< "${2}${funcname//\//"${3}"}${def#___}"
+        unset -f ___
+      fi
+    done
+    declare -f
+  ' -- "${SDIR}" "${namespace[core]}" "${sep[namespace]}")
 
-version () {
-  printf '${name} ${version}\n' >&2
+${namespace[root]}version () {
+  printf '${name} ${version["${name}"]}\n' >&2
 }
 
-help () {
+${namespace[root]}help () {
   cut_line () {
     local cols
     cols="\${COLUMNS}"
@@ -89,7 +104,7 @@ help () {
   local desc _buf
   local -a split
 
-  version
+  ${namespace[root]}version
 
   printf '\nCOMMANDS:\n' >&2
   ${help[@]@A}
@@ -114,7 +129,7 @@ help () {
   unset -f cut_line
 }
 
-load_resources () {
+${namespace[internal]}load_resources () {
   global -A sed jq buf
   global -a fns
 $(on globstar
@@ -139,7 +154,9 @@ $(on globstar
     fi
   done)
 
-  fns=( $(exec -c bash --noprofile --norc -c "source ${SDIR}/src/utils.sh; compgen -A function") \$(compgen -A function -X '!(container*|image*|volume*|network*|runner*)') )
+  fns=( $(exec -c bash --noprofile --norc -c "source ${SDIR}/src/utils.sh; compgen -A function") \$(compgen -A function -X '!(${namespace[core]}*|${namespace[internal]}*)') )
+  namespace=(${namespace[@]@K})
+  version=(${version[@]@K})
   readonly sed jq buf fns
 }
 
@@ -153,9 +170,15 @@ ${name} () {
 
   bash_setup
 
-  load_resources
+  ${namespace[internal]}load_resources
 
-  orchestrator "\${@}"
+  ${namespace[core]}init
+
+  case "\${1:-}" in
+  ( help|version ) "${namespace[root]}\${1}" "\${@:2}" ;;
+  ( image|container|network|volume|runner ) "${namespace[core]}\${1}" "\${@:2}" ;;
+  ( * ) ${namespace[root]}help ;;
+  esac
 }
 
 ${name} "\${@}"

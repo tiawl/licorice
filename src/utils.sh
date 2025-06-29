@@ -321,7 +321,8 @@ shuffle () {
 }
 
 bash_setup () {
-  global -A sep version path
+  global -A sep version path namespace
+  sep[namespace]='::'
   sep[image]='/'
   sep[tag]=':'
   sep[container]='-'
