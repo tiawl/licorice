@@ -861,7 +861,7 @@ def define(level; mode; nested_register; user_defined): (
               [
                 ({assign: {vars: [[{literal: "raw_idx"}]], type: "indexed", scope: "local"}} | assign($NOINDENT; $MODE.internal)),
                 ({assign: {vars: [[{literal: "idx"}]], scope: "local"}} | assign($NOINDENT; $MODE.internal)),
-                ({mutate: {name: {var: "raw_idx"}, type: "indexed", value: $exec.command}} | mutate($NOINDENT; $MODE.internal; $MODE.internal)),
+                ({mutate: {name: {var: "raw_idx"}, type: "indexed", value: [$exec.command]}} | mutate($NOINDENT; $MODE.internal; mode)),
                 ({
                   register: {
                     group: {commands: [{json: {encode: [[{literal: "raw_idx"}]]}}]},

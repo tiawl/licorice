@@ -98,10 +98,10 @@ json () {
   ( encode )
     if is associative "${!ref}"
     then
-      gojq --null-input --raw-output --monochrome-output --compact-output '($ARGS.positional | [.[:$n], .[$n:]] | transpose | map(last as $last | {(first): (if (($last | type == "number") or (($last | type == "string") and ($last | test("^[0-9]+$")))) then ($last | tostring) else (try ($last | fromjson) catch $last) end)}) | add) // {}' --argjson n "${#ref[@]}" --args "${!ref[@]}" "${ref[@]}"
+      gojq --null-input --raw-output --monochrome-output --compact-output '($ARGS.positional | [.[:$n], .[$n:]] | transpose | map(last as $last | {(first): (if (($last | type == "number") or (($last | type == "string") and ($last | test("^[0-9]+$")))) then ($last | tostring) else (try ($last | fromjson) catch $last) end)}) | add) // {}' --argjson n "${#ref[@]}" --args -- "${!ref[@]}" "${ref[@]}"
     elif is indexed "${!ref}"
     then
-      gojq --null-input --raw-output --monochrome-output --compact-output '$ARGS.positional | map(. as $item | try (fromjson) catch $item)' --args "${ref[@]}"
+      gojq --null-input --raw-output --monochrome-output --compact-output '$ARGS.positional | map(. as $item | try (fromjson) catch $item)' --args -- "${ref[@]}"
     else
       error 'Only usable with indexed and associative array'
     fi ;;
@@ -253,7 +253,7 @@ defer () {
       if str not eq \"\${before[*]}\" \"\${after[*]}\"
       then
         local deferred
-        for deferred in \$(gojq -n -r '\$ARGS.positional | group_by(.) | .[] | select(length == 1) | .[0]' --args \"\${before[@]}\" \"\${after[@]}\")
+        for deferred in \$(gojq -n -r '\$ARGS.positional | group_by(.) | .[] | select(length == 1) | .[0]' --args -- \"\${before[@]}\" \"\${after[@]}\")
         do
           \${deferred} \"\${1}\"
         done

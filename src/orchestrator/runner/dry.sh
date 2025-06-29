@@ -39,7 +39,7 @@ runner_dry () { #HELP <yaml_file>|Display the runner bash script without executi
       (if ($INV | type == "array") then $INV[0] else $INV end) as $INV |
       $JSON * $INV | '"${jq[yml2bash/common]}${jq[yml2bash/process_inventory]}")"
 
-    source /proc/self/fd/0 <<< "$(gojq --null-input --raw-output --monochrome-output --compact-output --slurpfile JSON <(printf '%s' "${json}") --slurpfile IMPORT <(printf '{"import": %s}' "${import:-"{}"}") --rawfile ROOT <(dirname "${filepath}"; printf '/') "${jq[yml2bash/common]}"'
+    source /proc/self/fd/0 <<< "$(gojq --null-input --raw-output --monochrome-output --compact-output --slurpfile JSON <(printf '%s' "${json}") --slurpfile IMPORT <(printf '{"import": %s}' "${import:-"{}"}") --arg ROOT "$(dirname "${filepath}")/" "${jq[yml2bash/common]}"'
       (if ($JSON | type == "array") then $JSON[0] else $JSON end) as $JSON |
       (if ($IMPORT | type == "array") then $IMPORT[0] else $IMPORT end) as $IMPORT |
       $JSON |
@@ -66,9 +66,8 @@ runner_dry () { #HELP <yaml_file>|Display the runner bash script without executi
 
   readonly inv import
 
-  set -x
-  gojq --raw-output "${jq[yml2bash/common]}${jq[yml2bash/write_script]}" --args "${rainbow[@]}" --rawfile env <(declare -f init load_resources "${fns[@]}") \
-    <<< "$(gojq --yaml-input --raw-output --monochrome-output --compact-output --rawfile ROOT <(normalizedpath "$(dirname "${1}")"; printf '/') --slurpfile INV <(printf '%s' "${inv}") --slurpfile IMPORT <(printf '{"import": %s}' "${import}") '
+  gojq --raw-output "${jq[yml2bash/common]}${jq[yml2bash/write_script]}" --rawfile env <(declare -f init load_resources "${fns[@]}") --args -- "${rainbow[@]}" \
+    <<< "$(gojq --yaml-input --raw-output --monochrome-output --compact-output --arg ROOT "$(normalizedpath "$(dirname "${1}")")/" --slurpfile INV <(printf '%s' "${inv}") --slurpfile IMPORT <(printf '{"import": %s}' "${import}") '
             (if ($IMPORT | type == "array") then $IMPORT[0] else $IMPORT end) as $IMPORT |
             (if ($INV | type == "array") then $INV[0] else $INV end) as $INV |
             . * $IMPORT * $INV | '"${jq[yml2bash/common]}${jq[yml2bash/process_inventory]}"' |

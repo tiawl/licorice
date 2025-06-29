@@ -10,14 +10,14 @@ container_exec () { #HELP <container_name> <detached> <user> <cmd>|Run a command
   method='POST'
   readonly json create_endpoint logged_endpoint method
 
-  printf '%s %s\n' "${method}" "${create_endpoint//\"/\\\"}" >&2
+  printf '%s %s\n' "${method}" "${logged_endpoint//\"/\\\"}" >&2
 
   coproc HTTP_CODE { sed "${sed[colored_http_code]}"; }
 
   exec 3>&${HTTP_CODE[1]}
 
   exec_id="$(
-    curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --header 'Content-Type: application/json' --data "${json}" --write-out "%{stderr}%{scheme} %{response_code}\n" "${create_endpoint}" 2>&3 \
+    curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --header 'Content-Type: application/json' --data "${json}" --write-out "%{stderr}%{scheme} %{response_code}\n" --output - "${create_endpoint}" 2>&3 \
       | gojq --raw-output '.Id'
   )"
 
@@ -36,5 +36,5 @@ container_exec () { #HELP <container_name> <detached> <user> <cmd>|Run a command
 
   exec 3>&${HTTP_CODE[1]}
 
-  curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --output - --write-out "%{stderr}%{scheme} %{response_code}\n" "${start_endpoint}" 2>&3
+  curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --write-out "%{stderr}%{scheme} %{response_code}\n" --output - "${start_endpoint}" 2>&3
 }
