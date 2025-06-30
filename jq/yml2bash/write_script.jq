@@ -665,7 +665,7 @@ def define(level; mode; nested_register; user_defined): (
       def runner_exec(level; mode; nested_register): (
         .runner.exec as $exec |
         $exec.args // [] as $exec_args |
-        ("runner_exec_" + ($exec.imported | sub("\\.ya?ml$"; "") | gsub("[^a-zA-Z0-9]"; "_"))) as $fn_name |
+        ("runner_exec_" + $exec.imported) as $fn_name |
           {
             define: {
               name: $fn_name,
@@ -1117,7 +1117,7 @@ def define(level; mode; nested_register; user_defined): (
 
   .define |
     (group(level; mode; true; true; nested_register)) as $group |
-    if (.name | is_legit_varname | not) then (
+    if (user_defined and (.name | is_legit_varname | not)) then (
       bad_varname
     ) else . end | (
       ((if (user_defined) then $NAMESPACE.user else $NAMESPACE.internal end) + .name + " ()\n") | indent(level)
@@ -1126,20 +1126,6 @@ def define(level; mode; nested_register; user_defined): (
 
 def internals(level): (
   [
-    {
-      define: {
-        name: "init_runner",
-        group: {
-          commands: [
-            {on: [[{literal: "errexit"}], [{literal: "inherit_errexit"}], [{literal: "errtrace"}], [{literal: "functrace"}], [{literal: "noclobber"}], [{literal: "nounset"}], [{literal: "pipefail"}], [{literal: "lastpipe"}], [{literal: "extglob"}]]},
-            {raw: {command: "bash_setup", args: []}},
-            {raw: {command: "load_resources", args: []}},
-            {raw: {command: "init", args: []}},
-            {raw: {command: "unset", args: [[{literal: "path"}, {literal: "version"}]]}}
-          ]
-        }
-      }
-    },
     {
       define: {
         name: "call",
@@ -1248,7 +1234,8 @@ def main(level): (
       group: {
         commands: (
           [
-            {raw: {command: ($NAMESPACE.internal + "init_runner"), args: []}},
+            {on: [[{literal: "errexit"}], [{literal: "inherit_errexit"}], [{literal: "errtrace"}], [{literal: "functrace"}], [{literal: "noclobber"}], [{literal: "nounset"}], [{literal: "pipefail"}], [{literal: "lastpipe"}], [{literal: "extglob"}]]},
+            {raw: {command: "${namespace[core]}init", args: []}},
             {assign: {vars: [[{literal: "USER"}], [{literal: "HOME"}], [{literal: "RUNNER"}]], scope: "global"}},
             {
               register: {

@@ -2,12 +2,12 @@
 
 ___ () {
   case "${1}" in
-  ( 'build' ) ${namespace[core]}image${sep[namespace]}build "${@}" ;;
-  ( 'merge' ) ${namespace[core]}image${sep[namespace]}merge "${@}" ;;
-  ( 'pull' ) ${namespace[core]}image${sep[namespace]}pull "${@}" ;;
-  ( 'list' ) ${namespace[core]}image${sep[namespace]}list "${@}" ;;
-  ( 'remove' ) ${namespace[core]}image${sep[namespace]}remove "${@}" ;;
-  ( 'prune' ) ${namespace[core]}image${sep[namespace]}prune "${@}" ;;
+  ( 'build' ) ${namespace["${backend}"]}image${sep[namespace]}build "${@}" ;;
+  ( 'merge' ) ${namespace["${backend}"]}image${sep[namespace]}merge "${@}" ;;
+  ( 'pull' ) ${namespace["${backend}"]}image${sep[namespace]}pull "${@}" ;;
+  ( 'list' ) ${namespace["${backend}"]}image${sep[namespace]}list "${@}" ;;
+  ( 'remove' ) ${namespace["${backend}"]}image${sep[namespace]}remove "${@}" ;;
+  ( 'prune' ) ${namespace["${backend}"]}image${sep[namespace]}prune "${@}" ;;
   ( 'builder' ) ${namespace[core]}image${sep[namespace]}builder "${@}" ;;
   ( 'tag' ) ${namespace[core]}image${sep[namespace]}tag "${@}" ;;
   ( * ) return 1 ;;

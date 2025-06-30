@@ -3,10 +3,10 @@
 ___ () {
   shift
   case "${1}" in
-  ( 'compute' ) ${namespace[core]}image${sep[namespace]}tag${sep[namespace]}compute "${@}" ;;
-  ( 'create' ) ${namespace[core]}image${sep[namespace]}tag${sep[namespace]}create "${@}" ;;
-  ( 'list' ) ${namespace[core]}image${sep[namespace]}tag${sep[namespace]}list "${@}" ;;
-  ( 'defined' ) ${namespace[core]}image${sep[namespace]}tag${sep[namespace]}defined "${@}" ;;
+  ( 'compute' ) ${namespace["${backend}"]}image${sep[namespace]}tag${sep[namespace]}compute "${@}" ;;
+  ( 'create' ) ${namespace["${backend}"]}image${sep[namespace]}tag${sep[namespace]}create "${@}" ;;
+  ( 'list' ) ${namespace["${backend}"]}image${sep[namespace]}tag${sep[namespace]}list "${@}" ;;
+  ( 'defined' ) ${namespace["${backend}"]}image${sep[namespace]}tag${sep[namespace]}defined "${@}" ;;
   ( * ) return 1 ;;
   esac
 }

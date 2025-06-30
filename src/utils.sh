@@ -320,19 +320,6 @@ shuffle () {
   done
 }
 
-bash_setup () {
-  global -A sep version path namespace
-  sep[namespace]='::'
-  sep[image]='/'
-  sep[tag]=':'
-  sep[container]='-'
-  sep[network]='-'
-  sep[volume]='_'
-  version[docker_api]='v1.51'
-  path[docker_socket]='/var/run/docker.sock'
-  readonly sep
-}
-
 url () {
   case "${1}" in
   ( encode )

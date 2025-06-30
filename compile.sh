@@ -7,8 +7,6 @@ shebangless () {
 compile () {
   on errexit inherit_errexit errtrace functrace noclobber nounset pipefail lastpipe extglob
 
-  bash_setup
-
   harden base64
   harden cat
   harden git
@@ -18,20 +16,34 @@ compile () {
 
   local name len_cmd src cmd desc
   local -a help split
+  local -A sep path namespace version
+
   name='placid'
+  sep[namespace]='::'
+  sep[image]='/'
+  sep[tag]=':'
+  sep[container]='-'
+  sep[network]='-'
+  sep[volume]='_'
+  path[docker_socket]='/var/run/docker.sock'
   namespace[root]="${name}${sep[namespace]}"
-  namespace[internal]="${namespace[root]}internal${sep[namespace]}"
   namespace[core]="${namespace[root]}core${sep[namespace]}"
+  namespace[containerd]="${namespace[root]}containerd${sep[namespace]}"
+  namespace[docker]="${namespace[root]}docker${sep[namespace]}"
+  namespace[podman]="${namespace[root]}podman${sep[namespace]}"
+  version[docker_api]='v1.51'
   version["${name}"]="$(git -C "${SDIR}" describe --match *.*.* --tags --abbrev=9)"
   version["${name}"]="${version["${name}"]%-*}"
   version["${name}"]="${version["${name}"]%\.*}.${version["${name}"]##*[-.]}"
 
+  readonly sep
+
   on globstar
-  for src in "${SDIR}/src/core"/**/*.sh
+  for src in "${SDIR}/src/docker"/**/*.sh
   do
     if is file "${src}"
     then
-      cmd="${src#"${SDIR}/src/core/"}"
+      cmd="${src#"${SDIR}/src/docker/"}"
       cmd="${cmd%.sh}"
       desc="$(sed -n 's/^\s*___\s*()\s*{\s*#HELP/'"${cmd//\// }"'/p' "${src}")"
       if str not empty "${desc:-}"
@@ -57,29 +69,35 @@ compile () {
   cat <<EOF > "${SDIR}/bin/${name}"
 #! /usr/bin/env bash
 
-$(exec -c bash --noprofile --norc -O extglob -c '
-    source "${1}"/src/utils.sh
-    on globstar
-    for src in "${1}"/src/core/**/*.sh
+$(exec -c bash --noprofile --norc -c "
+    source \"${SDIR}/src/utils.sh\"
+    declare -A namespace
+    namespace=(${namespace[@]@K})
+    for key in core docker podman containerd
     do
-      if is file "${src}"
-      then
-        source "${src}"
-        def="$(declare -f ___)"
-        funcname="${src#"${1}/src/core/"}"
-        funcname="${funcname%.sh}"
-        source /proc/self/fd/0 <<< "${2}${funcname//\//"${3}"}${def#___}"
-        unset -f ___
-      fi
+      on globstar
+      for src in \"${SDIR}/src/\${key}\"/**/*.sh
+      do
+        if is file \"\${src}\"
+        then
+          source \"\${src}\"
+          def=\"\$(declare -f ___)\"
+          funcname=\"\${src#\"${SDIR}/src/\${key}/\"}\"
+          funcname=\"\${funcname%.sh}\"
+          source /proc/self/fd/0 <<< \"\${namespace[\"\${key}\"]}\${funcname//\//\"${sep[namespace]}\"}\${def#___}\"
+          unset -f ___
+        fi
+      done
+      off globstar
     done
     declare -f
-  ' -- "${SDIR}" "${namespace[core]}" "${sep[namespace]}")
+  ")
 
-${namespace[root]}version () {
+${namespace[core]}version () {
   printf '${name} ${version["${name}"]}\n' >&2
 }
 
-${namespace[root]}help () {
+${namespace[core]}help () {
   cut_line () {
     local cols
     cols="\${COLUMNS}"
@@ -104,7 +122,7 @@ ${namespace[root]}help () {
   local desc _buf
   local -a split
 
-  ${namespace[root]}version
+  ${namespace[core]}version
 
   printf '\nCOMMANDS:\n' >&2
   ${help[@]@A}
@@ -129,8 +147,50 @@ ${namespace[root]}help () {
   unset -f cut_line
 }
 
-${namespace[internal]}load_resources () {
-  global -A sed jq buf
+${namespace[core]}init () {
+  global -A sed jq buf sep version namespace path
+
+  sep=(${sep[@]@K})
+  namespace=(${namespace[@]@K})
+  version=(${version[@]@K})
+  path=(${path[@]@K})
+
+  readonly sep
+
+  harden base64
+  #harden bc
+  harden cat
+  harden curl
+  harden env
+  harden gojq
+  #harden mktemp
+  harden protoc
+  harden sed
+  harden sha256sum
+  #harden shuf
+  harden tar
+  #harden tee
+
+  local backend
+  if is socket '/var/run/containerd/containerd.sock'
+  then
+    backend='containerd'
+  elif is socket "\${path[docker_socket]}"
+  then
+    backend='docker'
+  elif is socket "/run/user/\${UID}/podman/podman.sock"
+  then
+    backend='podman'
+  else
+    error 'No available backend'
+  fi
+
+  # TODO: remove this later
+  backend='docker'
+  readonly backend
+
+  # TODO: manage DOCKERD_HOST, BUILDKITD_HOST, CONTAINERD_HOST env vars
+
   global -a fns
 $(on globstar
   for dir in sed jq
@@ -154,9 +214,7 @@ $(on globstar
     fi
   done)
 
-  fns=( $(exec -c bash --noprofile --norc -c "source ${SDIR}/src/utils.sh; compgen -A function") \$(compgen -A function -X '!(${namespace[core]}*|${namespace[internal]}*)') )
-  namespace=(${namespace[@]@K})
-  version=(${version[@]@K})
+  fns=( $(exec -c bash --noprofile --norc -c "source ${SDIR}/src/utils.sh; compgen -A function") \$(compgen -A function -X "!(\${namespace[core]}*|\${namespace["\${backend}"]}*)") )
   readonly sed jq buf fns
 }
 
@@ -168,16 +226,11 @@ ${name} () {
 
   on errexit inherit_errexit errtrace functrace noclobber nounset pipefail lastpipe extglob
 
-  bash_setup
-
-  ${namespace[internal]}load_resources
-
   ${namespace[core]}init
 
   case "\${1:-}" in
-  ( help|version ) "${namespace[root]}\${1}" "\${@:2}" ;;
-  ( image|container|network|volume|runner ) "${namespace[core]}\${1}" "\${@:2}" ;;
-  ( * ) ${namespace[root]}help ;;
+  ( image|container|network|volume|runner|version|help ) "${namespace[core]}\${1}" "\${@:2}" ;;
+  ( * ) ${namespace[core]}help ;;
   esac
 }
 

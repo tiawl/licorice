@@ -2,10 +2,10 @@
 
 ___ () {
   case "${1}" in
-  ( 'create' ) ${namespace[core]}volume${sep[namespace]}create "${@}" ;;
+  ( 'create' ) ${namespace["${backend}"]}volume${sep[namespace]}create "${@}" ;;
   ( 'remove' ) : ;;
-  ( 'list' ) ${namespace[core]}volume${sep[namespace]}list "${@}" ;;
-  ( 'created' ) ${namespace[core]}volume${sep[namespace]}created "${@}" ;;
+  ( 'list' ) ${namespace["${backend}"]}volume${sep[namespace]}list "${@}" ;;
+  ( 'created' ) ${namespace["${backend}"]}volume${sep[namespace]}created "${@}" ;;
   ( * ) return 1 ;;
   esac
 }
