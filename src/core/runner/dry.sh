@@ -66,7 +66,7 @@ ___ () { #HELP <yaml_file>|Display the runner bash script without executing it
 
   readonly inv import
 
-  gojq --raw-output "${jq[yml2bash/common]}${jq[yml2bash/write_script]}" --rawfile env <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \
+  gojq --raw-output "${jq[yml2bash/common]}${jq[yml2bash/write_script]}" --arg NAMESPACE_SEP "${sep[namespace]}" --arg EXE "${exe}" --arg BACKEND "${backend}" --rawfile FUNCTIONS <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \
     <<< "$(gojq --yaml-input --raw-output --monochrome-output --compact-output --arg ROOT "$(normalizedpath "$(dirname "${1}")")/" --slurpfile INV <(printf '%s' "${inv}") --slurpfile IMPORT <(printf '{"import": %s}' "${import}") '
             (if ($IMPORT | type == "array") then $IMPORT[0] else $IMPORT end) as $IMPORT |
             (if ($INV | type == "array") then $INV[0] else $INV end) as $INV |

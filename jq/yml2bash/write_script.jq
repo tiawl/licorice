@@ -14,8 +14,14 @@
 # - async/wait
 
 {
-  user: "__",
-  internal: "_"
+  var: {
+    user: "__"
+  },
+  fn: {
+    internal: ("runner" + $ARGS.named.NAMESPACE_SEP),
+    user: ("user" + $ARGS.named.NAMESPACE_SEP)
+  },
+  sep: $ARGS.named.NAMESPACE_SEP
 } as $NAMESPACE |
 {
   internal: -1,
@@ -24,7 +30,10 @@
 } as $MODE |
 -2 as $NOINDENT |
 .import as $IMPORT |
-.name as $NAME |
+.name as $RUNNER |
+$ARGS.named.EXE as $EXE |
+$ARGS.named.BACKEND as $BACKEND |
+$ARGS.named.FUNCTIONS as $FUNCTIONS |
 
 def incr_indent_level(i): (
   if (. == $NOINDENT) then $NOINDENT else (. + i) end
@@ -62,7 +71,7 @@ def xtrace(mode): (
   (.before // []) + (
     if (mode == $MODE.user) then (
       [
-        $NAMESPACE.internal + "xtrace \"$(echo " + .xtrace + ")\"",
+        $NAMESPACE.fn.internal + "xtrace \"$(echo " + .xtrace + ")\"",
         .program
       ]
     ) else (
@@ -171,7 +180,7 @@ def define(level; mode; nested_register; user_defined): (
           ) end
         ) elif (has("var")) then (
           if (.var | is_legit_varname) then (
-            variable(if (mode != $MODE.internal) then $NAMESPACE.user else "" end + .var; mode; quoted)
+            variable(if (mode != $MODE.internal) then $NAMESPACE.var.user else "" end + .var; mode; quoted)
           ) else (
             $input.var | bad_varname
           ) end
@@ -211,11 +220,11 @@ def define(level; mode; nested_register; user_defined): (
           if (has("as") and (.as | length > 0)) then (
             " " + (
               if (mode != $MODE.internal) then (
-                $NAMESPACE.user
+                $NAMESPACE.fn.user
               ) else "" end
             ) + (.as | sanitize(mode; true))
           ) elif (mode != $MODE.internal) then (
-            " '" + $NAMESPACE.user + "'" + (.command | sanitize(mode; true)) | gsub("''"; "")
+            " '" + $NAMESPACE.fn.user + "'" + (.command | sanitize(mode; true)) | gsub("''"; "")
           ) else "" end
         )
       ) | indent(level)
@@ -239,7 +248,7 @@ def define(level; mode; nested_register; user_defined): (
         if ((.name | has("special")) and (.name.special == "last")) then (
           ": "
         ) else (
-          if (mode != $MODE.internal) then $NAMESPACE.user else "" end + .name.var + (
+          if (mode != $MODE.internal) then $NAMESPACE.var.user else "" end + .name.var + (
             if (has("key")) then (
               "[" + (.key | sanitize(mode; true)) + "]"
             ) elif (has("index")) then (
@@ -288,7 +297,7 @@ def define(level; mode; nested_register; user_defined): (
           ) else (
             "Unknown .assign.type: \"" + .type + "\"" | exit
           ) end
-        ) + (.vars | map(if (mode != $MODE.internal) then $NAMESPACE.user else "" end + (. | sanitize(mode; true))) | join(" "))
+        ) + (.vars | map(if (mode != $MODE.internal) then $NAMESPACE.var.user else "" end + (. | sanitize(mode; true))) | join(" "))
       ) | indent(level)
     );
 
@@ -529,7 +538,7 @@ def define(level; mode; nested_register; user_defined): (
     };
 
     def readonly(level; mode): (
-      ("readonly -- " + (.readonly | map(if (mode != $MODE.internal) then $NAMESPACE.user else "" end + (. | sanitize(mode; true))) | join(" "))) | indent(level)
+      ("readonly -- " + (.readonly | map(if (mode != $MODE.internal) then $NAMESPACE.var.user else "" end + (. | sanitize(mode; true))) | join(" "))) | indent(level)
     );
 
     def print(level; mode): (
@@ -538,7 +547,7 @@ def define(level; mode; nested_register; user_defined): (
         "printf " + (
           if (has("var")) then (
             if (.var | is_legit_varname) then (
-              "-v " + (if (mode != $MODE.internal) then $NAMESPACE.user else "" end) + .var + " "
+              "-v " + (if (mode != $MODE.internal) then $NAMESPACE.var.user else "" end) + .var + " "
             ) else (
               .var | bad_varname
             ) end
@@ -564,7 +573,7 @@ def define(level; mode; nested_register; user_defined): (
     );
 
     def color(level; mode): (
-      (.color | "_color " + (.index | sanitize(mode; true)) + " " + ((if (mode != $MODE.internal) then $NAMESPACE.user else "" end) + (.ref | sanitize(mode; true)))) | indent(level)
+      (.color | $NAMESPACE.fn.internal + "color " + (.index | sanitize(mode; true)) + " " + ((if (mode != $MODE.internal) then $NAMESPACE.var.user else "" end) + (.ref | sanitize(mode; true)))) | indent(level)
     );
 
     def on_off(level; mode): (
@@ -655,7 +664,7 @@ def define(level; mode; nested_register; user_defined): (
           if (.command | test("\\s")) then (
             ".call.command must not contain space characters" | exit
           ) else . end |
-          $NAMESPACE.internal + "call \"$(echo " + (($NAMESPACE.user + .command + " " + (.args | map(sanitize(mode; true)) | join(" ")))) + ")" + (
+          $NAMESPACE.fn.internal + "call \"$(echo " + (($NAMESPACE.fn.user + .command + " " + (.args | map(sanitize(mode; true)) | join(" ")))) + ")" + (
             if (has("pipe")) then (
               " | " + (.pipe | group($NOINDENT; mode; false; false; nested_register))
             ) else "" end
@@ -665,7 +674,7 @@ def define(level; mode; nested_register; user_defined): (
       def runner_exec(level; mode; nested_register): (
         .runner.exec as $exec |
         $exec.args // [] as $exec_args |
-        ("runner_exec_" + $exec.imported) as $fn_name |
+        ("exec" + $NAMESPACE.sep + $exec.imported) as $fn_name |
           {
             define: {
               name: $fn_name,
@@ -673,7 +682,7 @@ def define(level; mode; nested_register; user_defined): (
             }
           } | define(level; mode; nested_register; false) + (
             {
-              program: ($NAMESPACE.internal + $fn_name + (if ($exec_args | length > 0) then " " else "" end) + ($exec_args | map(sanitize(mode; true)) | join(" "))),
+              program: ($NAMESPACE.fn.internal + $fn_name + (if ($exec_args | length > 0) then " " else "" end) + ($exec_args | map(sanitize(mode; true)) | join(" "))),
               xtrace: ("runner exec " + $exec.imported + (if ($exec_args | length > 0) then " " else "" end) + ($exec_args | map(sanitize(mode; true)) | join(" ")))
             } | xtrace(mode) | map(indent(level)) | join("\n")
           )
@@ -724,7 +733,7 @@ def define(level; mode; nested_register; user_defined): (
               ) else . end |
               (group($NOINDENT; mode; false; false; true) | gsub("'"; "'\"'\"'")) as $group |
               if (.into | has("var")) then (
-                $NAMESPACE.internal + "register '" + $NAMESPACE.user + $input.into.var + "' '" + $group + "'"
+                $NAMESPACE.fn.internal + "register '" + $NAMESPACE.var.user + $input.into.var + "' '" + $group + "'"
               ) elif ((.into | has("special")) and (.into.special == "last")) then (
                 ": \"$(" + $group + ")\""
               ) else (
@@ -737,7 +746,7 @@ def define(level; mode; nested_register; user_defined): (
             ) else . end |
             arithmetic(-1; mode) as $arith |
             if (.into | has("var")) then (
-              (if (mode != $MODE.internal) then $NAMESPACE.user else "" end) + $input.into.var + "=\"$" + $arith + "\""
+              (if (mode != $MODE.internal) then $NAMESPACE.var.user else "" end) + $input.into.var + "=\"$" + $arith + "\""
             ) elif ((.into | has("special")) and (.into.special == "last")) then (
               ": \"$" + $arith + "\""
             ) else (
@@ -891,7 +900,7 @@ def define(level; mode; nested_register; user_defined): (
           if ($program | type == "string") then (
             {
               before: ((before_core(level; mode) | filter_core("array")) // []),
-              program: $program,
+              program: ($EXE + $NAMESPACE.sep + "core" + $NAMESPACE.sep + $program),
               xtrace: $program
             }
           ) elif ($input | has("call")) then (
@@ -1120,7 +1129,7 @@ def define(level; mode; nested_register; user_defined): (
     if (user_defined and (.name | is_legit_varname | not)) then (
       bad_varname
     ) else . end | (
-      ((if (user_defined) then $NAMESPACE.user else $NAMESPACE.internal end) + .name + " ()\n") | indent(level)
+      ((if (user_defined) then $NAMESPACE.fn.user else $NAMESPACE.fn.internal end) + .name + " ()\n") | indent(level)
     ) + $group + "\n"
 );
 
@@ -1135,7 +1144,7 @@ def internals(level): (
             {
               register: {
                 into: {var: "authorized"},
-                group: {commands: [{raw: {command: "compgen", args: [[{literal: "-A"}], [{literal: "function"}], [{literal: "-X"}], [{literal: ("!" + $NAMESPACE.user + "*")}]]}}]}
+                group: {commands: [{raw: {command: "compgen", args: [[{literal: "-A"}], [{literal: "function"}], [{literal: "-X"}], [{literal: ("!" + $NAMESPACE.fn.user + "*")}]]}}]}
               }
             },
             {parameters: [[{var: "authorized"}], [{literal: "|"}], [{parameter: 1}]]},
@@ -1198,9 +1207,9 @@ def internals(level): (
         name: "xtrace",
         group: {
           commands: [
-            {raw: {command: ($NAMESPACE.internal + "autoincr"), args: [[{literal: "reply"}]]}},
+            {raw: {command: ($NAMESPACE.fn.internal + "autoincr"), args: [[{literal: "reply"}]]}},
             {parameters: [[{parameter: 1}], [{var: "reply"}]]},
-            {raw: {command: ($NAMESPACE.internal + "color"), args: [[{parameter: 2}], [{literal: "reply"}]]}},
+            {raw: {command: ($NAMESPACE.fn.internal + "color"), args: [[{parameter: 2}], [{literal: "reply"}]]}},
             {parameters: [[{parameter: 1}], [{parameter: 2}], [{var: "reply"}]]},
             {group: {commands: [{print: {format: "%b\\033[1m%s\\033[0m > %s\\n", args: [[{literal: "\\033[38;5;"}, {parameter: 3}, {literal: "m"}], [{parameter: 2}], [{parameter: 1}]]}}], redirections: [{output: {left: {fd: 1}, right: {fd: 2}}}]}}
           ]
@@ -1216,7 +1225,7 @@ def internals(level): (
             {mutate: {name: {var: "ref"}, value: [[{parameter: 1}]]}},
             {assign: {vars: [[{literal: "source_me"}]], type: "indexed", scope: "local"}},
             {coproc: {name: "CAT", group: {commands: [{raw: {command: "cat", args: []}}]}}},
-            {register: {into: {var: "ref"}, group: {commands: [{source: {string: [[{parameter: 2}]]}}, {group: {commands: [{raw: {command: "declare", args:[[{literal: "-f"}], [{literal: ($NAMESPACE.internal + "autoincr")}]]}}], redirections: [{output: {left: {fd: 1}, right: {var: "CAT", index: 1}}}]}}]}}},
+            {register: {into: {var: "ref"}, group: {commands: [{source: {string: [[{parameter: 2}]]}}, {group: {commands: [{raw: {command: "declare", args:[[{literal: "-f"}], [{literal: ($NAMESPACE.fn.internal + "autoincr")}]]}}], redirections: [{output: {left: {fd: 1}, right: {var: "CAT", index: 1}}}]}}]}}},
             {raw: {command: "exec", args: [[{unsafe: "{CAT[1]}>&-"}]]}},
             {group: {commands: [{raw: {command: "mapfile", args: [[{literal: "source_me"}]]}}], redirections: [{input: {var: "CAT", index: 0}}]}},
             {source: {string: [[{var: "source_me", key: [{char: "atsign"}]}]]}}
@@ -1235,7 +1244,7 @@ def main(level): (
         commands: (
           [
             {on: [[{literal: "errexit"}], [{literal: "inherit_errexit"}], [{literal: "errtrace"}], [{literal: "functrace"}], [{literal: "noclobber"}], [{literal: "nounset"}], [{literal: "pipefail"}], [{literal: "lastpipe"}], [{literal: "extglob"}]]},
-            {raw: {command: "${namespace[core]}init", args: []}},
+            {raw: {command: ($EXE + $NAMESPACE.sep + "core" + $NAMESPACE.sep + "init"), args: []}},
             {assign: {vars: [[{literal: "USER"}], [{literal: "HOME"}], [{literal: "RUNNER"}]], scope: "global"}},
             {
               register: {
@@ -1245,7 +1254,7 @@ def main(level): (
             },
             {mutate: {name: {var: "USER"}, value: [[{special: "USER", default: [{special: "last"}]}]]}},
             {print: {format: "%s", var: "HOME", args: [[{char: "tilde"}]]}},
-            {mutate: {name: {var: "RUNNER"}, value: [[{literal: $NAME}]]}},
+            {mutate: {name: {var: "RUNNER"}, value: [[{literal: $RUNNER}]]}},
             {readonly: [[{literal: "USER"}], [{literal: "HOME"}], [{literal: "RUNNER"}]]},
             {initialized: true}
           ] + .group.commands
@@ -1257,10 +1266,10 @@ def main(level): (
 
 def write_script: (
   -1 as $level |
-  $ARGS.named.env + "\n" +
+  $FUNCTIONS + "\n" +
   internals($level) +
   main($level) +
-  $NAMESPACE.internal + "main \"${@}\""
+  $NAMESPACE.fn.internal + "main \"${@}\""
 );
 
 write_script

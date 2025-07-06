@@ -14,11 +14,11 @@ compile () {
   harden rm
   harden sed
 
-  local name len_cmd src cmd desc
+  local exe len_cmd src cmd desc
   local -a help split
   local -A sep path namespace version
 
-  name='placid'
+  exe='placid'
   sep[namespace]='::'
   sep[image]='/'
   sep[tag]=':'
@@ -26,15 +26,15 @@ compile () {
   sep[network]='-'
   sep[volume]='_'
   path[docker_socket]='/var/run/docker.sock'
-  namespace[root]="${name}${sep[namespace]}"
+  namespace[root]="${exe}${sep[namespace]}"
   namespace[core]="${namespace[root]}core${sep[namespace]}"
   namespace[containerd]="${namespace[root]}containerd${sep[namespace]}"
   namespace[docker]="${namespace[root]}docker${sep[namespace]}"
   namespace[podman]="${namespace[root]}podman${sep[namespace]}"
   version[docker_api]='v1.51'
-  version["${name}"]="$(git -C "${SDIR}" describe --match *.*.* --tags --abbrev=9)"
-  version["${name}"]="${version["${name}"]%-*}"
-  version["${name}"]="${version["${name}"]%\.*}.${version["${name}"]##*[-.]}"
+  version["${exe}"]="$(git -C "${SDIR}" describe --match *.*.* --tags --abbrev=9)"
+  version["${exe}"]="${version["${exe}"]%-*}"
+  version["${exe}"]="${version["${exe}"]%\.*}.${version["${exe}"]##*[-.]}"
 
   readonly sep
 
@@ -61,12 +61,12 @@ compile () {
     len_cmd="$(( ${#split[0]} > ${len_cmd} ? ${#split[0]} : ${len_cmd} ))"
   done
 
-  readonly name help len_cmd
+  readonly exe help len_cmd
 
   rm -rf "${SDIR}/bin"
   mkdir -p "${SDIR}/bin"
   off noclobber
-  cat <<EOF > "${SDIR}/bin/${name}"
+  cat <<EOF > "${SDIR}/bin/${exe}"
 #! /usr/bin/env bash
 
 $(exec -c bash --noprofile --norc -c "
@@ -94,7 +94,7 @@ $(exec -c bash --noprofile --norc -c "
   ")
 
 ${namespace[core]}version () {
-  printf '${name} ${version["${name}"]}\n' >&2
+  printf '${exe} ${version["${exe}"]}\n' >&2
 }
 
 ${namespace[core]}help () {
@@ -171,7 +171,8 @@ ${namespace[core]}init () {
   harden tar
   #harden tee
 
-  local backend
+  global backend exe
+  exe='${exe}'
   if is socket '/var/run/containerd/containerd.sock'
   then
     backend='containerd'
@@ -218,10 +219,10 @@ $(on globstar
   readonly sed jq buf fns
 }
 
-${name} () {
-  if is not var '${name^^}_REEXEC_WITH_EMPTY_ENV'
+${exe} () {
+  if is not var '${exe^^}_REEXEC_WITH_EMPTY_ENV'
   then
-    \\command exec -c env --ignore-environment BASH="\${BASH:-}" ${name^^}_REEXEC_WITH_EMPTY_ENV='yes' bash --norc --noprofile "\${BASH_SOURCE[0]}" "\${@}" || \\command exit 1
+    \\command exec -c env --ignore-environment BASH="\${BASH:-}" ${exe^^}_REEXEC_WITH_EMPTY_ENV='yes' bash --norc --noprofile "\${BASH_SOURCE[0]}" "\${@}" || \\command exit 1
   fi
 
   on errexit inherit_errexit errtrace functrace noclobber nounset pipefail lastpipe extglob
@@ -234,9 +235,9 @@ ${name} () {
   esac
 }
 
-${name} "\${@}"
+${exe} "\${@}"
 EOF
-  chmod 0700 "${SDIR}/bin/${name}"
+  chmod 0700 "${SDIR}/bin/${exe}"
 }
 
 compile "${@}"
