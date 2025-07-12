@@ -37,236 +37,246 @@ json::parse::tokenize () {
   set +f
 }
 
+json::validate () {
+  json_pp 2> /dev/null
+}
+
 json::parse () {
-  # TODO: check if the input file is a valid JSON
-  json::parse::tokenize | sed --quiet '
-    : init_hold_space
-      x
-      s/^/|/
-      x
+  json::validate \
+    | json::parse::tokenize \
+    | sed --quiet '
+      : init_hold_space
+        x
+        s/^/\n/
+        x
 
-    : json_value
-      /^{$/ {
-        b json_object
-      }
-      /^\[$/ {
-        b json_array
-      }
-      /^$/ {
-        b failure_empty_json_value
-      }
-      /^[^0-9]$/ {
-        b failure_invalid_single_char
-      }
-      s/^"\?/printf '"'"'%s\\n'"'"' '"'"'/
-      s/"\?$/'"'"'/
-      H
-      x
-      s/\n\([^\n]*\)$/\1/
-      x
-      z
-      b redirect
-
-    : json_object
-      z
-      x
-      /^[^|]/ {
-        s/$/\nshift/
-      }
-      x
-      s/^/case "${1}" in/
-      H
-      n
-      /^}$/ {
-        b _json_object_loop_end
-      }
-
-      : _json_object_loop
-        /^".\+"$/ {
-          b _json_object_loop_1
+      : json_value
+        /^{$/ {
+          b json_object
         }
-        b failure_expecting_json_string
+        /^\[$/ {
+          b json_array
+        }
+        /^$/ {
+          b failure_empty_json_value
+        }
+        /^[^0-9]$/ {
+          b failure_invalid_single_char
+        }
+        s/^"\?/printf '"'"'%s\\n'"'"' '"'"'/
+        s/"\?$/'"'"'/
+        H
+        x
+        s/\n\([^\n]*\)$/\1/
+        x
+        z
+        b redirect
 
-        : _json_object_loop_1
-          s/^"/( '"'"'/
-          s/"$/'"'"' ) /
-          H
-          n
-          /^:$/ {
-            b _json_object_loop_2
+      : json_object
+        z
+        x
+        /^[^\n]/ {
+          s/$/shift; /
+        }
+        s/$/case "${1}" in/
+        x
+        n
+        /^}$/ {
+          b _json_object_loop_end
+        }
+
+        : _json_object_loop
+          /^".\+"$/ {
+            b _json_object_loop_1
           }
-          b failure_expecting_colon
+          b failure_expecting_json_string
 
-        : _json_object_loop_2
-          n
+          : _json_object_loop_1
+            s/^"/ ( '"'"'/
+            s/"$/'"'"' ) /
+            H
+            x
+            s/\n\([^\n]*\)$/\1/
+            x
+            n
+            /^:$/ {
+              b _json_object_loop_2
+            }
+            b failure_expecting_colon
+
+          : _json_object_loop_2
+            n
+            x
+            s/^/O/
+            x
+            b json_value
+
+          : _json_object_loop_3
+            x
+            s/$/ ;;/
+            x
+            n
+            /^}$/ {
+              b _json_object_loop_end
+            }
+            /^,$/ {
+              b _json_object_loop_4
+            }
+            b failure_expecting_comma_or_closing_brace
+
+          : _json_object_loop_4
+            n
+            b _json_object_loop
+
+        : _json_object_loop_end
+          z
           x
-          s/^/O/
+          s/$/ ( * ) return 1 ;; esac/
+          x
+          b redirect
+
+      : json_array
+        z
+        x
+        /^[^\n]/ {
+          s/$/shift; /
+        }
+        s/$/case "${1}" in/
+        s/^/0/
+        x
+        n
+        /^]$/ {
+          b _json_array_loop_end
+        }
+
+        : _json_array_loop
+          x
+          s/^\([0-9]\+\).*/A\0 ( '"'"'\1'"'"' ) /
           x
           b json_value
 
-        : _json_object_loop_3
-          x
-          s/$/ ;;/
-          x
-          n
-          /^}$/ {
-            b _json_object_loop_end
-          }
-          /^,$/ {
-            b _json_object_loop_4
-          }
-          b failure_expecting_comma_or_closing_brace
+          : _json_array_loop_1
+            x
+            s/$/ ;;/
+            x
+            n
+            /^]$/ {
+              b _json_array_loop_end
+            }
+            /^,$/ {
+              b _json_array_loop_2
+            }
+            b failure_expecting_comma_or_closing_bracket
 
-        : _json_object_loop_4
-          n
-          b _json_object_loop
+          : _json_array_loop_2
+            x
 
-      : _json_object_loop_end
+            : nines2underscores
+              s/^\([0-9]*\)9\(_*\)/\1_\2/
+              t nines2underscores
+
+              s/^_\+/1\0/
+              t underscores2zeroes
+              s/^\([0-9]*\)8\(_*\)/\19\2/
+              t underscores2zeroes
+              s/^\([0-9]*\)7\(_*\)/\18\2/
+              t underscores2zeroes
+              s/^\([0-9]*\)6\(_*\)/\17\2/
+              t underscores2zeroes
+              s/^\([0-9]*\)5\(_*\)/\16\2/
+              t underscores2zeroes
+              s/^\([0-9]*\)4\(_*\)/\15\2/
+              t underscores2zeroes
+              s/^\([0-9]*\)3\(_*\)/\14\2/
+              t underscores2zeroes
+              s/^\([0-9]*\)2\(_*\)/\13\2/
+              t underscores2zeroes
+              s/^\([0-9]*\)1\(_*\)/\12\2/
+              t underscores2zeroes
+              s/^\([0-9]*\)0\(_*\)/\11\2/
+              t underscores2zeroes
+
+            : underscores2zeroes
+              s/^\([0-9]*\)_/\10/
+              t underscores2zeroes
+
+            x
+            n
+            b _json_array_loop
+
+        : _json_array_loop_end
+          x
+          s/^[0-9]\+//
+          s/$/ ( * ) return 1 ;; esac/
+          x
+          z
+          b redirect
+
+      : redirect
+        x
+        /^\n/ {
+          x
+          b success
+        }
+        /^O/ {
+          s/^O//
+          x
+          b _json_object_loop_3
+        }
+        /^A/ {
+          s/^A//
+          x
+          b _json_array_loop_1
+        }
+        x
+        b failure_unknown_redirect_code
+
+      : failure_unknown_redirect_code
+        x
+        s/^\([^\n]*\).*/Error in json::parse SED script: Unknown redirect code. Flow stack from SED Hold Space: "\1" /w /dev/stderr
+        Q 5
+      : failure_invalid_single_char
         z
-        s/^/( * ) exit '"'"'Unknown key \"%s\"'"'"' "${1}" ;;\nesac/
-        H
-        b redirect
-
-    : json_array
-      z
-      x
-      /^[^|]/ {
-        s/$/\nshift/
-      }
-      x
-      s/^/case "${1}" in/
-      H
-      x
-      s/^/0/
-      x
-      n
-      /^]$/ {
-        b _json_array_loop_end
-      }
-
-      : _json_array_loop
-        x
-        s/^\([0-9]\+\).*/A\0\n( '"'"'\1'"'"' ) /
-        x
-        b json_value
-
-        : _json_array_loop_1
-          x
-          s/$/ ;;/
-          x
-          n
-          /^]$/ {
-            b _json_array_loop_end
-          }
-          /^,$/ {
-            b _json_array_loop_2
-          }
-          b failure_expecting_comma_or_closing_bracket
-
-        : _json_array_loop_2
-          x
-
-          : nines2underscores
-            s/^\([0-9]*\)9\(_*\)/\1_\2/
-            t nines2underscores
-
-            s/^_\+/1\0/
-            t underscores2zeroes
-            s/^\([0-9]*\)8\(_*\)/\19\2/
-            t underscores2zeroes
-            s/^\([0-9]*\)7\(_*\)/\18\2/
-            t underscores2zeroes
-            s/^\([0-9]*\)6\(_*\)/\17\2/
-            t underscores2zeroes
-            s/^\([0-9]*\)5\(_*\)/\16\2/
-            t underscores2zeroes
-            s/^\([0-9]*\)4\(_*\)/\15\2/
-            t underscores2zeroes
-            s/^\([0-9]*\)3\(_*\)/\14\2/
-            t underscores2zeroes
-            s/^\([0-9]*\)2\(_*\)/\13\2/
-            t underscores2zeroes
-            s/^\([0-9]*\)1\(_*\)/\12\2/
-            t underscores2zeroes
-            s/^\([0-9]*\)0\(_*\)/\11\2/
-            t underscores2zeroes
-
-          : underscores2zeroes
-            s/^\([0-9]*\)_/\10/
-            t underscores2zeroes
-
-          x
-          n
-          b _json_array_loop
-
-      : _json_array_loop_end
-        x
-        s/^[0-9]\+//
-        x
+        s/^/Error in json::parse SED script: Invalid single character token/w /dev/stderr
+        Q 6
+      : failure_empty_json_value
         z
-        s/^/( * ) exit '"'"'Unknown index \"%s\"'"'"' "${1}" ;;\nesac/
-        H
-        b redirect
+        s/^/Error in json::parse SED script: Empty JSON value/w /dev/stderr
+        Q 7
+      : failure_expecting_json_string
+        z
+        s/^/Error in json::parse SED script: Expecting JSON string/w /dev/stderr
+        Q 8
+      : failure_expecting_colon
+        z
+        s/^/Error in json::parse SED script: Expecting colon character/w /dev/stderr
+        Q 9
+      : failure_expecting_comma_or_closing_brace
+        z
+        s/^/Error in json::parse SED script: Expecting comma or closing brace character/w /dev/stderr
+        Q 10
+      : failure_expecting_comma_or_closing_bracket
+        z
+        s/^/Error in json::parse SED script: Expecting comma or closing bracket character/w /dev/stderr
+        Q 11
+      : success
+        z
+        x
+        s/^\n//
+        p
+    '
+}
 
-    : redirect
-      x
-      /^|/ {
-        x
-        b success
-      }
-      /^O/ {
-        s/^O//
-        x
-        b _json_object_loop_3
-      }
-      /^A/ {
-        s/^A//
-        x
-        b _json_array_loop_1
-      }
-      x
-      b failure_unknown_redirect_code
-
-    : failure_unknown_redirect_code
-      x
-      s/^\([^|]*\).*/Error in json::parse SED script: Unknown redirect code. Flow stack from SED Hold Space: "\1" /w /dev/stderr
-      Q 5
-    : failure_invalid_single_char
-      z
-      s/^/Error in json::parse SED script: Invalid single character token/w /dev/stderr
-      Q 6
-    : failure_empty_json_value
-      z
-      s/^/Error in json::parse SED script: Empty JSON value/w /dev/stderr
-      Q 7
-    : failure_expecting_json_string
-      z
-      s/^/Error in json::parse SED script: Expecting JSON string/w /dev/stderr
-      Q 8
-    : failure_expecting_colon
-      z
-      s/^/Error in json::parse SED script: Expecting colon character/w /dev/stderr
-      Q 9
-    : failure_expecting_comma_or_closing_brace
-      z
-      s/^/Error in json::parse SED script: Expecting comma or closing brace character/w /dev/stderr
-      Q 10
-    : failure_expecting_comma_or_closing_bracket
-      z
-      s/^/Error in json::parse SED script: Expecting comma or closing bracket character/w /dev/stderr
-      Q 11
-    : success
-      z
-      x
-      s/^|\n//
-      p
-  '
+json::get () {
+  : MARKER
 }
 
 json () {
   case "${1}" in
   ( encode ) json::encode "${@:2}" ;;
   ( parse ) json::parse "${@:2}" ;;
+  ( validate ) json::validate "${@:2}" ;;
+  ( get ) json::get "${@:2}" ;;
   ( * ) error 'Unknown json subcommand: "%s"' "${1}" ;;
   esac
 }

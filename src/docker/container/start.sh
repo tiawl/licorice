@@ -16,5 +16,5 @@ ___ () { #HELP <container_name>|Start stopped <container_name>
   exec 3>&${HTTP_CODE[1]}
 
   curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --write-out "%{stderr}%{scheme} %{response_code}\n" "${endpoint}" 2>&3 \
-    | gojq '.' >&2
+    | json_pp >&2
 }
