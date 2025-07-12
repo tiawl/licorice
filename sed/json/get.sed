@@ -154,10 +154,12 @@
       : underscores2zeroes
         s/^\([0-9]*\)_/\10/
         t underscores2zeroes
+        b _json_array_loop_2_1
 
-      x
-      n
-      b _json_array_loop
+      : _json_array_loop_2_1
+        x
+        n
+        b _json_array_loop
 
   : _json_array_loop_end
     x

@@ -162,7 +162,7 @@ ${namespace[core]}init () {
   harden cat
   harden curl
   harden env
-  harden gojq
+  harden gojq # TODO: remove this dependency when possible
   harden json_pp
   #harden mktemp
   harden protoc
@@ -171,7 +171,7 @@ ${namespace[core]}init () {
   harden sha256sum
   #harden shuf
   harden tar
-  #harden tee
+  harden tee
 
   global backend exe
   exe='${exe}'

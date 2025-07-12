@@ -44,7 +44,9 @@ json::validate () {
 json::parse () {
   json::validate \
     | json::parse::tokenize \
-    | sed --quiet "${sed[json/get]}"
+    | tee \
+      >(sed --quiet "${sed[json/get]}") \
+      > /dev/null
 }
 
 json::get () {
