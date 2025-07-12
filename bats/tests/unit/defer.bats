@@ -1,7 +1,7 @@
 #! /usr/bin/env bats
 
 setup () {
-  source src/utils.sh
+  source src/index.sh
   on errexit inherit_errexit errtrace functrace noclobber nounset pipefail lastpipe extglob
 }
 export -f setup

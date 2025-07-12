@@ -70,7 +70,7 @@ compile () {
 #! /usr/bin/env bash
 
 $(exec -c bash --noprofile --norc -c "
-    source \"${SDIR}/src/utils.sh\"
+    source \"${SDIR}/src/index.sh\"
     declare -A namespace
     namespace=(${namespace[@]@K})
     for key in core docker podman containerd
@@ -163,8 +163,10 @@ ${namespace[core]}init () {
   harden curl
   harden env
   harden gojq
+  harden json_pp
   #harden mktemp
   harden protoc
+  harden rg || harden egrep
   harden sed
   harden sha256sum
   #harden shuf
@@ -215,7 +217,7 @@ $(on globstar
     fi
   done)
 
-  fns=( $(exec -c bash --noprofile --norc -c "source ${SDIR}/src/utils.sh; compgen -A function") \$(compgen -A function -X "!(\${namespace[core]}*|\${namespace["\${backend}"]}*)") )
+  fns=( $(exec -c bash --noprofile --norc -c "source ${SDIR}/src/index.sh; compgen -A function") \$(compgen -A function -X "!(\${namespace[core]}*|\${namespace["\${backend}"]}*)") )
   readonly sed jq buf fns
 }
 
