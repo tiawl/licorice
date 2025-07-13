@@ -143,7 +143,12 @@
 
   : _json_array_positive_indexes_loop_end
     x
-    s/^\([0-9]\+\)\(.* :\)\([:0-9]*\)\(; .*\)$/\2\1:\3\4/
+    /^0\n/ {
+      s/^[0-9]\+//
+    }
+    /^0\n/ ! {
+      s/^\([0-9]\+\)\(.* :\)\([:0-9]*\)\(; .*\)$/\2\1:\3\4/
+    }
     s/$/ ( * ) return 1 ;; esac/
     b _json_array_negative_indexes_loop
 
