@@ -38,7 +38,7 @@ json::parse::tokenize () {
 }
 
 json::validate () {
-  json_pp 2> /dev/null
+  json_pp
 }
 
 json::parse () {
