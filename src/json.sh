@@ -15,6 +15,10 @@ json::encode () {
   unset -n ref
 }
 
+json::validate () {
+  json_pp
+}
+
 json::parse::tokenize () {
   local escape char string number keyword space grep
 
@@ -33,24 +37,36 @@ json::parse::tokenize () {
   fi
 
   set -f
-  ${grep} -a -o --color=never "${string}"'|'"${number}"'|'"${keyword}"'|'"${space}"'|.' | ${grep} -v '^'"${space}"'$'
+  json::validate | ${grep} -a -o --color=never "${string}"'|'"${number}"'|'"${keyword}"'|'"${space}"'|.' | ${grep} -v '^'"${space}"'$'
   set +f
 }
 
-json::validate () {
-  json_pp
-}
-
 json::parse () {
-  json::validate \
-    | json::parse::tokenize \
-    | tee \
-      >(sed --quiet "${sed[json/get]}") \
-      > /dev/null
-}
+  if is not set 'lastpipe'
+  then
+    error '%s: lastpipe must be used' "${FUNCNAME[0]}"
+  fi
 
-json::get () {
-  : MARKER
+  local json_get_init
+  json_get_init="$(declare -f json::get::init)"
+  json_get_init="${json_get_init#$'json::get::init () \n{'}"
+  json_get_init="${json_get_init#"}"}"
+  source /proc/self/fd/0 <<< "${json_get_init:-declare -A json_get=();} $(json::parse::tokenize \
+    | tee >(sed --quiet -e "${sed[json/get]}" -e "s/^/json_get[${1:--}]=\"/; s/$/\"/; p") \
+          > /dev/null)"
+  source /proc/self/fd/0 <<< "
+    json::get::init () {
+      ${json_get[@]@A}
+    }
+    json::get () {
+      case \"\${1:-}\" in
+      $(for file in ${!json_get[@]}
+        do
+          printf '( %s ) shift; %s ;;\n' "${file}" "${json_get["${file}"]}"
+        done)
+      ( * ) error 'Unknown parsed file: %s' \"\${1}\" ;;
+      esac
+    }"
 }
 
 json () {

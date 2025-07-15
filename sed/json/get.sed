@@ -19,9 +19,9 @@
   /^[^0-9]$/ {
     b failure_invalid_single_char
   }
-  /:[:0-9]*; case \\"\${1}\\" in / {
+  /:[:0-9]*; case \\"\\\${1:-}\\" in / {
     z
-    s/^/:[:0-9]*; case \\"\${1}\\" in /
+    s/^/:[:0-9]*; case \\"\\${1:-}\\" in /
     b failure_forbidden_value
   }
   / ( '[0-9]\+'|'- ) / {
@@ -46,7 +46,7 @@
   /^[^\n]/ {
     s/$/shift; /
   }
-  s/$/case "${1}" in/
+  s/$/case \\"\\${1:-}\\" in/
   x
   n
   /^}$/ {
@@ -61,9 +61,9 @@
     b failure_expecting_json_string
 
     : _json_object_loop_1
-      /:[:0-9]*; case \\"\${1}\\" in / {
+      /:[:0-9]*; case \\"\\\${1:-}\\" in / {
         z
-        s/^/:[:0-9]*; case \\"\${1}\\" in /
+        s/^/:[:0-9]*; case \\"\\${1:-}\\" in /
         b failure_forbidden_key
       }
       / ( '[0-9]\+'|'- ) / {
@@ -110,7 +110,7 @@
   : _json_object_loop_end
     z
     x
-    s/$/ ( * ) return 1 ;; esac/
+    s/$/ ( '' ) error 'Empty key' ;; ( * ) error 'Unknown key' ;; esac/
     x
     b return
 
@@ -120,7 +120,7 @@
   /^[^\n]/ {
     s/$/shift; /
   }
-  s/$/ :; case "${1}" in/
+  s/$/ :; case \\"\\${1:-}\\" in/
   s/^/0/
   x
   n
@@ -164,13 +164,13 @@
   : _json_array_positive_indexes_loop_end
     x
     s/^\([0-9]\+\)\(.* :\)\([:0-9]*\)\(; .*\)$/\2\1:\3\4/
-    s/$/ ( * ) return 1 ;; esac/
+    s/$/ ( '' ) error 'Empty index' ;; ( * ) error 'Unknown index' ;; esac/
     b _json_array_negative_indexes_loop
 
   : _json_array_negative_indexes_loop
-    s/\(.*:\)\([0-9]\+\):\(; case "\${1}" in .*( '[0-9]\+'|'-\) ) /\1\3\2' ) /
+    s/\(.*:\)\([0-9]\+\):\(; case \\"\\\${1:-}\\" in .*( '[0-9]\+'|'-\) ) /\1\3\2' ) /
     t _json_array_negative_indexes_loop
-    s/\(.*\) \(:0\)\?:; \(case "\${1}" in \)/\1\3/
+    s/\(.*\) \(:0\)\?:; \(case \\"\\\${1:-}\\" in \)/\1\3/
     x
     z
     b return
@@ -279,4 +279,3 @@
   z
   x
   s/^\n//
-  p
