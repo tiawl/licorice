@@ -20,6 +20,13 @@
     b failure_invalid_single_char
   }
   /:[:0-9]*; case \\"\${1}\\" in / {
+    z
+    s/^/:[:0-9]*; case \\"\${1}\\" in /
+    b failure_forbidden_value
+  }
+  / ( '[0-9]\+'|'- ) / {
+    z
+    s/^/ ( '[0-9]+'|'- ) /
     b failure_forbidden_value
   }
   s/\\"/"/g
@@ -55,6 +62,13 @@
 
     : _json_object_loop_1
       /:[:0-9]*; case \\"\${1}\\" in / {
+        z
+        s/^/:[:0-9]*; case \\"\${1}\\" in /
+        b failure_forbidden_key
+      }
+      / ( '[0-9]\+'|'- ) / {
+        z
+        s/^/ ( '[0-9]+'|'- ) /
         b failure_forbidden_key
       }
       s/^"/ ( '/
@@ -154,7 +168,7 @@
     b _json_array_negative_indexes_loop
 
   : _json_array_negative_indexes_loop
-    s/\(.*:\)\([0-9]\+\):\(; case "\${1}" in .*( '[0-9]\+'|'-\) )/\1\3\2' )/
+    s/\(.*:\)\([0-9]\+\):\(; case "\${1}" in .*( '[0-9]\+'|'-\) ) /\1\3\2' ) /
     t _json_array_negative_indexes_loop
     s/\(.*\) \(:0\)\?:; \(case "\${1}" in \)/\1\3/
     x
@@ -256,12 +270,10 @@
   s/^/Error in json::parse SED script: Expecting comma or closing bracket character/w /dev/stderr
   Q 11
 : failure_forbidden_value
-  z
-  s/^/Error in json::parse SED script: A JSON value matched an internal regex: ':[:0-9]*; case \\"\\${1}\\" in'/w /dev/stderr
+  s/.*/Error in json::parse SED script: A JSON value matched an internal regex: '\0'/w /dev/stderr
   Q 12
 : failure_forbidden_key
-  z
-  s/^/Error in json::parse SED script: A JSON object key matched an internal regex: ':[:0-9]*; case \\"\\${1}\\" in'/w /dev/stderr
+  s/.*/Error in json::parse SED script: A JSON object key matched an internal regex: '\0'/w /dev/stderr
   Q 13
 : success
   z
