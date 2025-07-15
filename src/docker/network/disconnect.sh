@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <network_name> <container_name>|Disconnect <container_name> from <network_name>
-  shift
-
   local json endpoint logged_endpoint method http_code
   json="{\"Container\":\"${2}\",\"Force\":true}"
   endpoint="http://${version[docker_api]}/networks/${1}/disconnect"

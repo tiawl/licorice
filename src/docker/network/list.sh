@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <pattern>|List networks matching <pattern>
-  shift
-
   local filters endpoint method http_code
   filters="{\"name\":{\"${1}\":true}}"
   method='GET'

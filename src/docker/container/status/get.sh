@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <container>|Return the status of the given <container>
-  shift
-
   local endpoint method http_code
   method='GET'
   endpoint="http://${version[docker_api]}/containers/${1}/json"

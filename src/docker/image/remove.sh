@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <image> <tag>|Remove <image>
-  shift
-
   local endpoint method http_code
   endpoint="http://${version[docker_api]}/images/${1}${sep[tag]}${2}"
   method='DELETE'

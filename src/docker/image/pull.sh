@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <registry> <project> <image> <tag>|Download <image> from <registry>
-  shift
-
   local endpoint method img http_code
   img="${1}${sep[image]}${2}${sep[image]}${3}${sep[tag]}${4}"
   endpoint="http://${version[docker_api]}/images/create?fromImage=${img}"

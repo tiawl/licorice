@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <network_name> <container_name>|Connect <container_name> to <network_name>
-  shift
-
   local json endpoint logged_endpoint method http_code
   json="{\"Container\":\"${2}\"}"
   endpoint="http://${version[docker_api]}/networks/${1}/connect"

@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <network>|List all ip addresses used on <network>
-  shift
-
   local endpoint method http_code
   endpoint="http://${version[docker_api]}/networks/${1}"
   method='GET'

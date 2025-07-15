@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <name>|Succeed if a network with <name> is found. Fail otherwise
-  shift
-
   local filters endpoint method http_code
   filters="{\"name\":{\"${1}\":true}}"
   method='GET'

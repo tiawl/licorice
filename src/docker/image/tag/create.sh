@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <image_source> <tag_source> <new_image> <new_tag>|Create a tag <new_image>:<new_tag> that refers to <image_source>:<tag_source>
-  shift
-
   local endpoint method http_code
   endpoint="http://${version[docker_api]}/images/${1}${sep[tag]}${2}/tag?repo=${3}&tag=${4}"
   method='POST'

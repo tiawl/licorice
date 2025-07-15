@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <container_name> <image> <hostname> [<volumes>]|Create a new container from <image>
-  shift
-
   local json endpoint logged_endpoint method img http_code
   img="${2}"
   json="{\"Hostname\":\"${3}\",\"Image\":\"${img}${sep[tag]}$(${namespace[core]}image tag list "${img}")\",\"HostConfig\":{\"Mounts\":${4}}}"

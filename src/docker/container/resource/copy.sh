@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <container_name> <container_path> <host_path>|Copy files/folders from a container to the local filesystem
-  shift
-
   local endpoint method http_code
   endpoint="http://${version[docker_api]}/containers/${1}/archive?path=${2}"
   method='GET'

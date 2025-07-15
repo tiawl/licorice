@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <container> <network>|List <container> ip address on <network_id>
-  shift
-
   local endpoint method http_code
   endpoint="http://${version[docker_api]}/containers/${1}/json"
   method='GET'

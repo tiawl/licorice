@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <pattern>|List volumes matching <pattern>
-  shift
-
   local filters endpoint method http_code
   filters="{\"name\":{\"${1}\":true}}"
   method='GET'

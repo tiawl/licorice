@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <pattern>|List images matching <pattern>
-  shift
-
   local filters endpoint method http_code
   filters="{\"reference\":{\"${1}\":true}}"
   method='GET'

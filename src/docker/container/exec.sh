@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <container_name> <detached> <user> <cmd>|Run a command inside <container_name>
-  shift
-
   local json create_endpoint start_endpoint logged_endpoint method http_code exec_id
   json="{\"AttachStdin\": false,\"AttachStdout\": true, \"AttachStderr\": true,\"Tty\": false,\"Cmd\": ${4}, \"User\": \"${3}\"}"
   create_endpoint="http://${version[docker_api]}/containers/${1}/exec"

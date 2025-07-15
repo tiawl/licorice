@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <image> <tag>|Succeed if the <image>:<tag> is found. Fail otherwise
-  shift
-
   local filters endpoint method http_code
   filters="{\"reference\":{\"${1}${sep[tag]}${2}\":true}}"
   method='GET'

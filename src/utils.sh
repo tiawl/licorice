@@ -9,7 +9,7 @@ le () { (( "${1}" <= "${2}" )); }
 
 can () {
   case "${1}" in
-  ( 'not' ) shift; not can "${@}" ;;
+  ( 'not' ) not can "${@:2}" ;;
   ( 'exec' ) [[ -x "${2}" ]] ;;
   esac
 }
@@ -18,7 +18,7 @@ basename () {
   set -- "${1%"${1##*[!/]}"}" "${2:-}"
   set -- "${1##*/}" "${2:-}"
   set -- "${1%"${2:-}"}"
-  printf '%s' "${1:-/}"
+  printf -- '%s' "${1:-/}"
 }
 
 dirname () {
@@ -32,7 +32,7 @@ dirname () {
 
   set -- "${1%/*}"
   set -- "${1%%"${1##*[!/]}"}"
-  printf '%s' "${1:-/}"
+  printf -- '%s' "${1:-/}"
 }
 
 normalizedpath () {
@@ -40,13 +40,13 @@ normalizedpath () {
   then
     env -C "${1}" pwd
   else
-    printf '%s/%s\n' "$(env -C "$(dirname "${1}")" pwd)" "$(basename "${1}")"
+    printf -- '%s/%s\n' "$(env -C "$(dirname "${1}")" pwd)" "$(basename "${1}")"
   fi
 }
 
 is () {
   case "${1}" in
-  ( 'not' ) shift; not is "${@}" ;;
+  ( 'not' ) not is "${@:2}" ;;
   ( 'present' ) [[ -e "${2}" ]] ;;
   ( 'file' ) [[ -f "${2}" ]] ;;
   ( 'dir' ) [[ -d "${2}" ]] ;;
@@ -62,14 +62,14 @@ is () {
 
 has () {
   case "${1}" in
-  ( 'not' ) shift; not has "${@}" ;;
+  ( 'not' ) not has "${@:2}" ;;
   ( * ) can exec "$(command -v "${1}" 2> /dev/null || :)" ;;
   esac
 }
 
 str () {
   case "${1}" in
-  ( 'not' ) shift; not str "${@}" ;;
+  ( 'not' ) not str "${@:2}" ;;
   ( 'empty' ) [[ -z "${2}" ]] ;;
   ( 'eq' ) [[ "${2}" == "${3}" ]] ;;
   ( 'in' ) case "${3}" in ( *" ${2} "* ) return 0 ;; ( * ) return 1 ;; esac ;;
@@ -83,7 +83,7 @@ read_http_code () {
 }
 
 error () {
-  printf "${1}"$'\n' "${@:2}" >&2
+  printf -- "${1}"$'\n' "${@:2}" >&2
   return 1
 }
 
@@ -208,7 +208,7 @@ defer () {
       $(
         if is not func "${pfx}0"
         then
-          printf '%s\n%s' "${fn_prev_return_trap_def}" "${fn_prev_err_trap_def}"
+          printf -- '%s\n%s' "${fn_prev_return_trap_def}" "${fn_prev_err_trap_def}"
         fi
       )
       local before after restore_err_trap
@@ -278,7 +278,7 @@ harden () {
   hardened="$(if is func hardened; then hardened; fi)"
   readonly hardened
   eval "hardened () {
-    printf \"%s\n\" ${hardened:+"'"}${hardened//$'\n'/"' '"}${hardened:+"'"} '${2:-"${1//-/_}"}'
+    printf -- \"%s\n\" ${hardened:+"'"}${hardened//$'\n'/"' '"}${hardened:+"'"} '${2:-"${1//-/_}"}'
   }"
 }
 
@@ -310,15 +310,15 @@ url () {
     do
       : "${2:i:1}"
       case "${_}" in
-      ( [a-zA-Z0-9.~_-] ) printf -v reply '%c' "${_}" ;;
-      ( * ) printf -v reply '%%%02X' "'${_}" ;;
+      ( [a-zA-Z0-9.~_-] ) printf -v reply -- '%c' "${_}" ;;
+      ( * ) printf -v reply -- '%%%02X' "'${_}" ;;
       esac
       encoded="${encoded:-}${reply}"
     done
-    printf '%s\n' "${encoded}" ;;
+    printf -- '%s\n' "${encoded}" ;;
   ( decode )
     : "${2//+/ }"
-    printf '%b\n' "${_//%/\\x}" ;;
+    printf -- '%b\n' "${_//%/\\x}" ;;
   esac
 }
 
@@ -329,7 +329,7 @@ nchar () {
     error 'Second argument must be a lonely char'
   fi
   : "${ref//[^"${2}"]}"
-  printf -v "${!ref}" '%d' "${#_}"
+  printf -v "${!ref}" -- '%d' "${#_}"
 }
 
 gengetopt () {

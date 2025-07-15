@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <container_name>|Start stopped <container_name>
-  shift
-
   local endpoint method http_code
   endpoint="http://${version[docker_api]}/containers/${1}/start"
   method='POST'

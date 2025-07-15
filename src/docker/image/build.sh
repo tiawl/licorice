@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <repository> <tag> <context> [<buildargs>]|Build an image from a Dockerfile
-  shift
-
   filter_docker_output () {
     gojq --join-output --raw-output '. | if (.id == "moby.buildkit.trace") then (.aux | @base64d) elif has("errorDetail") then ("vertexes {\n  error: \"" + .errorDetail.message + "\"\n}\n" | halt_error(1)) else empty end'
   }

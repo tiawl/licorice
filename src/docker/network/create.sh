@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <network_name> <isolated>|Create a new network
-  shift
-
   local json endpoint logged_endpoint method http_code
   json="{\"Name\":\"${1}\",\"Driver\":\"bridge\",\"EnableIPv4\":true,\"EnableIPv6\":true,\"ConfigOnly\":false,\"Scope\":\"local\",\"Internal\":${2}}"
   endpoint="http://${version[docker_api]}/networks/create"

@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <volume_name>|Create a new volume
-  shift
-
   local json endpoint logged_endpoint method http_code
   json="{\"Name\":\"${1}\"}"
   endpoint="http://${version[docker_api]}/volumes/create"
