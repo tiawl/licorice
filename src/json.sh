@@ -19,6 +19,10 @@ json::validate () {
   json_pp
 }
 
+json::from::protobuf () {
+  sed --quiet "${sed[json/from/protobuf]}"
+}
+
 json::parse::tokenize () {
   local escape char string number keyword space grep
 
@@ -66,15 +70,8 @@ json::parse () {
         done)
       ( * ) error 'Unknown parsed file: %s' \"\${1}\" ;;
       esac
+    }
+    json::has () {
+      json:get \"\${@}\" > /dev/null
     }"
-}
-
-json () {
-  case "${1}" in
-  ( encode ) json::encode "${@:2}" ;;
-  ( parse ) json::parse "${@:2}" ;;
-  ( validate ) json::validate "${@:2}" ;;
-  ( get ) json::get "${@:2}" ;;
-  ( * ) error 'Unknown json subcommand: "%s"' "${1}" ;;
-  esac
 }

@@ -52,10 +52,10 @@ ___ () { #HELP <yaml_file>|Display the runner bash script without executing it
         $IMPORT
       ) end | ([.import | to_entries[] | select(.value == null) | .key | "if is not var \"raw_import[" + . + "]\"; then raw_import[" + . + "]=\"$(gojq --yaml-input --raw-output --monochrome-output --compact-output \".group |= walk(if type == \\\"object\\\" then with_entries(if .key == \\\"imported\\\" then .value |= \\\"$(normalizedpath \"$(dirname " + . + ")\")/\\\" + (. | sub(\\\"^[.]/\\\"; \\\"\\\")) else . end) else . end)\" " + . + ")\"; fi"] | join(";"))
     ')"
-    import="$(json encode raw_import)"
+    import="$(json::encode raw_import)"
 
     raw_visited["${filepath}"]='true'
-    visited="$(json encode raw_visited)"
+    visited="$(json::encode raw_visited)"
     filepath="$(normalizedpath "$(gojq --null-input --raw-output --monochrome-output --compact-output --slurpfile IMPORT <(printf '{"import": %s}' "${import}") --slurpfile VISITED <(printf '%s' "${visited}") '
       (if ($VISITED | type == "array") then $VISITED[0] else $VISITED end) as $VISITED |
       (if ($IMPORT | type == "array") then $IMPORT[0] else $IMPORT end) as $IMPORT |

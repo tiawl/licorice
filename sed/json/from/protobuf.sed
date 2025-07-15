@@ -46,3 +46,5 @@ s/}\n\s*{/}, {/g
 # Add `{` and `}` as first and last characters into the final output => JSON array
 s/^/[/
 s/$/]/
+
+p

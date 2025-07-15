@@ -1,11 +1,13 @@
 #! /usr/bin/env --split-string sed --file
 
+# Split the hold space between 2 lines: the first for the workflow stack (and potential variables) and the last for the final output
 : init_hold_space
   x
   s/^/\n/
   x
   b json_value
 
+# Dispatch the workflow depending of the token
 : json_value
   /^{$/ {
     b json_object
@@ -16,9 +18,11 @@
   /^$/ {
     b failure_empty_json_value
   }
+  # From https://github.com/dominictarr/JSON.sh: At this point, the only valid single-character tokens are digits.
   /^[^0-9]$/ {
     b failure_invalid_single_char
   }
+  # Check that the value does not contain a substring that can be potentially used during the negative indexes compute of JSON arrays
   /:[:0-9]*; case \\"\\\${1:-}\\" in / {
     z
     s/^/:[:0-9]*; case \\"\\${1:-}\\" in /
@@ -35,14 +39,17 @@
   s/"\?$/'/
   H
   x
+  # Remove the new line character added by the 'H' command
   s/\n\([^\n]*\)$/\1/
   x
   z
   b return
 
+# Deal with JSON objects
 : json_object
   z
   x
+  # If this is not the root JSON object, add a BASH `shift` into the final output
   /^[^\n]/ {
     s/$/shift; /
   }
@@ -54,6 +61,7 @@
   }
   b _json_object_loop
 
+  # Main loop for JSON object
   : _json_object_loop
     /^".\+"$/ {
       b _json_object_loop_1
@@ -61,6 +69,7 @@
     b failure_expecting_json_string
 
     : _json_object_loop_1
+      # Check that the JSON object current key does not contain a substring that can be potentially used during the negative indexes compute of JSON arrays
       /:[:0-9]*; case \\"\\\${1:-}\\" in / {
         z
         s/^/:[:0-9]*; case \\"\\${1:-}\\" in /
@@ -75,6 +84,7 @@
       s/"$/' ) /
       H
       x
+      # Remove the new line character added by the 'H' command
       s/\n\([^\n]*\)$/\1/
       x
       n
@@ -86,6 +96,7 @@
     : _json_object_loop_2
       n
       x
+      # Before the JSON object current value treatment, add an unique ID in the workflow stack, to come back here when done
       s/^/O/
       x
       b json_value
@@ -95,6 +106,7 @@
       s/$/ ;;/
       x
       n
+      # Depending of the token, the loop continues or breaks
       /^}$/ {
         b _json_object_loop_end
       }
@@ -114,13 +126,17 @@
     x
     b return
 
+# Deal with JSON arrays
 : json_array
   z
   x
+  # If this is not the root JSON array, it adds a BASH `shift` into the final output
   /^[^\n]/ {
     s/$/shift; /
   }
+  # Add a ` :; ` marker to know that the current JSON array treatment is not finished: only useful for negative indexes treatment
   s/$/ :; case \\"\\${1:-}\\" in/
+  # Add the length of the JSON array
   s/^/0/
   x
   n
@@ -129,6 +145,7 @@
   }
   b _json_array_positive_indexes_loop
 
+  # Main loop for JSON array
   : _json_array_positive_indexes_loop
     x
     s/^\([0-9]\+\).*/A\0 ( '\1'|'- ) /
@@ -140,6 +157,8 @@
       s/$/ ;;/
       x
       n
+      # 1) Before the JSON object current value treatment, add an unique ID in the workflow stack, to come back here when done
+      # 2) Depending of the token, the loop continues or breaks
       /^]$/ {
         x
         s/^/E/
@@ -156,6 +175,7 @@
 
     : _json_array_positive_indexes_loop_2
       x
+      # The marker is used as a stack of indexes where the incremented positive index is stored for each iteration. It will be used later for negative indexes
       s/^\([0-9]\+\)\(.* :\)\([:0-9]*\)\(; .*\)$/\1\2\1:\3\4/
       x
       n
@@ -163,55 +183,63 @@
 
   : _json_array_positive_indexes_loop_end
     x
+    # Append the last element in the stack
     s/^\([0-9]\+\)\(.* :\)\([:0-9]*\)\(; .*\)$/\2\1:\3\4/
     s/$/ ( '' ) error 'Empty index' ;; ( * ) error 'Unknown index' ;; esac/
     b _json_array_negative_indexes_loop
 
+  # It iteratively empties the marker/stack to allow the user to use negative indexes for each element in JSON arrays
   : _json_array_negative_indexes_loop
     s/\(.*:\)\([0-9]\+\):\(; case \\"\\\${1:-}\\" in .*( '[0-9]\+'|'-\) ) /\1\3\2' ) /
     t _json_array_negative_indexes_loop
+    # Remove the marker when the stack is empty
     s/\(.*\) \(:0\)\?:; \(case \\"\\\${1:-}\\" in \)/\1\3/
     x
     z
     b return
 
+# Increments the index for JSON array
 : incr_index
   x
-  b nines2underscores
+  b _incr_index_nines2underscores
 
-  : nines2underscores
+  # Replace trailing 9n with underscores
+  : _incr_index_nines2underscores
     s/^\([EL][0-9]*\)9\(_*\)/\1_\2/
-    t nines2underscores
+    t _incr_index_nines2underscores
+    # Increment the last digit only
     s/^\([EL]\)\(_\+\)/\11\2/
-    t underscores2zeroes
+    t _incr_index_underscores2zeroes
     s/^\([EL][0-9]*\)8\(_*\)/\19\2/
-    t underscores2zeroes
+    t _incr_index_underscores2zeroes
     s/^\([EL][0-9]*\)7\(_*\)/\18\2/
-    t underscores2zeroes
+    t _incr_index_underscores2zeroes
     s/^\([EL][0-9]*\)6\(_*\)/\17\2/
-    t underscores2zeroes
+    t _incr_index_underscores2zeroes
     s/^\([EL][0-9]*\)5\(_*\)/\16\2/
-    t underscores2zeroes
+    t _incr_index_underscores2zeroes
     s/^\([EL][0-9]*\)4\(_*\)/\15\2/
-    t underscores2zeroes
+    t _incr_index_underscores2zeroes
     s/^\([EL][0-9]*\)3\(_*\)/\14\2/
-    t underscores2zeroes
+    t _incr_index_underscores2zeroes
     s/^\([EL][0-9]*\)2\(_*\)/\13\2/
-    t underscores2zeroes
+    t _incr_index_underscores2zeroes
     s/^\([EL][0-9]*\)1\(_*\)/\12\2/
-    t underscores2zeroes
+    t _incr_index_underscores2zeroes
     s/^\([EL][0-9]*\)0\(_*\)/\11\2/
-    b underscores2zeroes
+    b _incr_index_underscores2zeroes
 
-  : underscores2zeroes
+  # Replace trailing underscores with 0s
+  : _incr_index_underscores2zeroes
     s/^\([EL][0-9]*\)_/\10/
-    t underscores2zeroes
+    t _incr_index_underscores2zeroes
     b _incr_index_end
 
   : _incr_index_end
     x
     b return
 
+# Redirect the workflow depending of the first element in the workflow stack
 : return
   x
   /^\n/ {
@@ -241,6 +269,7 @@
   x
   b failure_unknown_return_code
 
+# Success and known failure cases
 : failure_unknown_return_code
   x
   s/^\([^\n]*\).*/Error in json::parse SED script: Unknown return code. Flow stack from SED Hold Space: "\1" /w /dev/stderr

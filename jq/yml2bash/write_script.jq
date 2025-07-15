@@ -562,7 +562,7 @@ def define(level; mode; nested_register; user_defined): (
 
     def json(level; mode): (
       (
-        "json " + (.json |
+        "json" + $NAMESPACE.sep + (.json |
           if (has("encode")) then (
             "encode " + (.encode[] | sanitize(mode; true))
           ) else (
