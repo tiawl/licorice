@@ -37,7 +37,7 @@ ___ () { #HELP <repository> <tag> <context> [<buildargs>]|Build an image from a 
               filter_docker_output 2>&3 \
                 | decode_buildkit_protobuf
             } 3>&1 \
-          | sed "${sed[protobuf2json]}" \
+          | json::from::protobuf \
           | gojq --raw-output "${jq[image-build-logging]}" --arg image "${repo}" >&2
       done
 }
