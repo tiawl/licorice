@@ -6,7 +6,7 @@ ___ () { #HELP <repository> <tag> <context> [<buildargs>]|Build an image from a 
   }
 
   decode_buildkit_protobuf () {
-    protoc --decode=moby.buildkit.v1.StatusResponse --descriptor_set_in=<(base64 -d <<< "${buf[descriptor_set_control]}") --proto_path=/dev/fd <(printf '%s' "${buf[vendor_control]}")
+    protoc --decode=moby.buildkit.v1.StatusResponse --descriptor_set_in=<(base64 -d <<< "${buf[descriptor_set_control]}") --proto_path=/dev/fd <(print '%s' "${buf[vendor_control]}")
   }
 
   local repo tag context json method endpoint
@@ -20,19 +20,25 @@ ___ () { #HELP <repository> <tag> <context> [<buildargs>]|Build an image from a 
   endpoint="http://${version[docker_api]}/build?version=2&t=${repo}${sep[tag]}${tag}&buildargs=$(url encode "${json}")"
   readonly endpoint
 
-  printf '%s %s\n' "${method}" "$(url decode "${endpoint}")" >&2
+  print '%s %s\n' "${method}" "$(url decode "${endpoint}")" >&2
 
-  local response http_code
-  coproc HTTP_CODE { sed "${sed[colored_http_code]}"; }
-  defer 'exec {HTTP_CODE[1]}>&- 4>&-; read_http_code <&${HTTP_CODE[0]}; wait "${HTTP_CODE_PID}" 2> /dev/null || :; printf "%s\n" "${http_code}" >&2'
+  local response
+  coproc HTTP_CODE {
+    json::parse
+    json::get - scheme
+    print '%s ' "${GET}"
+    json::get - response_code
+    print '%s\n' "${GET}"
+  }
+  defer 'exec {HTTP_CODE[1]}>&- 4>&-; sed "${sed[colored_http_code]}" <&${HTTP_CODE[0]} >&2'
 
   exec 4>&${HTTP_CODE[1]}
 
   tar --directory "${context}" --create --file=- . \
-    | curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --data-binary '@-' --header 'Content-Type: application/x-tar' --no-buffer --write-out "%{stderr}%{scheme} %{response_code}\n" "${endpoint}" 2>&4 \
+    | curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --data-binary '@-' --header 'Content-Type: application/x-tar' --no-buffer --write-out '%{stderr}%{json}' "${endpoint}" 2>&4 \
     | while read -r response
       do
-        printf '%s' "${response}" \
+        print '%s' "${response}" \
           | {
               filter_docker_output 2>&3 \
                 | decode_buildkit_protobuf

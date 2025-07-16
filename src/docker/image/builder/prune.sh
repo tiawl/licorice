@@ -1,18 +1,24 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP|Remove build cache
-  local endpoint method http_code
+  local endpoint method
   endpoint="http://${version[docker_api]}/build/prune?all=true"
   method='POST'
   readonly endpoint method
 
-  printf '%s %s\n' "${method}" "${endpoint//\"/\\\"}" >&2
+  print '%s %s\n' "${method}" "${endpoint//\"/\\\"}" >&2
 
-  coproc HTTP_CODE { sed "${sed[colored_http_code]}"; }
-  defer 'exec {HTTP_CODE[1]}>&- 3>&-; read_http_code <&${HTTP_CODE[0]}; wait "${HTTP_CODE_PID}" 2> /dev/null || :; printf "%s\n" "${http_code}" >&2'
+  coproc HTTP_CODE {
+    json::parse
+    json::get - scheme
+    print '%s ' "${GET}"
+    json::get - response_code
+    print '%s\n' "${GET}"
+  }
+  defer 'exec {HTTP_CODE[1]}>&- 3>&-; sed "${sed[colored_http_code]}" <&${HTTP_CODE[0]} >&2'
 
   exec 3>&${HTTP_CODE[1]}
 
-  curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --write-out "%{stderr}%{scheme} %{response_code}\n" "${endpoint}" 2>&3 \
-    | json_pp >&2
+  curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --write-out '%{stderr}%{json}' "${endpoint}" 2>&3 \
+    | json::print::pretty >&2
 }

@@ -14,11 +14,15 @@ can () {
   esac
 }
 
+print () {
+  printf "${@}"
+}
+
 basename () {
   set -- "${1%"${1##*[!/]}"}" "${2:-}"
   set -- "${1##*/}" "${2:-}"
   set -- "${1%"${2:-}"}"
-  printf -- '%s' "${1:-/}"
+  print -- '%s' "${1:-/}"
 }
 
 dirname () {
@@ -32,7 +36,7 @@ dirname () {
 
   set -- "${1%/*}"
   set -- "${1%%"${1##*[!/]}"}"
-  printf -- '%s' "${1:-/}"
+  print -- '%s' "${1:-/}"
 }
 
 normalizedpath () {
@@ -40,7 +44,7 @@ normalizedpath () {
   then
     env -C "${1}" pwd
   else
-    printf -- '%s/%s\n' "$(env -C "$(dirname "${1}")" pwd)" "$(basename "${1}")"
+    print -- '%s/%s\n' "$(env -C "$(dirname "${1}")" pwd)" "$(basename "${1}")"
   fi
 }
 
@@ -78,12 +82,8 @@ str () {
   esac
 }
 
-read_http_code () {
-  IFS= read -r http_code || eq "${?}" 1
-}
-
 error () {
-  printf -- "${1}"$'\n' "${@:2}" >&2
+  print -- "${1}"$'\n' "${@:2}" >&2
   return 1
 }
 
@@ -208,7 +208,7 @@ defer () {
       $(
         if is not func "${pfx}0"
         then
-          printf -- '%s\n%s' "${fn_prev_return_trap_def}" "${fn_prev_err_trap_def}"
+          print -- '%s\n%s' "${fn_prev_return_trap_def}" "${fn_prev_err_trap_def}"
         fi
       )
       local before after restore_err_trap
@@ -278,7 +278,7 @@ harden () {
   hardened="$(if is func hardened; then hardened; fi)"
   readonly hardened
   eval "hardened () {
-    printf -- \"%s\n\" ${hardened:+"'"}${hardened//$'\n'/"' '"}${hardened:+"'"} '${2:-"${1//-/_}"}'
+    print -- \"%s\n\" ${hardened:+"'"}${hardened//$'\n'/"' '"}${hardened:+"'"} '${2:-"${1//-/_}"}'
   }"
 }
 
@@ -310,15 +310,15 @@ url () {
     do
       : "${2:i:1}"
       case "${_}" in
-      ( [a-zA-Z0-9.~_-] ) printf -v reply -- '%c' "${_}" ;;
-      ( * ) printf -v reply -- '%%%02X' "'${_}" ;;
+      ( [a-zA-Z0-9.~_-] ) print -v reply -- '%c' "${_}" ;;
+      ( * ) print -v reply -- '%%%02X' "'${_}" ;;
       esac
       encoded="${encoded:-}${reply}"
     done
-    printf -- '%s\n' "${encoded}" ;;
+    print -- '%s\n' "${encoded}" ;;
   ( decode )
     : "${2//+/ }"
-    printf -- '%b\n' "${_//%/\\x}" ;;
+    print -- '%b\n' "${_//%/\\x}" ;;
   esac
 }
 
@@ -329,7 +329,7 @@ nchar () {
     error 'Second argument must be a lonely char'
   fi
   : "${ref//[^"${2}"]}"
-  printf -v "${!ref}" -- '%d' "${#_}"
+  print -v "${!ref}" -- '%d' "${#_}"
 }
 
 gengetopt () {

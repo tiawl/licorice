@@ -94,7 +94,7 @@ $(exec -c bash --noprofile --norc -c "
   ")
 
 ${namespace[core]}version () {
-  printf '${exe} ${version["${exe}"]}\n' >&2
+  print '${exe} ${version["${exe}"]}\n' >&2
 }
 
 ${namespace[core]}help () {
@@ -110,7 +110,7 @@ ${namespace[core]}help () {
         cols="\$(( \${#2} + 1 ))"
       fi
     fi
-    printf '%s\\n' "\${_buf:0:\${cols}}"
+    print '%s\\n' "\${_buf:0:\${cols}}"
     _buf="\${_buf:\${cols}}"
   }
 
@@ -124,22 +124,22 @@ ${namespace[core]}help () {
 
   ${namespace[core]}version
 
-  printf '\nCOMMANDS:\n' >&2
+  print '\nCOMMANDS:\n' >&2
   ${help[@]@A}
   for desc in "\${help[@]}"
   do
     mapfile -t -d '|' split <<< "\${desc}"
     if gt "\${COLUMNS}" "\$(( ${len_cmd} + 9 ))"
     then
-      printf -v _buf -- '        %-${len_cmd}s %s' "\${split[0]}" "\${split[1]%$'\n'}"
+      print -v _buf -- '        %-${len_cmd}s %s' "\${split[0]}" "\${split[1]%$'\n'}"
       cut_line "\${_buf}"
       while gt "\${#_buf}" '0'
       do
-        printf -v _buf '        %${len_cmd}s %s' '' "\${_buf}"
+        print -v _buf '        %${len_cmd}s %s' '' "\${_buf}"
         cut_line "\${_buf}"
       done
     else
-      printf '\t%s\t%s' "\${split[0]}" "\${split[1]}"
+      print '\t%s\t%s' "\${split[0]}" "\${split[1]}"
     fi
   done >&2
 
@@ -204,7 +204,7 @@ $(on globstar
       then
         key="${entry#"${SDIR}/${dir}/"}"
         key="${key%".${dir}"}"
-        printf '  %s[%s]=%s\n' "${dir}" "${key}" "'$(shebangless "${entry}" | sed "s/'/'\"'\"'/g")'"
+        print '  %s[%s]=%s\n' "${dir}" "${key}" "'$(shebangless "${entry}" | sed "s/'/'\"'\"'/g")'"
       fi
     done
   done
@@ -212,8 +212,8 @@ $(on globstar
   do
     if is file "${SDIR}/buf/descriptor_sets/$(basename "${entry}")"
     then
-      printf '  buf[descriptor_set_%s]=%s\n' "$(basename "${entry}" '.proto')" "'$(base64 --wrap 0 "${SDIR}/buf/descriptor_sets/$(basename "${entry}")")'"
-      printf '  buf[vendor_%s]=%s\n' "$(basename "${entry}" '.proto')" "'$(sed "s/'/'\"'\"'/g" "${entry}")'"
+      print '  buf[descriptor_set_%s]=%s\n' "$(basename "${entry}" '.proto')" "'$(base64 --wrap 0 "${SDIR}/buf/descriptor_sets/$(basename "${entry}")")'"
+      print '  buf[vendor_%s]=%s\n' "$(basename "${entry}" '.proto')" "'$(sed "s/'/'\"'\"'/g" "${entry}")'"
     fi
   done)
 
