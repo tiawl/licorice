@@ -164,6 +164,7 @@ ${namespace[core]}init () {
   harden env
   harden gojq # TODO: remove this dependency when possible
   harden json_pp
+  harden json_xs
   #harden mktemp
   harden protoc
   harden rg || harden egrep

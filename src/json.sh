@@ -8,23 +8,34 @@ json::encode () {
     gojq --null-input --raw-output --monochrome-output --compact-output '($ARGS.positional | [.[:$n], .[$n:]] | transpose | map(last as $last | {(first): (if (($last | type == "number") or (($last | type == "string") and ($last | test("^[0-9]+$")))) then ($last | tostring) else (try ($last | fromjson) catch $last) end)}) | add) // {}' --argjson n "${#ref[@]}" --args -- "${!ref[@]}" "${ref[@]}"
   elif is indexed "${!ref}"
   then
-    gojq --null-input --raw-output --monochrome-output --compact-output '$ARGS.positional | map(. as $item | try (fromjson) catch $item)' --args -- "${ref[@]}"
+    #gojq --null-input --raw-output --monochrome-output --compact-output '$ARGS.positional | map(. as $item | try (fromjson) catch $item)' --args -- "${ref[@]}"
+    printf '['
+    printf '%s\n' ${ref[@]} | sed -f "${sed[json/encode/array]}" | sed -z 's/.*\n\(.*\)\n/\1/'
+    printf ']\n'
   else
     error 'Only usable with indexed and associative array'
   fi
   unset -n ref
 }
 
+json::stringify () {
+  json_xs -f string -t json
+}
+
+json::validate () {
+  json_xs -t none
+}
+
 json::print::pretty () {
   local input
   input="$(cat)"
-  print '%s\n' "${input:-"{}"}" | json_pp --json_opt 'indent,space_after,indent_length=2'
+  print '%s' "${input:-"{}"}" | json_pp --json_opt 'indent,space_after,indent_length=2'
 }
 
-json::print::oneline () {
+json::print::compact () {
   local input
   input="$(cat)"
-  print '%s\n' "${input:-"{}"}" | json_pp --json_opt ''
+  print '%s' "${input:-"{}"}" | json_pp --json_opt ''
 }
 
 json::from::protobuf () {
@@ -55,7 +66,7 @@ json::parse () {
     fi
 
     set -f
-    json::print::oneline | ${grep} -a -o --color=never "${string}"'|'"${number}"'|'"${keyword}"'|'"${space}"'|.' | ${grep} -v '^'"${space}"'$'
+    json::print::compact | ${grep} -a -o --color=never "${string}"'|'"${number}"'|'"${keyword}"'|'"${space}"'|.' | ${grep} -v '^'"${space}"'$'
     set +f
   }
 
