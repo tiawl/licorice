@@ -544,7 +544,7 @@ def define(level; mode; nested_register; user_defined): (
     def print(level; mode): (
       (
         .print |
-        "printf " + (
+        "print " + (
           if (has("var")) then (
             if (.var | is_legit_varname) then (
               "-v " + (if (mode != $MODE.internal) then $NAMESPACE.var.user else "" end) + .var + " "
@@ -562,7 +562,7 @@ def define(level; mode; nested_register; user_defined): (
 
     def json(level; mode): (
       (
-        "json " + (.json |
+        "json" + $NAMESPACE.sep + (.json |
           if (has("encode")) then (
             "encode " + (.encode[] | sanitize(mode; true))
           ) else (
@@ -671,6 +671,7 @@ def define(level; mode; nested_register; user_defined): (
           ) + "\""
       );
 
+      # TODO: rework runner::exec as an unique function with a big case
       def runner_exec(level; mode; nested_register): (
         .runner.exec as $exec |
         $exec.args // [] as $exec_args |

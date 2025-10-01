@@ -9,7 +9,7 @@ This project is personal and is not intented to be used by others.
 ## "Compilation" process
 
 ```shell
-exec env --ignore-environment SDIR='/path/to/parent/dir/of/compile.sh' BASH_ENV='/path/to/src/utils.sh' bash --norc --noprofile '/path/to/compile.sh'
+exec env --ignore-environment SDIR='/path/to/parent/dir/of/compile.sh' BASH_ENV='/path/to/src/index.sh' bash --norc --noprofile '/path/to/compile.sh'
 ```
 
 It will produce an executable into the `bin` directory of the project. You can now move it into your favorite bin location.

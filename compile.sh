@@ -70,7 +70,7 @@ compile () {
 #! /usr/bin/env bash
 
 $(exec -c bash --noprofile --norc -c "
-    source \"${SDIR}/src/utils.sh\"
+    source \"${SDIR}/src/index.sh\"
     declare -A namespace
     namespace=(${namespace[@]@K})
     for key in core docker podman containerd
@@ -94,7 +94,7 @@ $(exec -c bash --noprofile --norc -c "
   ")
 
 ${namespace[core]}version () {
-  printf '${exe} ${version["${exe}"]}\n' >&2
+  print '${exe} ${version["${exe}"]}\n' >&2
 }
 
 ${namespace[core]}help () {
@@ -110,7 +110,7 @@ ${namespace[core]}help () {
         cols="\$(( \${#2} + 1 ))"
       fi
     fi
-    printf '%s\\n' "\${_buf:0:\${cols}}"
+    print '%s\\n' "\${_buf:0:\${cols}}"
     _buf="\${_buf:\${cols}}"
   }
 
@@ -124,22 +124,22 @@ ${namespace[core]}help () {
 
   ${namespace[core]}version
 
-  printf '\nCOMMANDS:\n' >&2
+  print '\nCOMMANDS:\n' >&2
   ${help[@]@A}
   for desc in "\${help[@]}"
   do
     mapfile -t -d '|' split <<< "\${desc}"
     if gt "\${COLUMNS}" "\$(( ${len_cmd} + 9 ))"
     then
-      printf -v _buf -- '        %-${len_cmd}s %s' "\${split[0]}" "\${split[1]%$'\n'}"
+      print -v _buf -- '        %-${len_cmd}s %s' "\${split[0]}" "\${split[1]%$'\n'}"
       cut_line "\${_buf}"
       while gt "\${#_buf}" '0'
       do
-        printf -v _buf '        %${len_cmd}s %s' '' "\${_buf}"
+        print -v _buf '        %${len_cmd}s %s' '' "\${_buf}"
         cut_line "\${_buf}"
       done
     else
-      printf '\t%s\t%s' "\${split[0]}" "\${split[1]}"
+      print '\t%s\t%s' "\${split[0]}" "\${split[1]}"
     fi
   done >&2
 
@@ -163,13 +163,14 @@ ${namespace[core]}init () {
   harden curl
   harden env
   harden gojq
+  harden json_xs
   #harden mktemp
   harden protoc
   harden sed
   harden sha256sum
   #harden shuf
   harden tar
-  #harden tee
+  harden tee
 
   global backend exe
   exe='${exe}'
@@ -202,7 +203,7 @@ $(on globstar
       then
         key="${entry#"${SDIR}/${dir}/"}"
         key="${key%".${dir}"}"
-        printf '  %s[%s]=%s\n' "${dir}" "${key}" "'$(shebangless "${entry}" | sed "s/'/'\"'\"'/g")'"
+        print '  %s[%s]=%s\n' "${dir}" "${key}" "'$(shebangless "${entry}" | sed "s/'/'\"'\"'/g")'"
       fi
     done
   done
@@ -210,12 +211,12 @@ $(on globstar
   do
     if is file "${SDIR}/buf/descriptor_sets/$(basename "${entry}")"
     then
-      printf '  buf[descriptor_set_%s]=%s\n' "$(basename "${entry}" '.proto')" "'$(base64 --wrap 0 "${SDIR}/buf/descriptor_sets/$(basename "${entry}")")'"
-      printf '  buf[vendor_%s]=%s\n' "$(basename "${entry}" '.proto')" "'$(sed "s/'/'\"'\"'/g" "${entry}")'"
+      print '  buf[descriptor_set_%s]=%s\n' "$(basename "${entry}" '.proto')" "'$(base64 --wrap 0 "${SDIR}/buf/descriptor_sets/$(basename "${entry}")")'"
+      print '  buf[vendor_%s]=%s\n' "$(basename "${entry}" '.proto')" "'$(sed "s/'/'\"'\"'/g" "${entry}")'"
     fi
   done)
 
-  fns=( $(exec -c bash --noprofile --norc -c "source ${SDIR}/src/utils.sh; compgen -A function") \$(compgen -A function -X "!(\${namespace[core]}*|\${namespace["\${backend}"]}*)") )
+  fns=( $(exec -c bash --noprofile --norc -c "source ${SDIR}/src/index.sh; compgen -A function") \$(compgen -A function -X "!(\${namespace[core]}*|\${namespace["\${backend}"]}*)") )
   readonly sed jq buf fns
 }
 

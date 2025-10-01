@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <key> <ctx_or_str> [<key> <ctx_or_str>] [...]|Compute a tag from contexts and arbitrary strings. Possible keys: 'context'/'string'
-  shift
-
   : "$({
     while gt "${#}" '0'
     do
@@ -16,7 +14,7 @@ ___ () { #HELP <key> <ctx_or_str> [<key> <ctx_or_str>] [...]|Compute a tag from 
         fi
       elif str eq "${1}" 'string'
       then
-        printf '%s' "${2}"
+        print '%s' "${2}"
       else
         error 'image tag compute: unknown %s' "${1}"
       fi
@@ -25,5 +23,5 @@ ___ () { #HELP <key> <ctx_or_str> [<key> <ctx_or_str>] [...]|Compute a tag from 
     declare -f image_build
   } | sha256sum)"
   : "${_%% *}"
-  printf '%s' "${_:0:20}"
+  print '%s' "${_:0:20}"
 }

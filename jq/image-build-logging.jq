@@ -29,7 +29,7 @@ def move_error_to_last_position:
 
 . | move_error_to_last_position | .[] |
   if (length > 1) then (
-    "Error: protobuf2json should build JSON objects with unique key but jq found a JSON object with more than one key" | halt_error(1)
+    "Error: json::from::protobuf should build JSON objects with unique key but jq found a JSON object with more than one key" | halt_error(1)
   ) elif has("vertexes") then (
     .vertexes |
     if any(.[]; has("error"))
@@ -50,5 +50,5 @@ def move_error_to_last_position:
   ) elif has("warnings") then (
     .warnings[] | select(has("short")) | "image build " + $image + " > " + color_text("[WARNING] " + (.short | rtrimstr("\n") | split("\n")[]); 3)
   ) else (
-    "protobuf2json: Unknown protobuf message type: " + keys[0] + "\n" | halt_error(1)
+    "json::from::protobuf: Unknown protobuf message type: " + keys[0] + "\n" | halt_error(1)
   ) end

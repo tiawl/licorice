@@ -1,8 +1,6 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <repository> <tag> <base> <context> <buildargs> [<context> <buildargs>] [...]|Build an image from multiple Dockerfiles
-  shift
-
   local repo tag i from args
   repo="${1}"
   tag="${2}"
