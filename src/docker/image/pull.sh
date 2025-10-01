@@ -10,16 +10,12 @@ ___ () { #HELP <registry> <project> <image> <tag>|Download <image> from <registr
   print '%s %s\n' "${method}" "${endpoint//\"/\\\"}" >&2
 
   coproc HTTP_CODE {
-    json::parse
-    json::get - scheme
-    print '%s ' "${GET}"
-    json::get - response_code
-    print '%s\n' "${GET}"
+    json::filter '.scheme + " " + (.response_code | tostring)'
   }
   defer 'exec {HTTP_CODE[1]}>&- 3>&-; sed "${sed[colored_http_code]}" <&${HTTP_CODE[0]} >&2'
 
   exec 3>&${HTTP_CODE[1]}
 
   curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --no-buffer --write-out '%{stderr}%{json}' "${endpoint}" 2>&3 \
-    | gojq --raw-output '"image pull '"${img}"' > " + .status + (if .progress | length > 0 then " " else "" end) + .progress' >&2
+    | json::filter '"image pull '"${img}"' > " + .status + (if .progress | length > 0 then " " else "" end) + .progress' >&2
 }

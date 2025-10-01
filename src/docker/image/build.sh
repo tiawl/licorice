@@ -24,11 +24,7 @@ ___ () { #HELP <repository> <tag> <context> [<buildargs>]|Build an image from a 
 
   local response
   coproc HTTP_CODE {
-    json::parse
-    json::get - scheme
-    print '%s ' "${GET}"
-    json::get - response_code
-    print '%s\n' "${GET}"
+    json::filter '.scheme + " " + (.response_code | tostring)'
   }
   defer 'exec {HTTP_CODE[1]}>&- 4>&-; sed "${sed[colored_http_code]}" <&${HTTP_CODE[0]} >&2'
 

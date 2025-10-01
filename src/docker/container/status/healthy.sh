@@ -9,18 +9,12 @@ ___ () { #HELP <container>|Succeed if the given <container> is healthy
   print '%s %s\n' "${method}" "$(url decode "${endpoint}")" >&2
 
   coproc HTTP_CODE {
-    json::parse
-    json::get - scheme
-    print '%s ' "${GET}"
-    json::get - response_code
-    print '%s\n' "${GET}"
+    json::filter '.scheme + " " + (.response_code | tostring)'
   }
   defer 'exec {HTTP_CODE[1]}>&- 3>&-; sed "${sed[colored_http_code]}" <&${HTTP_CODE[0]} >&2'
 
   exec 3>&${HTTP_CODE[1]}
 
   curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --write-out '%{stderr}%{json}' "${endpoint}" 2>&3 \
-    | json::parse
-  json::get - State Health Status
-  str eq "${GET}" 'healthy'
+    | json::test '.State.Health.Status == "healthy"'
 }

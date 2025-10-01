@@ -162,12 +162,10 @@ ${namespace[core]}init () {
   harden cat
   harden curl
   harden env
-  harden gojq # TODO: remove this dependency when possible
-  harden json_pp
+  harden gojq
   harden json_xs
   #harden mktemp
   harden protoc
-  harden rg || harden egrep
   harden sed
   harden sha256sum
   #harden shuf

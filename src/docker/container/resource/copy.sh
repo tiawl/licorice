@@ -9,11 +9,7 @@ ___ () { #HELP <container_name> <container_path> <host_path>|Copy files/folders 
   print '%s %s\n' "${method}" "${endpoint//\"/\\\"}" >&2
 
   coproc HTTP_CODE {
-    json::parse
-    json::get - scheme
-    print '%s ' "${GET}"
-    json::get - response_code
-    print '%s\n' "${GET}"
+    json::filter '.scheme + " " + (.response_code | tostring)'
   }
   defer 'exec {HTTP_CODE[1]}>&- 3>&-; sed "${sed[colored_http_code]}" <&${HTTP_CODE[0]} >&2'
 

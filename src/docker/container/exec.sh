@@ -11,20 +11,14 @@ ___ () { #HELP <container_name> <detached> <user> <cmd>|Run a command inside <co
   print '%s %s\n' "${method}" "${logged_endpoint//\"/\\\"}" >&2
 
   coproc HTTP_CODE {
-    json::parse
-    json::get - scheme
-    scheme="${GET}"
-    print '%s ' "${GET}"
-    json::get - response_code
-    print '%s\n' "${GET}"
+    json::filter '.scheme + " " + (.response_code | tostring)'
   }
 
   exec 3>&${HTTP_CODE[1]}
 
   exec_id="$(
     curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --header 'Content-Type: application/json' --data "${json}" --write-out '%{stderr}%{json}' --output - "${create_endpoint}" 2>&3 \
-      | json::parse
-    json::get - Id
+      | json::filter '.Id'
   )"
 
   exec {HTTP_CODE[1]}>&- 3>&-
@@ -36,11 +30,7 @@ ___ () { #HELP <container_name> <detached> <user> <cmd>|Run a command inside <co
   print '%s %s\n' "${method}" "${start_endpoint//\"/\\\"}" >&2
 
   coproc HTTP_CODE {
-    json::parse
-    json::get - scheme
-    print '%s ' "${GET}"
-    json::get - response_code
-    print '%s\n' "${GET}"
+    json::filter '.scheme + " " + (.response_code | tostring)'
   }
   defer 'exec {HTTP_CODE[1]}>&- 3>&-; sed "${sed[colored_http_code]}" <&${HTTP_CODE[0]} >&2'
 
