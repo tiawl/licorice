@@ -6,11 +6,6 @@
 #   - and
 #   - or
 #   - [[ ]]
-# - loop:
-#   - in:     for <name> [ [ in [ <word> ... ] ] ; ] do <list>; done
-#   - while:  while list-1; do list-2; done
-#             while [[ expression ]]; do list-2; done
-#   - for:    for (( <expr1> ; <expr2> ; <expr3> )) ; do <list> ; done
 # - async/wait
 
 {
@@ -59,11 +54,11 @@ def among(k): (
 def is_unique_key_object: (
   if (type != "object") then (
     "Expected an object: " + (. | tostring) | exit
-  ) else . end |
+  ) end |
 
   if (keys | length > 1) then (
     "This object must contain a unique key: " + (. | tostring) | exit
-  ) else . end
+  ) end
 );
 
 
@@ -85,19 +80,19 @@ def xtrace(mode): (
 def default_type: (
   if ((.type == "") or (.type == null)) then (
     .type = "string"
-  ) else . end
+  ) end
 );
 
 def check_type_coherence: (
   if ((has("key")) and (.type != "string")) then (
     "Values into associative or indexed array must be string typed" | exit
-  ) else . end |
+  ) end |
   if ((has("key")) and (has("value")) and (.value | length > 1)) then (
     "You can not attribute several values to a single key" | exit
-  ) else . end |
+  ) end |
   if ((.type == "string") and (has("value")) and (.value | length > 1)) then (
     "You can not attribute several values to a string variable" | exit
-  ) else . end
+  ) end
 );
 
 def return(level): (
@@ -114,7 +109,7 @@ def define(level; mode; nested_register; user_defined): (
       def expansion(mode): (
         if (among(["default", "alternate", "replace", "prompt"]) == 2) then (
           "You can only use one of \"default\", \"alternate\", \"replace\" or \"prompt\" fields for a same variable" | exit
-        ) else . end |
+        ) end |
         if (has("default")) then (
           ":-" + (.default | sanitize(mode; true))
         ) elif (has("alternate")) then (
@@ -164,7 +159,7 @@ def define(level; mode; nested_register; user_defined): (
         ) elif (has("number")) then (
           if (.number | type != "number") then (
             (.number | tostring) + " is not number typed" | exit
-          ) else . end |
+          ) end |
           (if (quoted) then "\"" else "" end) + (.number | tostring) + (if (quoted) then "\"" else "" end)
         ) elif (has("char")) then (
           if (.char == "asterisk") then (
@@ -205,7 +200,7 @@ def define(level; mode; nested_register; user_defined): (
         ) elif (has("unsafe")) then (
           if (mode != $MODE.internal) then (
             "\"unsafe\" can only be used as internal user" | exit
-          ) else . end |
+          ) end |
           .unsafe
         ) else (
           "Unknown field object passing through sanitize(): \"" + keys[0] + "\"" | exit
@@ -234,16 +229,16 @@ def define(level; mode; nested_register; user_defined): (
       .mutate | default_type | check_type_coherence | . as $input |
       if (has("value") | not) then (
         "You forgot the .mutate.value mandatory field into: " + tostring | exit
-      ) else . end |
+      ) end |
       if (has("scope")) then (
         "Use assign instead of mutate to attribute a scope for this variable: " + tostring | exit
-      ) else . end |
+      ) end |
       if ((.name | has("var") | not) and (.name | has("special") | not)) then (
         "In .mutate.name you can only var or special: " + tostring | exit
-      ) else . end |
+      ) end |
       if ((.name | has("var")) and (.name.var | is_legit_varname | not)) then (
         .name | bad_varname
-      ) else . end |
+      ) end |
       (
         if ((.name | has("special")) and (.name.special == "last")) then (
           ": "
@@ -254,7 +249,7 @@ def define(level; mode; nested_register; user_defined): (
             ) elif (has("index")) then (
               if (.index | type != "number") then (
                 "mutate: index field must be number typed" | exit
-              ) else . end |
+              ) end |
               "[" + (.index | tostring) + "]"
             ) else "" end
           ) + "="
@@ -272,10 +267,10 @@ def define(level; mode; nested_register; user_defined): (
       .assign | default_type | check_type_coherence |
       if (has("scope") | not) then (
         "You forgot the .assign.scope mandatory field into: " + tostring | exit
-      ) else . end |
+      ) end |
       if (has("value")) then (
         "Use mutate instead of assign to change value of this variable: " + tostring | exit
-      ) else . end |
+      ) end |
       (
         (
           if (.scope == "global") then (
@@ -636,10 +631,10 @@ def define(level; mode; nested_register; user_defined): (
         .raw |
           if (mode != $MODE.internal) then (
             "\"raw\" can only be used as internal user" | exit
-          ) else . end |
+          ) end |
           if (.command | test("\\s")) then (
             ".raw.command must not contain space characters" | exit
-          ) else . end |
+          ) end |
           (.command + " " + (.args | map(sanitize(mode; true)) | join(" ")) + (
             if (has("pipe")) then (
               " | " + (.pipe | group($NOINDENT; mode; false; false; nested_register))
@@ -651,11 +646,11 @@ def define(level; mode; nested_register; user_defined): (
         .coproc |
           if (mode != $MODE.internal) then (
             "\"coproc\" can only be used as internal user" | exit
-          ) else . end |
+          ) end |
           (group(level; mode; true; false; nested_register)) as $group |
           if (.name | test("^[A-Z_][A-Z0-9_]*$") | not) then (
             "Bad coproc name: \"" + . + "\"" | exit
-          ) else . end |
+          ) end |
           (("coproc " + .name + " ") | indent(level)) + $group
       );
 
@@ -663,7 +658,7 @@ def define(level; mode; nested_register; user_defined): (
         .call |
           if (.command | test("\\s")) then (
             ".call.command must not contain space characters" | exit
-          ) else . end |
+          ) end |
           $NAMESPACE.fn.internal + "call \"$(echo " + (($NAMESPACE.fn.user + .command + " " + (.args | map(sanitize(mode; true)) | join(" ")))) + ")" + (
             if (has("pipe")) then (
               " | " + (.pipe | group($NOINDENT; mode; false; false; nested_register))
@@ -671,7 +666,6 @@ def define(level; mode; nested_register; user_defined): (
           ) + "\""
       );
 
-      # TODO: rework runner::exec as an unique function with a big case
       def runner_exec(level; mode; nested_register): (
         .runner.exec as $exec |
         $exec.args // [] as $exec_args |
@@ -711,14 +705,15 @@ def define(level; mode; nested_register; user_defined): (
       );
 
       def register(level; mode; nested): (
-        .register as $input | .register |
-        (if (mode == $MODE.internal) then 0 else 1 end) as $offset |
+        .register as $input | .register | (
+          if (mode == $MODE.internal) then 0 else 1 end
+        ) as $offset |
           if (has("into") | not) then (
             ".register used without .register.into" | exit
-          ) else . end |
+          ) end |
           if (among(["group", "arithmetic", "split"]) == 2) then (
             "You can only use one of \"group\", \"arithmetic\" or \"split\" fields into register" | exit
-          ) else . end |
+          ) end |
           if (has("group")) then (
             if (mode == $MODE.internal) then (
               group(level | incr_indent_level($offset); mode; true; false; nested) as $group |
@@ -731,7 +726,7 @@ def define(level; mode; nested_register; user_defined): (
             ) else (
               if ((.into | has("var")) and (.into.var | is_legit_varname | not)) then (
                 .into | bad_varname
-              ) else . end |
+              ) end |
               (group($NOINDENT; mode; false; false; true) | gsub("'"; "'\"'\"'")) as $group |
               if (.into | has("var")) then (
                 $NAMESPACE.fn.internal + "register '" + $NAMESPACE.var.user + $input.into.var + "' '" + $group + "'"
@@ -744,7 +739,7 @@ def define(level; mode; nested_register; user_defined): (
           ) elif (has("arithmetic")) then (
             if ((.into | has("var")) and (.into.var | is_legit_varname | not)) then (
               .into | bad_varname
-            ) else . end |
+            ) end |
             arithmetic(-1; mode) as $arith |
             if (.into | has("var")) then (
               (if (mode != $MODE.internal) then $NAMESPACE.var.user else "" end) + $input.into.var + "=\"$" + $arith + "\""
@@ -892,7 +887,7 @@ def define(level; mode; nested_register; user_defined): (
             walk(
               if (type == "object") then (
                 with_entries(select((.value != null) and (.value | (type == "object" and length == 0) | not)))
-              ) else . end
+              ) end
             ) | .. | select(type == expected_type)
           );
 
@@ -930,59 +925,87 @@ def define(level; mode; nested_register; user_defined): (
         traceable(level; mode; nested_register)
       );
 
+      def boolean_op(mode; nested_register): (
+        if (has("not")) then (
+          "{ ! " + (.not | boolean_op(mode; nested_register)) + "; }"
+        ) else (
+          group($NOINDENT; mode; false; false; nested_register)
+        ) end
+      );
+
       def conditional(level; mode; nested_register): (
-        def conditional_inner(level; mode; nested_register): (
-          def conditional_op(mode; nested_register): (
-            if (has("not")) then (
-              "{ ! " + (.not | conditional_op(mode; nested_register)) + "; }"
-            ) else (
-              group($NOINDENT; mode; false; false; nested_register)
-            ) end
-          );
-
-          {
-            cond: (
-              # "else" case
-              if ((type == "object") and (keys | length == 1) and (keys[0] == "group")) then (
-                ""
-              # "if" and "elif" cases
-              ) else (
-                conditional_op(mode; nested_register)
-              ) end
-            ),
-            group: group(level; mode; true; false; nested_register),
-          }
-        );
-
-        .if | . as $input |
+        .if |
         if (has("group") | not) then (
           ".if used without .if.group" | exit
-        ) else . end |
-        {
-          if: conditional_inner(level; mode; nested_register),
-          else: []
-        } as $output | $input |
-          if (has("else")) then (
-            $output | setpath(["else"]; .else + [
-              $input.else[] | conditional_inner(level; mode; nested_register)
-            ])
-          ) else (
-            $output
-          ) end |
-          (("if " + .if.cond + "; then ") | indent(level)) +
-          .if.group + (
-            if (.else | length > 0) then (
-              .else | map(
-                (
-                  if (.cond | length > 0) then (
-                    " elif " + .cond + "; then "
-                  ) else (
-                    " else "
-                  ) end
-                ) + .group
-              ) | join("")
-            ) else "" end
-          ) + " fi"
+        ) elif (has("conditional") | not) then (
+          ".if used without .if.conditional" | exit
+        ) end | (
+          ("if " + (.conditional | boolean_op(mode; nested_register)) + "; then ") | indent(level)
+        ) + group(level; mode; true; false; nested_register) + (
+          if (has("else") and (.else | length > 0)) then (
+            .else | map(
+              (
+                if (has("conditional") and (.conditional | length > 0)) then (
+                  " elif " + (.conditional | boolean_op(mode; nested_register)) + "; then "
+                ) else (
+                  " else "
+                ) end
+              ) + group(level; mode; true; false; nested_register)
+            ) | join("")
+          ) else "" end
+        ) + " fi"
+      );
+
+      def loop(level; mode; nested_register): (
+        def loop_arithmetic(level; mode): (
+          .arithmetic |
+          if (has("initial") | not) then (
+            ".loop.arithmetic used without .loop.arithmetic.initial" | exit
+          ) elif (has("conditional") | not) then (
+            ".loop.arithmetic used without .loop.arithmetic.conditional" | exit
+          ) elif (has("update") | not) then (
+            ".loop.arithmetic used without .loop.arithmetic.update" | exit
+          ) end | (
+            ("for (( " + .initial + "; " + .conditional + "; " + .update + " )); do") | indent(level)
+          )
+        );
+
+        def loop_iterator(level; mode): (
+          .iterator |
+          if (has("name") | not) then (
+            ".loop.iterator used without .loop.iterator.name" | exit
+          ) elif (has("into") | not) then (
+            ".loop.iterator used without .loop.iterator.into" | exit
+          ) elif ((.into | has("var") | not) or (.into | has("parameter") | not) or (.into | has("last") | not)) then (
+            ".loop.iterator.into should be var, parameter or special" | exit
+          ) end | (
+            ("for " + .name + " in " + (.into | sanitize(mode; true)) + "; do ") | indent(level)
+          )
+        );
+
+        def loop_conditional(level; mode; nested_register): (
+          (
+            "while " + (
+              .conditional | boolean_op(mode; nested_register)
+            ) + "; do "
+          ) | indent(level)
+        );
+
+        .loop |
+        if (has("do") | not) then (
+          ".loop used without .loop.do" | exit
+        ) elif (.do | has("group") | not) then (
+          ".loop.do used without .loop.do.group" | exit
+        ) end |
+        if (has("arithmetic")) then (
+          loop_arithmetic(level; mode)
+        ) elif (has("iterator")) then (
+          loop_iterator(level; mode)
+        ) elif (has("conditional")) then (
+          loop_conditional(level; mode; nested_register)
+        ) else (
+          ".loop used without .loop.arithmetic, .loop.conditional or .loop.iterator" | exit
+        ) end + group(level; mode; true; false; nested_register) + " done"
       );
 
       is_unique_key_object |
@@ -999,6 +1022,8 @@ def define(level; mode; nested_register; user_defined): (
         readonly(level; mode)
       ) elif (has("if")) then (
         conditional(level; mode; nested_register)
+      ) elif (has("loop")) then (
+        loop(level; mode; nested_register)
       ) elif (has("switch")) then (
         switch(level; mode; nested_register)
       ) elif (has("defer")) then (
@@ -1093,7 +1118,7 @@ def define(level; mode; nested_register; user_defined): (
 
     .group as $input |
     (
-      ("{" + $sep.first) | if (indent_first) then (indent(level)) else . end
+      ("{" + $sep.first) | if (indent_first) then (indent(level)) end
     ) + (
       reduce .group.commands[] as $item (
         {
@@ -1129,7 +1154,7 @@ def define(level; mode; nested_register; user_defined): (
     (group(level; mode; true; true; nested_register)) as $group |
     if (user_defined and (.name | is_legit_varname | not)) then (
       bad_varname
-    ) else . end | (
+    ) end | (
       ((if (user_defined) then $NAMESPACE.fn.user else $NAMESPACE.fn.internal end) + .name + " ()\n") | indent(level)
     ) + $group + "\n"
 );
