@@ -17,7 +17,7 @@ ___ () { #HELP <container_name> <detached> <user> <cmd>|Run a command inside <co
   exec 3>&${HTTP_CODE[1]}
 
   exec_id="$(
-    curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --header 'Content-Type: application/json' --data "${json}" --write-out '%{stderr}%{json}' --output - "${create_endpoint}" 2>&3 \
+    request::docker::json "${method}" "${create_endpoint}" "${json}" 2>&3 \
       | json::filter '.Id'
   )"
 
@@ -36,5 +36,5 @@ ___ () { #HELP <container_name> <detached> <user> <cmd>|Run a command inside <co
 
   exec 3>&${HTTP_CODE[1]}
 
-  curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --write-out '%{stderr}%{json}' --output - "${start_endpoint}" 2>&3
+  request::docker "${method}" "${start_endpoint}" 2>&3
 }

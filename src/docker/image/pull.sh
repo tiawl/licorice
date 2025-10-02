@@ -16,6 +16,6 @@ ___ () { #HELP <registry> <project> <image> <tag>|Download <image> from <registr
 
   exec 3>&${HTTP_CODE[1]}
 
-  curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --no-buffer --write-out '%{stderr}%{json}' "${endpoint}" 2>&3 \
+  request::docker "${method}" "${endpoint}" 2>&3 \
     | json::filter '"image pull '"${img}"' > " + .status + (if .progress | length > 0 then " " else "" end) + .progress' >&2
 }

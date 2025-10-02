@@ -17,6 +17,6 @@ ___ () { #HELP <network_name> <container_name>|Connect <container_name> to <netw
 
   exec 3>&${HTTP_CODE[1]}
 
-  curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --header 'Content-Type: application/json' --data "${json}" --write-out '%{stderr}%{json}' "${endpoint}" 2>&3 \
+  request::docker::json "${method}" "${endpoint}" "${json}" 2>&3 \
     | json::print::pretty >&2
 }

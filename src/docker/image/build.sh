@@ -31,7 +31,7 @@ ___ () { #HELP <repository> <tag> <context> [<buildargs>]|Build an image from a 
   exec 4>&${HTTP_CODE[1]}
 
   tar --directory "${context}" --create --file=- . \
-    | curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --data-binary '@-' --header 'Content-Type: application/x-tar' --no-buffer --write-out '%{stderr}%{json}' "${endpoint}" 2>&4 \
+    | request::docker::tar "${method}" "${endpoint}" 2>&4 \
     | while read -r response
       do
         print '%s' "${response}" \

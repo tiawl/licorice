@@ -16,6 +16,6 @@ ___ () { #HELP <name>|Succeed if a volume with <name> is found. Fail otherwise
 
   exec 3>&${HTTP_CODE[1]}
 
-  curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --write-out '%{stderr}%{json}' "${endpoint}" 2>&3 \
+  request::docker "${method}" "${endpoint}" 2>&3 \
     | json::test '.Volumes | length > 0'
 }

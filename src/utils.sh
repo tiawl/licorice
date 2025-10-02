@@ -18,36 +18,6 @@ print () {
   printf "${@}"
 }
 
-basename () {
-  set -- "${1%"${1##*[!/]}"}" "${2:-}"
-  set -- "${1##*/}" "${2:-}"
-  set -- "${1%"${2:-}"}"
-  print -- '%s' "${1:-/}"
-}
-
-dirname () {
-  set -- "${1:-.}"
-  set -- "${1%%"${1##*[!/]}"}"
-
-  if str not empty "${1##*/*}"
-  then
-    set -- '.'
-  fi
-
-  set -- "${1%/*}"
-  set -- "${1%%"${1##*[!/]}"}"
-  print -- '%s' "${1:-/}"
-}
-
-normalizedpath () {
-  if is dir "${1}"
-  then
-    env -C "${1}" pwd
-  else
-    print -- '%s/%s\n' "$(env -C "$(dirname "${1}")" pwd)" "$(basename "${1}")"
-  fi
-}
-
 is () {
   case "${1}" in
   ( 'not' ) not is "${@:2}" ;;

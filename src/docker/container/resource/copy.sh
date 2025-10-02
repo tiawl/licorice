@@ -15,6 +15,6 @@ ___ () { #HELP <container_name> <container_path> <host_path>|Copy files/folders 
 
   exec 3>&${HTTP_CODE[1]}
 
-  curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --output - --write-out '%{stderr}%{json}' "${endpoint}" 2>&3 \
+  request::docker "${method}" "${endpoint}" 2>&3 \
     | tar --extract --directory "${3}"
 }

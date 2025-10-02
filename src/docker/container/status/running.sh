@@ -15,6 +15,6 @@ ___ () { #HELP <container>|Succeed if the given <container> is running
 
   exec 3>&${HTTP_CODE[1]}
 
-  curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --write-out '%{stderr}%{json}' "${endpoint}" 2>&3 \
+  request::docker "${method}" "${endpoint}" 2>&3 \
     | json::test '.State.Status == "running"'
 }

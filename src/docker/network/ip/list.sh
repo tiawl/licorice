@@ -15,6 +15,6 @@ ___ () { #HELP <network>|List all ip addresses used on <network>
 
   exec 3>&${HTTP_CODE[1]}
 
-  curl --silent --fail --request "${method}" --unix-socket "${path[docker_socket]}" --write-out '%{stderr}%{json}' "${endpoint}" 2>&3 \
+  request::docker "${method}" "${endpoint}" 2>&3 \
     | json::filter '.Containers | to_entries[].value.IPv4Address | sub("/[0-9]+$"; "")'
 }
