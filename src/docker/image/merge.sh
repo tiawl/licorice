@@ -12,7 +12,7 @@ ___ () { #HELP <repository> <tag> <base> <context> <buildargs> [<context> <build
 
   while gt "${#}" 0
   do
-    args="$(gojq --monochrome-output --null-input --compact-output "${2}"' + {FROM: "'"${from}"'"}')"
+    args="$(json::program "${2}"' + {FROM: "'"${from}"'"}')"
     if gt "${#}" 2
     then
       ${namespace[core]}image build "${repo}" "${tag}-stage-${i}" "${1}" "${args}"

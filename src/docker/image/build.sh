@@ -2,7 +2,7 @@
 
 ___ () { #HELP <repository> <tag> <context> [<buildargs>]|Build an image from a Dockerfile
   filter_docker_output () {
-    gojq --join-output --raw-output '. | if (.id == "moby.buildkit.trace") then (.aux | @base64d) elif has("errorDetail") then ("vertexes {\n  error: \"" + .errorDetail.message + "\"\n}\n" | halt_error(1)) else empty end'
+    json::filter --join-output '. | if (.id == "moby.buildkit.trace") then (.aux | @base64d) elif has("errorDetail") then ("vertexes {\n  error: \"" + .errorDetail.message + "\"\n}\n" | halt_error(1)) else empty end'
   }
 
   decode_buildkit_protobuf () {
@@ -40,6 +40,6 @@ ___ () { #HELP <repository> <tag> <context> [<buildargs>]|Build an image from a 
                 | decode_buildkit_protobuf
             } 3>&1 \
           | json::from::protobuf \
-          | gojq --raw-output "${jq[image-build-logging]}" --arg image "${repo}" >&2
+          | json::filter "${jq[image-build-logging]}" --arg image "${repo}" >&2
       done
 }

@@ -5,10 +5,10 @@ json::encode () {
   ref="${1}"
   if is associative "${!ref}"
   then
-    gojq --null-input --raw-output --monochrome-output --compact-output '($ARGS.positional | [.[:$n], .[$n:]] | transpose | map(last as $last | {(first): (if (($last | type == "number") or (($last | type == "string") and ($last | test("^[0-9]+$")))) then ($last | tostring) else (try ($last | fromjson) catch $last) end)}) | add) // {}' --argjson n "${#ref[@]}" --args -- "${!ref[@]}" "${ref[@]}"
+    json::program '($ARGS.positional | [.[:$n], .[$n:]] | transpose | map(last as $last | {(first): (if (($last | type == "number") or (($last | type == "string") and ($last | test("^[0-9]+$")))) then ($last | tostring) else (try ($last | fromjson) catch $last) end)}) | add) // {}' --argjson n "${#ref[@]}" --args -- "${!ref[@]}" "${ref[@]}"
   elif is indexed "${!ref}"
   then
-    gojq --null-input --raw-output --monochrome-output --compact-output '$ARGS.positional | map(. as $item | try (fromjson) catch $item)' --args -- "${ref[@]}"
+    json::program '$ARGS.positional | map(. as $item | try (fromjson) catch $item)' --args -- "${ref[@]}"
   else
     error 'Only usable with indexed and associative array'
   fi
@@ -43,6 +43,18 @@ json::filter () {
   gojq --raw-output "${@}"
 }
 
+json::program () {
+  json::filter --null-input --compact-output --monochrome-output "${@}"
+}
+
 json::test () {
   json::filter --exit-status "${@}" > /dev/null
+}
+
+json::to::queryString () {
+  json::filter --null-input --argjson JSON "${1}" '[$JSON | to_entries[] | .key + "=" + (.value | tostring)] | join("&")'
+}
+
+json::from::yaml () {
+  json::filter --yaml-input --monochrome-output --compact-output "${@}"
 }

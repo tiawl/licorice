@@ -234,7 +234,7 @@ defer () {
       if str not eq \"\${before[*]}\" \"\${after[*]}\"
       then
         local deferred
-        for deferred in \$(gojq -n -r '\$ARGS.positional | group_by(.) | .[] | select(length == 1) | .[0]' --args -- \"\${before[@]}\" \"\${after[@]}\")
+        for deferred in \$(json::program '\$ARGS.positional | group_by(.) | .[] | select(length == 1) | .[0]' --args -- \"\${before[@]}\" \"\${after[@]}\")
         do
           \${deferred} \"\${1}\"
         done

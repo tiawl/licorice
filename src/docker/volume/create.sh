@@ -4,7 +4,7 @@ ___ () { #HELP <volume_name>|Create a new volume
   local json endpoint logged_endpoint method
   json="{\"Name\":\"${1}\"}"
   endpoint="http://${version[docker_api]}/volumes/create"
-  logged_endpoint="${endpoint}?$(gojq --null-input --raw-output --argjson JSON "${json}" '[$JSON | to_entries[] | .key + "=" + (.value | tostring)] | join("&")')"
+  logged_endpoint="${endpoint}?$(json::to::queryString "${json}")"
   method='POST'
   readonly json endpoint logged_endpoint method
 

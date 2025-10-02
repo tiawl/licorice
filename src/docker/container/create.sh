@@ -5,7 +5,7 @@ ___ () { #HELP <container_name> <image> <hostname> [<volumes>]|Create a new cont
   img="${2}"
   json="{\"Hostname\":\"${3}\",\"Image\":\"${img}${sep[tag]}$(${namespace[core]}image tag list "${img}")\",\"HostConfig\":{\"Mounts\":${4}}}"
   endpoint="http://${version[docker_api]}/containers/create?name=${1}"
-  logged_endpoint="${endpoint}&$(gojq --null-input --raw-output --argjson JSON "${json}" '[$JSON | to_entries[] | .key + "=" + (.value | tostring)] | join("&")')"
+  logged_endpoint="${endpoint}&$(json::to::queryString "${json}")"
   method='POST'
   readonly json endpoint logged_endpoint method img
 

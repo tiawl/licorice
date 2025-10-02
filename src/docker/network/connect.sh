@@ -4,7 +4,7 @@ ___ () { #HELP <network_name> <container_name>|Connect <container_name> to <netw
   local json endpoint logged_endpoint method
   json="{\"Container\":\"${2}\"}"
   endpoint="http://${version[docker_api]}/networks/${1}/connect"
-  logged_endpoint="${endpoint}?$(gojq --null-input --raw-output --argjson JSON "${json}" '[$JSON | to_entries[] | .key + "=" + (.value | tostring)] | join("&")')"
+  logged_endpoint="${endpoint}?$(json::to::queryString "${json}")"
   method='POST'
   readonly json endpoint logged_endpoint method
 

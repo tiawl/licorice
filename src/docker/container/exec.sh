@@ -4,7 +4,7 @@ ___ () { #HELP <container_name> <detached> <user> <cmd>|Run a command inside <co
   local json create_endpoint start_endpoint logged_endpoint method exec_id
   json="{\"AttachStdin\": false,\"AttachStdout\": true, \"AttachStderr\": true,\"Tty\": false,\"Cmd\": ${4}, \"User\": \"${3}\"}"
   create_endpoint="http://${version[docker_api]}/containers/${1}/exec"
-  logged_endpoint="${create_endpoint}?$(gojq --null-input --raw-output --argjson JSON "${json}" '[$JSON | to_entries[] | .key + "=" + (.value | tostring)] | join("&")')"
+  logged_endpoint="${create_endpoint}?$(json::to::queryString "${json}")"
   method='POST'
   readonly json create_endpoint logged_endpoint method
 
