@@ -35,7 +35,7 @@ ___ () { #HELP <yaml_file>|Display the runner bash script without executing it
     json="$(json::program --slurpfile JSON <(print '%s' "${json}") --slurpfile INV <(print '%s' "${inv}") '
       (if ($JSON | type == "array") then $JSON[0] else $JSON end) as $JSON |
       (if ($INV | type == "array") then $INV[0] else $INV end) as $INV |
-      $JSON * $INV | '"${jq[yml2bash/common]}${jq[yml2bash/process_inventory]}")"
+      $JSON * $INV | '"${jq[yml2bash/common]}${jq[yml2bash/replacer]}")"
 
     source /proc/self/fd/0 <<< "$(json::program --slurpfile JSON <(print '%s' "${json}") --slurpfile IMPORT <(print '{"import": %s}' "${import:-"{}"}") --arg ROOT "$(path::dir "${filepath}")/" "${jq[yml2bash/common]}"'
       (if ($JSON | type == "array") then $JSON[0] else $JSON end) as $JSON |
@@ -64,11 +64,11 @@ ___ () { #HELP <yaml_file>|Display the runner bash script without executing it
 
   readonly inv import
 
-  json::filter "${jq[yml2bash/common]}${jq[yml2bash/write_script]}" --arg NAMESPACE_SEP "${sep[namespace]}" --arg EXE "${exe}" --arg BACKEND "${backend}" --rawfile FUNCTIONS <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \
+  json::filter "${jq[yml2bash/common]}${jq[yml2bash/codegen]}${jq[yml2bash/writer]}" --arg NAMESPACE_SEP "${sep[namespace]}" --arg EXE "${exe}" --arg BACKEND "${backend}" --rawfile FUNCTIONS <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \
     <<< "$(json::from::yaml --arg ROOT "$(path::normalized "$(path::dir "${1}")")/" --slurpfile INV <(print '%s' "${inv}") --slurpfile IMPORT <(print '{"import": %s}' "${import}") '
             (if ($IMPORT | type == "array") then $IMPORT[0] else $IMPORT end) as $IMPORT |
             (if ($INV | type == "array") then $INV[0] else $INV end) as $INV |
-            . * $IMPORT * $INV | '"${jq[yml2bash/common]}${jq[yml2bash/process_inventory]}"' |
+            . * $IMPORT * $INV | '"${jq[yml2bash/common]}${jq[yml2bash/replacer]}"' |
             .group |= walk(
               if (type == "object") then (
                 with_entries(

@@ -36,6 +36,7 @@ tests () {
   shopt -s globstar
   #bats --filter 'try' "${opts[@]}" "${sdir}"/bats/**/*.bats
   bats --formatter "${sdir}/bats/formatter.sh" "${opts[@]}" "${sdir}"/bats/**/*.bats
+  shopt -u globstar
 }
 
 tests "${@}"
