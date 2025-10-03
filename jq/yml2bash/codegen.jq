@@ -155,7 +155,7 @@ def define(level; mode; nested_register; user_defined): (
       map(
         . as $input |
         if (has("literal")) then (
-          (if (quoted) then "'" else "" end) + .literal + (if (quoted) then "'" else "" end)
+          (if (quoted) then "'" else "" end) + (.literal | tostring) + (if (quoted) then "'" else "" end)
         ) elif (has("number")) then (
           if (.number | type != "number") then (
             (.number | tostring) + " is not number typed" | exit
@@ -234,7 +234,7 @@ def define(level; mode; nested_register; user_defined): (
         "Use assign instead of mutate to attribute a scope for this variable: " + tostring | exit
       ) end |
       if ((.name | has("var") | not) and (.name | has("special") | not)) then (
-        "In .mutate.name you can only var or special: " + tostring | exit
+        "In .mutate.name you can only use var or special: " + tostring | exit
       ) end |
       if ((.name | has("var")) and (.name.var | is_legit_varname | not)) then (
         .name | bad_varname
@@ -255,7 +255,7 @@ def define(level; mode; nested_register; user_defined): (
           ) + "="
         ) end + (
           if (($input.type == "indexed") or ($input.type == "associative")) then (
-            ("(" + ([.value[] | map(sanitize(value_mode; true)) | join(" ")] | join(" ")) + ")")
+            ("(" + (.value | map(sanitize(value_mode; true)) | join(" ")) + ")")
           ) else (
             .value[0] | sanitize(mode; true)
           ) end
@@ -659,7 +659,7 @@ def define(level; mode; nested_register; user_defined): (
           if (.command | test("\\s")) then (
             ".call.command must not contain space characters" | exit
           ) end |
-          $NAMESPACE.fn.internal + "call \"$(echo " + (($NAMESPACE.fn.user + .command + " " + (.args | map(sanitize(mode; true)) | join(" ")))) + ")" + (
+          $NAMESPACE.fn.internal + "call \"$(echo " + (($NAMESPACE.fn.user + .command + (if (.args | length > 0) then " " else "" end) + (.args | map(sanitize(mode; true)) | join(" ")))) + ")" + (
             if (has("pipe")) then (
               " | " + (.pipe | group($NOINDENT; mode; false; false; nested_register))
             ) else "" end

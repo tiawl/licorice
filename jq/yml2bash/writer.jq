@@ -61,7 +61,7 @@ def internals(level): (
               }
             },
             {assign: {vars: [[{literal: "colors"}]], type: "indexed", scope: "local"}},
-            {mutate: {name: {var: "colors"}, type: "indexed", value: [$ARGS.positional | map([{literal: .}])]}},
+            {mutate: {name: {var: "colors"}, type: "indexed", value: ($ARGS.positional | map([{literal: .}]))}},
             {assign: {vars: [[{literal: "ref"}]], type: "reference", scope: "local"}},
             {mutate: {name: {var: "ref"}, value: [[{parameter: 2}]]}},
             {mutate: {name: {var: "ref"}, value: [[{var: "colors", key: [{var: "i"}]}]]}}
