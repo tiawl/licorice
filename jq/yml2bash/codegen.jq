@@ -656,10 +656,10 @@ def define(level; mode; nested_register; user_defined): (
 
       def call(mode; nested_register): (
         .call |
-          if (.command | test("\\s")) then (
+          if (.command | sanitize(mode; true) | test("\\s")) then (
             ".call.command must not contain space characters" | exit
           ) end |
-          $NAMESPACE.fn.internal + "call \"$(echo " + (($NAMESPACE.fn.user + .command + (if (.args | length > 0) then " " else "" end) + (.args | map(sanitize(mode; true)) | join(" ")))) + ")" + (
+          $NAMESPACE.fn.internal + "call \"$(echo '" + $NAMESPACE.fn.user + "'" + (.command | sanitize(mode; true)) + (if (.args | length > 0) then " " else "" end) + (.args | map(sanitize(mode; true)) | join(" ")) + ")" + (
             if (has("pipe")) then (
               " | " + (.pipe | group($NOINDENT; mode; false; false; nested_register))
             ) else "" end
@@ -902,7 +902,7 @@ def define(level; mode; nested_register; user_defined): (
           ) elif ($input | has("call")) then (
             {
               program: ($input | call(mode; nested_register)),
-              xtrace: ($input.call.command + " " + ($input.call.args | map(sanitize(mode; true)) | join(" ")))
+              xtrace: (($input.call.command | sanitize(mode; true)) + " " + ($input.call.args | map(sanitize(mode; true)) | join(" ")))
             }
           ) else (
             "Unknown traceable type: \"" + ($input | tostring) + "\"" | exit

@@ -20,15 +20,20 @@ define:
     - harden:
         command:
         - var: harden_me
+    - harden:
+        command:
+        - literal: ssh-keygen
+        as:
+        - literal: ssh_keygen
 EOF
   eq "${status}" '0'
-  eq "${#lines[@]}" '5'
+  eq "${#lines[@]}" '6'
   str eq "${lines[0]}" 'runner::test ()'
   str eq "${lines[1]}" '{'
   str eq "${lines[2]}" "    harden 'ssh'"
   str eq "${lines[3]}" '    harden "${harden_me}"'
-  str eq "${lines[4]}" '}'
-  # TODO: .harden.as
+  str eq "${lines[4]}" "    harden 'ssh-keygen' 'ssh_keygen'"
+  str eq "${lines[5]}" '}'
 }
 
 @test "codegen: assign" {
@@ -97,8 +102,31 @@ EOF
   str eq "${lines[8]}" '    local -n "${A}" "${B}"'
   str eq "${lines[9]}" '    global -n "${C}" "${D}"'
   str eq "${lines[10]}" '}'
-  # TODO: failure case: .assign without .scope
-  # TODO: failure case: .assign with .value
+
+  # FAILURE CASES:
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF > /dev/null 2>&1
+define:
+  name: test
+  group:
+    commands:
+    - assign:
+        vars:
+        - - literal: my_var1
+EOF
+  not eq "${status}" '0'
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF > /dev/null 2>&1
+define:
+  name: test
+  group:
+    commands:
+    - assign:
+        vars:
+        - - literal: my_var1
+        scope: local
+        value:
+        - - literal: test
+EOF
+  not eq "${status}" '0'
 }
 
 @test "codegen: mutate" {
@@ -147,8 +175,30 @@ EOF
   str eq "${lines[4]}" "    assoc=('key1' 'val1' 'key2' 'val2')"
   str eq "${lines[5]}" "    : 'a random sentence'"
   str eq "${lines[6]}" '}'
-  # TODO: failure case: .mutate without .value
-  # TODO: failure case: .mutate with .scope
+
+  # FAILURE CASES:
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF > /dev/null 2>&1
+define:
+  name: test
+  group:
+    commands:
+    - mutate:
+        name:
+          var: A
+EOF
+  not eq "${status}" '0'
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF > /dev/null 2>&1
+define:
+  name: test
+  group:
+    - mutate:
+        name:
+          var: A
+        scope: local
+        value:
+        - - literal: test
+EOF
+  not eq "${status}" '0'
 }
 
 @test "codegen: define" {
@@ -173,15 +223,17 @@ define:
                           command:
                           - literal: true
                 - call:
-                    command: AAA
+                    command:
+                    - literal: AAA
                     args: []
           - call:
-              command: AA
+              command:
+              - literal: AA
               args: []
     - call:
-        command: A
+        command:
+        - literal: A
         args: []
-
 EOF
   eq "${status}" '0'
   eq "${#lines[@]}" '16'
@@ -195,20 +247,60 @@ EOF
   str eq "${lines[7]}" "            {"
   str eq "${lines[8]}" "                harden 'true'"
   str eq "${lines[9]}" '            }'
-  str eq "${lines[10]}" "            runner::call \"\$(echo user::AAA)\""
+  str eq "${lines[10]}" "            runner::call \"\$(echo 'user::''AAA')\""
   str eq "${lines[11]}" '        }'
-  str eq "${lines[12]}" "        runner::call \"\$(echo user::AA)\""
+  str eq "${lines[12]}" "        runner::call \"\$(echo 'user::''AA')\""
   str eq "${lines[13]}" '    }'
-  str eq "${lines[14]}" "    runner::call \"\$(echo user::A)\""
+  str eq "${lines[14]}" "    runner::call \"\$(echo 'user::''A')\""
   str eq "${lines[15]}" '}'
 }
 
-# TODO: @test "codegen: readonly"
-# TODO: @test "codegen: if"
-# TODO: @test "codegen: if/else"
-# TODO: @test "codegen: if/elif/else"
-# TODO: @test "codegen: nested if"
-# TODO: @test "codegen: nested if/elif/else"
+@test "codegen: readonly" {
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
+define:
+  name: test
+  group:
+    commands:
+    - readonly:
+      - - literal: prefix_
+        - var: A
+        - literal: _suffix
+      - - literal: B
+EOF
+  eq "${status}" '0'
+  eq "${#lines[@]}" '4'
+  str eq "${lines[0]}" 'runner::test ()'
+  str eq "${lines[1]}" '{'
+  str eq "${lines[2]}" "    readonly -- 'prefix_'\"\${A}\"'_suffix' 'B'"
+  str eq "${lines[3]}" '}'
+}
+
+@test "codegen: if" {
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
+define:
+  name: test
+  group:
+    commands:
+    - if:
+        conditional:
+          group:
+            commands:
+              # TODO: continue this
+        group:
+          commands:
+EOF
+  eq "${status}" '0'
+  eq "${#lines[@]}" '4'
+  str eq "${lines[0]}" 'runner::test ()'
+  str eq "${lines[1]}" '{'
+  str eq "${lines[2]}" "    readonly -- 'prefix_'\"\${A}\"'_suffix' 'B'"
+  str eq "${lines[3]}" '}'
+  # TODO: @test "codegen: if/else"
+  # TODO: @test "codegen: if/elif/else"
+  # TODO: @test "codegen: nested if"
+  # TODO: @test "codegen: nested if/elif/else"
+}
+
 # TODO: @test "codegen: loop arithmetic"
 # TODO: @test "codegen: loop iterator"
 # TODO: @test "codegen: loop conditional"

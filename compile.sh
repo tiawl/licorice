@@ -14,7 +14,7 @@ compile () {
   harden rm
   harden sed
 
-  local exe len_cmd src cmd desc
+  local exe len_cmd src cmd desc unset_me
   local -a help split
   local -A sep path namespace version
 
@@ -33,8 +33,9 @@ compile () {
   namespace[podman]="${namespace[root]}podman${sep[namespace]}"
   version[docker_api]='v1.51'
   version["${exe}"]="$(git -C "${SDIR}" describe --match *.*.* --tags --abbrev=9)"
-  version["${exe}"]="${version["${exe}"]%-*}"
-  version["${exe}"]="${version["${exe}"]%\.*}.${version["${exe}"]##*[-.]}"
+  unset_me="${version["${exe}"]%-g*}"
+  version["${exe}"]="${version["${exe}"]%.*}.${unset_me#*-}-${version["${exe}"]#*-g}"
+  unset unset_me
 
   readonly sep
 
@@ -53,6 +54,11 @@ compile () {
     fi
   done
   off globstar
+
+  help+=(
+    'help|Print this help message'
+    'version|Print program version'
+  )
 
   len_cmd='0'
   for desc in "${help[@]}"
@@ -209,10 +215,10 @@ $(on globstar
   done
   for entry in "${SDIR}/buf/vendor"/**/*
   do
-    if is file "${SDIR}/buf/descriptor_sets/$(basename "${entry}")"
+    if is file "${SDIR}/buf/descriptor_sets/$(path::base "${entry}")"
     then
-      print '  buf[descriptor_set_%s]=%s\n' "$(basename "${entry}" '.proto')" "'$(base64 --wrap 0 "${SDIR}/buf/descriptor_sets/$(basename "${entry}")")'"
-      print '  buf[vendor_%s]=%s\n' "$(basename "${entry}" '.proto')" "'$(sed "s/'/'\"'\"'/g" "${entry}")'"
+      print '  buf[descriptor_set_%s]=%s\n' "$(path::base "${entry}" '.proto')" "'$(base64 --wrap 0 "${SDIR}/buf/descriptor_sets/$(path::base "${entry}")")'"
+      print '  buf[vendor_%s]=%s\n' "$(path::base "${entry}" '.proto')" "'$(sed "s/'/'\"'\"'/g" "${entry}")'"
     fi
   done)
 
