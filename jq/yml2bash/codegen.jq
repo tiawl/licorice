@@ -1,5 +1,6 @@
 #! /usr/bin/env --split-string gojq --from-file
 
+# TODO: minimal SPEC
 # TODO:
 # - more checks
 # - op:
@@ -547,7 +548,7 @@ def define(level; mode; nested_register; user_defined): (
               .var | bad_varname
             ) end
           ) else "" end
-        ) + "-- '" + .format + "' " + (.args | map(sanitize(mode; true)) | join(" "))
+        ) + "-- '" + .format + "'" + (if (.args | length > 0) then " " else "" end) + (.args | map(sanitize(mode; true)) | join(" "))
       ) | indent(level)
     );
 
@@ -579,40 +580,60 @@ def define(level; mode; nested_register; user_defined): (
       ("set -- " + (.parameters | map(sanitize(mode; true)) | join(" "))) | indent(level)
     );
 
-    def arithmetic(level; mode): (
-      def arithmetic_inner(mode): (
-        def arithmetic_side(mode): (
-          if ((has("parameter")) or (has("var"))) then (
-            [.] | sanitize(mode; true)
-          ) elif (has("number")) then (
-            is_unique_key_object |
-            if (.number | type == "number") then (
-              .number | tostring
-            ) else (
-              ".number arithmetic side must be number typed" | exit
-            ) end
-          ) elif (has("arithmetic")) then (
-            is_unique_key_object |
-            .arithmetic | arithmetic_inner(mode)
+    def arithmetic_operator(mode): (
+      def arithmetic_side(mode): (
+        if (has("parameter") or has("var")) then (
+          [.] | sanitize(mode; true)
+        ) elif (has("literal")) then (
+          if (.literal | type == "string") then (
+            .literal
           ) else (
-            "Unknown arithmetic side: " + (. | tostring) | exit
+            ".literal arithmetic side must be string typed" | exit
           ) end
-        );
-
-        "( " + (
-          if (has("addition")) then (
-            .addition | ((.left | arithmetic_side(mode)) + " + " + (.right | arithmetic_side(mode)))
-          ) elif (has("substraction")) then (
-            .substraction | ((.left | arithmetic_side(mode)) + " - " + (.right | arithmetic_side(mode)))
-          ) elif (has("remainder")) then (
-            .remainder | ((.left | arithmetic_side(mode)) + " % " + (.right | arithmetic_side(mode)))
+        ) elif (has("number")) then (
+          is_unique_key_object |
+          if (.number | type == "number") then (
+            .number | tostring
           ) else (
-            "Unknown arithmetic operand: " + tostring | exit
+            ".number arithmetic side must be number typed" | exit
           ) end
-        ) + " )"
+        ) elif (has("arithmetic")) then (
+          is_unique_key_object |
+            "( " + (.arithmetic | arithmetic_operator(mode)) + " )"
+        ) else (
+          "Unknown arithmetic side: " + (. | tostring) | exit
+        ) end
       );
 
-      ("(" + (.arithmetic | arithmetic_inner(mode)) + ")") | indent(level)
+      if (has("addition")) then (
+        .addition | ((.left | arithmetic_side(mode)) + " + " + (.right | arithmetic_side(mode)))
+      ) elif (has("substraction")) then (
+        .substraction | ((.left | arithmetic_side(mode)) + " - " + (.right | arithmetic_side(mode)))
+      ) elif (has("remainder")) then (
+        .remainder | ((.left | arithmetic_side(mode)) + " % " + (.right | arithmetic_side(mode)))
+      ) elif (has("gt")) then (
+        .gt | ((.left | arithmetic_side(mode)) + " > " + (.right | arithmetic_side(mode)))
+      ) elif (has("lt")) then (
+        .lt | ((.left | arithmetic_side(mode)) + " < " + (.right | arithmetic_side(mode)))
+      ) elif (has("ge")) then (
+        .ge | ((.left | arithmetic_side(mode)) + " >= " + (.right | arithmetic_side(mode)))
+      ) elif (has("le")) then (
+        .le | ((.left | arithmetic_side(mode)) + " <= " + (.right | arithmetic_side(mode)))
+      ) elif (has("eq")) then (
+        .eq | ((.left | arithmetic_side(mode)) + " == " + (.right | arithmetic_side(mode)))
+      ) elif (has("ne")) then (
+        .ne | ((.left | arithmetic_side(mode)) + " != " + (.right | arithmetic_side(mode)))
+      ) elif (has("assignment")) then (
+        .assignment | ((.left | arithmetic_side(mode)) + " = " + (.right | arithmetic_side(mode)))
+      ) elif (has("increment")) then (
+        .increment | ((.left | arithmetic_side(mode)) + " += " + (.right | arithmetic_side(mode)))
+      ) else (
+        "Unknown arithmetic operand: " + tostring | exit
+      ) end
+    );
+
+    def arithmetic(level; mode): (
+      ("(( " + (.arithmetic | arithmetic_operator(mode)) + " ))") | indent(level)
     );
 
     def command(level; mode; multilined; nested_register): (
@@ -632,10 +653,10 @@ def define(level; mode; nested_register; user_defined): (
           if (mode != $MODE.internal) then (
             "\"raw\" can only be used as internal user" | exit
           ) end |
-          if (.command | test("\\s")) then (
+          if (.command | tostring | test("\\s")) then (
             ".raw.command must not contain space characters" | exit
           ) end |
-          (.command + " " + (.args | map(sanitize(mode; true)) | join(" ")) + (
+          ((.command | tostring) + (if (.args | length > 0) then " " else "" end) + (.args | map(sanitize(mode; true)) | join(" ")) + (
             if (has("pipe")) then (
               " | " + (.pipe | group($NOINDENT; mode; false; false; nested_register))
             ) else "" end
@@ -935,13 +956,13 @@ def define(level; mode; nested_register; user_defined): (
 
       def conditional(level; mode; nested_register): (
         .if |
-        if (has("group") | not) then (
-          ".if used without .if.group" | exit
+        if (has("then") | not) then (
+          ".if used without .if.then" | exit
         ) elif (has("conditional") | not) then (
           ".if used without .if.conditional" | exit
         ) end | (
           ("if " + (.conditional | boolean_op(mode; nested_register)) + "; then ") | indent(level)
-        ) + group(level; mode; true; false; nested_register) + (
+        ) + (.then | group(level; mode; true; false; nested_register)) + (
           if (has("else") and (.else | length > 0)) then (
             .else | map(
               (
@@ -950,23 +971,23 @@ def define(level; mode; nested_register; user_defined): (
                 ) else (
                   " else "
                 ) end
-              ) + group(level; mode; true; false; nested_register)
+              ) + (.then | group(level; mode; true; false; nested_register))
             ) | join("")
           ) else "" end
         ) + " fi"
       );
 
       def loop(level; mode; nested_register): (
-        def loop_arithmetic(level; mode): (
-          .arithmetic |
+        def loop_range(level; mode): (
+          .range |
           if (has("initial") | not) then (
-            ".loop.arithmetic used without .loop.arithmetic.initial" | exit
+            ".loop.range used without .loop.range.initial" | exit
           ) elif (has("conditional") | not) then (
-            ".loop.arithmetic used without .loop.arithmetic.conditional" | exit
+            ".loop.range used without .loop.range.conditional" | exit
           ) elif (has("update") | not) then (
-            ".loop.arithmetic used without .loop.arithmetic.update" | exit
+            ".loop.range used without .loop.range.update" | exit
           ) end | (
-            ("for (( " + .initial + "; " + .conditional + "; " + .update + " )); do") | indent(level)
+            ("for (( " + (.initial.arithmetic | arithmetic_operator(mode)) + "; " + (.conditional.arithmetic | arithmetic_operator(mode)) + "; " + (.update.arithmetic | arithmetic_operator(mode)) + " )); do ") | indent(level)
           )
         );
 
@@ -997,15 +1018,15 @@ def define(level; mode; nested_register; user_defined): (
         ) elif (.do | has("group") | not) then (
           ".loop.do used without .loop.do.group" | exit
         ) end |
-        if (has("arithmetic")) then (
-          loop_arithmetic(level; mode)
+        if (has("range")) then (
+          loop_range(level; mode)
         ) elif (has("iterator")) then (
           loop_iterator(level; mode)
         ) elif (has("conditional")) then (
           loop_conditional(level; mode; nested_register)
         ) else (
-          ".loop used without .loop.arithmetic, .loop.conditional or .loop.iterator" | exit
-        ) end + group(level; mode; true; false; nested_register) + " done"
+          ".loop used without .loop.range, .loop.conditional or .loop.iterator" | exit
+        ) end + (.do | group(level; mode; true; false; nested_register)) + " done"
       );
 
       is_unique_key_object |

@@ -6,7 +6,7 @@ setup () {
 }
 export -f setup
 
-@test "simple defer" {
+@test 'simple defer' {
   run_me () {
     setup
 
@@ -28,7 +28,7 @@ export -f setup
   str eq "${lines[2]}" 'a: Cleanup'
 }
 
-@test "[false] simple defer" {
+@test '[false] simple defer' {
   run_me () {
     setup
 
@@ -52,7 +52,7 @@ export -f setup
   str eq "${lines[2]}" 'a: Cleanup'
 }
 
-@test "multiple defers" {
+@test 'multiple defers' {
   run_me () {
     setup
 
@@ -78,7 +78,7 @@ export -f setup
   str eq "${lines[4]}" 'a:   Freeing memory'
 }
 
-@test "[false] multiple defers" {
+@test '[false] multiple defers' {
   run_me () {
     setup
 
@@ -106,7 +106,7 @@ export -f setup
   str eq "${lines[4]}" 'a:   Freeing memory'
 }
 
-@test "[return 1] multiple defers" {
+@test '[return 1] multiple defers' {
   run_me () {
     setup
 
@@ -134,7 +134,7 @@ export -f setup
   str eq "${lines[4]}" 'a:   Freeing memory'
 }
 
-@test "[handled false] multiple defers" {
+@test '[handled false] multiple defers' {
   run_me () {
     setup
 
@@ -161,7 +161,7 @@ export -f setup
   str eq "${lines[4]}" 'a:   Freeing memory'
 }
 
-@test "[handled return 1] multiple defers" {
+@test '[handled return 1] multiple defers' {
   run_me () {
     setup
 
@@ -189,7 +189,7 @@ export -f setup
   str eq "${lines[4]}" 'a:   Freeing memory'
 }
 
-@test "nested functions 1" {
+@test 'nested functions 1' {
   run_me () {
     setup
 
@@ -218,7 +218,7 @@ export -f setup
   str eq "${lines[3]}" 'a:   Releasing resources'
 }
 
-@test "nested functions 2" {
+@test 'nested functions 2' {
   run_me () {
     setup
 
@@ -273,7 +273,7 @@ export -f setup
   str eq "${lines[9]}" 'a:   Releasing resources'
 }
 
-@test "[false] nested functions" {
+@test '[false] nested functions' {
   run_me () {
     setup
 
@@ -304,7 +304,7 @@ export -f setup
   str eq "${lines[3]}" 'a:   Releasing resources'
 }
 
-@test "[return 1] nested functions" {
+@test '[return 1] nested functions' {
   run_me () {
     setup
 
@@ -335,7 +335,7 @@ export -f setup
   str eq "${lines[3]}" 'a:   Releasing resources'
 }
 
-@test "[handled false] nested functions" {
+@test '[handled false] nested functions' {
   run_me () {
     setup
 
@@ -365,7 +365,7 @@ export -f setup
   str eq "${lines[3]}" 'a:   Releasing resources'
 }
 
-@test "[handled return 1] nested functions" {
+@test '[handled return 1] nested functions' {
   run_me () {
     setup
 
@@ -398,7 +398,7 @@ export -f setup
   str eq "${lines[4]}" 'a:   Releasing resources'
 }
 
-@test "recursive function" {
+@test 'recursive function' {
   run_me () {
     setup
 
@@ -427,7 +427,7 @@ export -f setup
   str eq "${lines[5]}" 'a:   Removing temporary file'
 }
 
-@test "[false] recursive function" {
+@test '[false] recursive function' {
   run_me () {
     setup
 
@@ -458,7 +458,7 @@ export -f setup
   str eq "${lines[5]}" 'a:   Removing temporary file'
 }
 
-@test "[return 1] recursive function" {
+@test '[return 1] recursive function' {
   run_me () {
     setup
 
@@ -489,7 +489,7 @@ export -f setup
   str eq "${lines[5]}" 'a:   Removing temporary file'
 }
 
-@test "[handled false] recursive function" {
+@test '[handled false] recursive function' {
   run_me () {
     setup
 
@@ -522,7 +522,7 @@ export -f setup
   str eq "${lines[5]}" 'a:   Removing temporary file'
 }
 
-@test "[handled return 1] recursive function" {
+@test '[handled return 1] recursive function' {
   run_me () {
     setup
 
@@ -555,7 +555,7 @@ export -f setup
   str eq "${lines[4]}" 'a:   Removing temporary file'
 }
 
-@test "nested defers" {
+@test 'nested defers' {
   run_me () {
     setup
 
@@ -583,7 +583,7 @@ export -f setup
   str eq "${lines[3]}" 'b:   Freeing memory'
 }
 
-@test "deferred false" {
+@test 'deferred false' {
   run_me () {
     setup
 
@@ -612,7 +612,7 @@ export -f setup
   str eq "${lines[3]}" 'b:   Freeing memory'
 }
 
-@test "deferred return 1" {
+@test 'deferred return 1' {
   run_me () {
     setup
 
@@ -641,7 +641,7 @@ export -f setup
   str eq "${lines[3]}" 'b:   Freeing memory'
 }
 
-@test "nested defers into recursive function" {
+@test 'nested defers into recursive function' {
   run_me () {
     setup
 
@@ -670,7 +670,7 @@ export -f setup
   str eq "${lines[5]}" 'a 3:   Removing temporary file'
 }
 
-@test "deferred false into recursive function" {
+@test 'deferred false into recursive function' {
   run_me () {
     setup
 
@@ -701,7 +701,7 @@ export -f setup
   str eq "${lines[5]}" 'a 3:   Removing temporary file'
 }
 
-@test "deferred return 1 into recursive function" {
+@test 'deferred return 1 into recursive function' {
   run_me () {
     setup
 

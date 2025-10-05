@@ -8,7 +8,7 @@ export -f setup
 
 # TODO: sanitize()
 
-@test "codegen: harden" {
+@test 'codegen: harden' {
   run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
@@ -36,7 +36,7 @@ EOF
   str eq "${lines[5]}" '}'
 }
 
-@test "codegen: assign" {
+@test 'codegen: assign' {
   run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
@@ -91,16 +91,16 @@ define:
 EOF
   eq "${status}" '0'
   eq "${#lines[@]}" '11'
-  str eq "${lines[0]}" 'runner::test ()'
-  str eq "${lines[1]}" '{'
-  str eq "${lines[2]}" "    local 'my_var1' 'my_var2'"
-  str eq "${lines[3]}" "    global 'my_var3' 'my_var4'"
-  str eq "${lines[4]}" "    local -A 'my_var5' 'my_var6'"
-  str eq "${lines[5]}" "    global -A 'my_var7' 'my_var8'"
-  str eq "${lines[6]}" "    local -a 'my_var9' 'my_var10'"
-  str eq "${lines[7]}" "    global -a 'my_var11' 'my_var12'"
-  str eq "${lines[8]}" '    local -n "${A}" "${B}"'
-  str eq "${lines[9]}" '    global -n "${C}" "${D}"'
+  str eq "${lines[0]}"  'runner::test ()'
+  str eq "${lines[1]}"  '{'
+  str eq "${lines[2]}"  "    local 'my_var1' 'my_var2'"
+  str eq "${lines[3]}"  "    global 'my_var3' 'my_var4'"
+  str eq "${lines[4]}"  "    local -A 'my_var5' 'my_var6'"
+  str eq "${lines[5]}"  "    global -A 'my_var7' 'my_var8'"
+  str eq "${lines[6]}"  "    local -a 'my_var9' 'my_var10'"
+  str eq "${lines[7]}"  "    global -a 'my_var11' 'my_var12'"
+  str eq "${lines[8]}"  '    local -n "${A}" "${B}"'
+  str eq "${lines[9]}"  '    global -n "${C}" "${D}"'
   str eq "${lines[10]}" '}'
 
   # FAILURE CASES:
@@ -129,7 +129,7 @@ EOF
   not eq "${status}" '0'
 }
 
-@test "codegen: mutate" {
+@test 'codegen: mutate' {
   run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
@@ -201,7 +201,8 @@ EOF
   not eq "${status}" '0'
 }
 
-@test "codegen: define" {
+@test 'codegen: define' {
+  # TODO: change define.group with define.body.group
   run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
@@ -237,16 +238,16 @@ define:
 EOF
   eq "${status}" '0'
   eq "${#lines[@]}" '16'
-  str eq "${lines[0]}" 'runner::test ()'
-  str eq "${lines[1]}" '{'
-  str eq "${lines[2]}" "    user::A ()"
-  str eq "${lines[3]}" "    {"
-  str eq "${lines[4]}" "        user::AA ()"
-  str eq "${lines[5]}" "        {"
-  str eq "${lines[6]}" "            user::AAA ()"
-  str eq "${lines[7]}" "            {"
-  str eq "${lines[8]}" "                harden 'true'"
-  str eq "${lines[9]}" '            }'
+  str eq "${lines[0]}"  'runner::test ()'
+  str eq "${lines[1]}"  '{'
+  str eq "${lines[2]}"  '    user::A ()'
+  str eq "${lines[3]}"  '    {'
+  str eq "${lines[4]}"  '        user::AA ()'
+  str eq "${lines[5]}"  '        {'
+  str eq "${lines[6]}"  '            user::AAA ()'
+  str eq "${lines[7]}"  '            {'
+  str eq "${lines[8]}"  "                harden 'true'"
+  str eq "${lines[9]}"  '            }'
   str eq "${lines[10]}" "            runner::call \"\$(echo 'user::''AAA')\""
   str eq "${lines[11]}" '        }'
   str eq "${lines[12]}" "        runner::call \"\$(echo 'user::''AA')\""
@@ -255,7 +256,7 @@ EOF
   str eq "${lines[15]}" '}'
 }
 
-@test "codegen: readonly" {
+@test 'codegen: readonly' {
   run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
@@ -275,7 +276,7 @@ EOF
   str eq "${lines[3]}" '}'
 }
 
-@test "codegen: if" {
+@test 'codegen: if' {
   run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
@@ -285,33 +286,270 @@ define:
         conditional:
           group:
             commands:
-              # TODO: continue this
-        group:
-          commands:
+            - raw:
+                command: true
+                args: []
+        then:
+          group:
+            commands:
+            - raw:
+                command: true
+                args: []
+    - if:
+        conditional:
+          not:
+            not:
+              not:
+                group:
+                  commands:
+                  - raw:
+                      command: true
+                      args: []
+        then:
+          group:
+            commands:
+            - raw:
+                command: true
+                args: []
+    - if:
+        conditional:
+          group:
+            commands:
+            - raw:
+                command: true
+                args: []
+        then:
+          group:
+            commands:
+            - raw:
+                command: true
+                args: []
+        else:
+        - then:
+            group:
+              commands:
+              - raw:
+                  command: false
+                  args: []
+    - if:
+        conditional:
+          group:
+            commands:
+            - raw:
+                command: true
+                args: []
+        then:
+          group:
+            commands:
+            - raw:
+                command: true
+                args: []
+        else:
+        - conditional:
+            group:
+              commands:
+              - raw:
+                  command: false&&true
+                  args: []
+          then:
+            group:
+              commands:
+              - raw:
+                  command: false&&true
+                  args: []
+        - then:
+            group:
+              commands:
+              - raw:
+                  command: false
+                  args: []
+    - if:
+        conditional:
+          group:
+            commands:
+            - raw:
+                command: true
+                args: []
+        then:
+          group:
+            commands:
+            - if:
+                conditional:
+                  group:
+                    commands:
+                    - raw:
+                        command: true
+                        args: []
+                then:
+                  group:
+                    commands:
+                    - if:
+                        conditional:
+                          group:
+                            commands:
+                            - raw:
+                                command: true
+                                args: []
+                        then:
+                          group:
+                            commands:
+                            - raw:
+                                command: true
+                                args: []
+        else:
+        - then:
+            group:
+              commands:
+              - if:
+                  conditional:
+                    group:
+                      commands:
+                      - raw:
+                          command: true
+                          args: []
+                  then:
+                    group:
+                      commands:
+                      - raw:
+                          command: true
+                          args: []
+                  else:
+                  - then:
+                      group:
+                        commands:
+                        - if:
+                            conditional:
+                              group:
+                                commands:
+                                - raw:
+                                    command: true
+                                    args: []
+                            then:
+                              group:
+                                commands:
+                                - raw:
+                                    command: true
+                                    args: []
+                            else:
+                            - conditional:
+                                group:
+                                  commands:
+                                  - raw:
+                                      command: false&&true
+                                      args: []
+                              then:
+                                group:
+                                  commands:
+                                  - raw:
+                                      command: false&&true
+                                      args: []
+                            - then:
+                                group:
+                                  commands:
+                                  - raw:
+                                      command: false
+                                      args: []
 EOF
   eq "${status}" '0'
-  eq "${#lines[@]}" '4'
-  str eq "${lines[0]}" 'runner::test ()'
-  str eq "${lines[1]}" '{'
-  str eq "${lines[2]}" "    readonly -- 'prefix_'\"\${A}\"'_suffix' 'B'"
-  str eq "${lines[3]}" '}'
-  # TODO: @test "codegen: if/else"
-  # TODO: @test "codegen: if/elif/else"
-  # TODO: @test "codegen: nested if"
-  # TODO: @test "codegen: nested if/elif/else"
+  eq "${#lines[@]}" '40'
+  str eq "${lines[0]}"  'runner::test ()'
+  str eq "${lines[1]}"  '{'
+  str eq "${lines[2]}"  '    if { true; }; then {'
+  str eq "${lines[3]}"  '        true'
+  str eq "${lines[4]}"  '    } fi'
+  str eq "${lines[5]}"  '    if { ! { ! { ! { true; }; }; }; }; then {'
+  str eq "${lines[6]}"  '        true'
+  str eq "${lines[7]}"  '    } fi'
+  str eq "${lines[8]}"  '    if { true; }; then {'
+  str eq "${lines[9]}"  '        true'
+  str eq "${lines[10]}" '    } else {'
+  str eq "${lines[11]}" '        false'
+  str eq "${lines[12]}" '    } fi'
+  str eq "${lines[13]}" '    if { true; }; then {'
+  str eq "${lines[14]}" '        true'
+  str eq "${lines[15]}" '    } elif { false&&true; }; then {'
+  str eq "${lines[16]}" '        false&&true'
+  str eq "${lines[17]}" '    } else {'
+  str eq "${lines[18]}" '        false'
+  str eq "${lines[19]}" '    } fi'
+  str eq "${lines[20]}" '    if { true; }; then {'
+  str eq "${lines[21]}" '        if { true; }; then {'
+  str eq "${lines[22]}" '            if { true; }; then {'
+  str eq "${lines[23]}" '                true'
+  str eq "${lines[24]}" '            } fi'
+  str eq "${lines[25]}" '        } fi'
+  str eq "${lines[26]}" '    } else {'
+  str eq "${lines[27]}" '        if { true; }; then {'
+  str eq "${lines[28]}" '            true'
+  str eq "${lines[29]}" '        } else {'
+  str eq "${lines[30]}" '            if { true; }; then {'
+  str eq "${lines[31]}" '                true'
+  str eq "${lines[32]}" '            } elif { false&&true; }; then {'
+  str eq "${lines[33]}" '                false&&true'
+  str eq "${lines[34]}" '            } else {'
+  str eq "${lines[35]}" '                false'
+  str eq "${lines[36]}" '            } fi'
+  str eq "${lines[37]}" '        } fi'
+  str eq "${lines[38]}" '    } fi'
+  str eq "${lines[39]}" '}'
 }
 
-# TODO: @test "codegen: loop arithmetic"
-# TODO: @test "codegen: loop iterator"
-# TODO: @test "codegen: loop conditional"
-# TODO: @test "codegen: nested loops"
-# TODO: @test "codegen: switch"
-# TODO: @test "codegen: defer"
-# TODO: @test "codegen: register"
-# TODO: @test "codegen: parameters"
-# TODO: @test "codegen: capture/restore"
+@test 'codegen: loop' {
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
+define:
+  name: test
+  group:
+    commands:
+    - loop:
+        range:
+          initial:
+            arithmetic:
+              assignment:
+                left:
+                  literal: i
+                right:
+                  number: 0
+          conditional:
+            arithmetic:
+              lt:
+                left:
+                  literal: i
+                right:
+                  number: 10
+          update:
+            arithmetic:
+              increment:
+                left:
+                  literal: i
+                right:
+                  number: 1
+        do:
+          group:
+            commands:
+            - raw:
+                command: true
+                args: []
+EOF
+  eq "${status}" '0'
+  eq "${#lines[@]}" '6'
+  str eq "${lines[0]}" 'runner::test ()'
+  str eq "${lines[1]}" '{'
+  str eq "${lines[2]}" '    for (( i = 0; i < 10; i += 1 )); do {'
+  str eq "${lines[3]}" '        true'
+  str eq "${lines[4]}" '    } done'
+  str eq "${lines[5]}" '}'
+  # TODO: @test 'codegen: loop iterator'
+  # TODO: @test 'codegen: loop conditional'
+  # TODO: @test 'codegen: nested loops'
+}
 
-@test "codegen: on/off" {
+# TODO: @test 'codegen: switch'
+# TODO: @test 'codegen: defer'
+# TODO: @test 'codegen: register'
+# TODO: @test 'codegen: parameters'
+# TODO: @test 'codegen: capture/restore'
+
+@test 'codegen: on/off' {
   run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
@@ -347,17 +585,17 @@ EOF
   str eq "${lines[4]}" '}'
 }
 
-# TODO: @test "codegen: json"
-# TODO: @test "codegen: color"
-# TODO: @test "codegen: source"
-# TODO: @test "codegen: arithmetic"
-# TODO: @test "codegen: print"
-# TODO: @test "codegen: return"
-# TODO: @test "codegen: skip"
-# TODO: @test "codegen: split"
-# TODO: @test "codegen: runner"
-# TODO: @test "codegen: group"
-# TODO: @test "codegen: raw"
-# TODO: @test "codegen: coproc"
-# TODO: @test "codegen: initialized"
-# TODO: @test "codegen: core"
+# TODO: @test 'codegen: json'
+# TODO: @test 'codegen: color'
+# TODO: @test 'codegen: source'
+# TODO: @test 'codegen: arithmetic'
+# TODO: @test 'codegen: print'
+# TODO: @test 'codegen: return'
+# TODO: @test 'codegen: skip'
+# TODO: @test 'codegen: split'
+# TODO: @test 'codegen: runner'
+# TODO: @test 'codegen: group'
+# TODO: @test 'codegen: raw'
+# TODO: @test 'codegen: coproc'
+# TODO: @test 'codegen: initialized'
+# TODO: @test 'codegen: core'
