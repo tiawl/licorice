@@ -1137,8 +1137,7 @@ def define(level; mode; nested_register; user_defined): (
       ) end
     ) as $sep |
 
-    .group as $input |
-    (
+    .group as $input | (
       ("{" + $sep.first) | if (indent_first) then (indent(level)) end
     ) + (
       reduce .group.commands[] as $item (
