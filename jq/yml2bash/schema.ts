@@ -7,8 +7,11 @@ function Variable(s: string) void {
 }
 type Group = {
   redirections: Redirection[];
-  commands: Command[];
+  commands: NotEmtpyCommands;
 };
+function NotEmptyCommands(c: Commands[]) void {
+  assert(c.length > 0);
+}
 type Redirection = Variable
                  | Output
                  ;
@@ -58,17 +61,17 @@ type Command = ArithmeticExpr
              ;
 // TODO: more arithmetic operators
 type ArithmeticExpr = Addition
-                | Substraction
-                | Remainder
-                | Gt
-                | Lt
-                | Ge
-                | Le
-                | Eq
-                | Ne
-                | Assignment
-                | Increment
-                ;
+                    | Substraction
+                    | Remainder
+                    | Gt
+                    | Lt
+                    | Ge
+                    | Le
+                    | Eq
+                    | Ne
+                    | Assignment
+                    | Increment
+                    ;
 type Addition = {
   left: ArithmeticSide;
   right: ArithmeticSide;
@@ -124,15 +127,18 @@ function Parameter(i: Integer) void {
 type Assign = {
   scope: Scope;
   type: Type;
-  variables: Sanitized[];
+  variables: NotEmptySanitized;
 };
+function NotEmptySanitized(s: Sanitized[]) void {
+  assert(s.length > 0);
+}
 type Sanitized = Literal
                | Char
                | Variable
                | Parameter
                | Special
-               | Path       // why ??
-               | Group      // why ??
+               | Path       // TODO: why ??
+               | Group      // TODO: why ??
                ;
 type Literal = string;
 function Char(s: string) void {
@@ -169,11 +175,14 @@ type OnOff = On
            | Off
            ;
 type On = {
-  options: Option[];
+  options: NotEmptyOption;
 };
 type Off = {
-  options: Option[];
+  options: NotEmptyOption;
 };
+function NotEmptyOptions(o: Option[]) void {
+  assert(o.length > 0);
+}
 enum Option {
   AssocExpandOnce,
   Autocd,
@@ -257,7 +266,7 @@ enum Option {
 };
 type Coproc = {
   name: Variable;
-  commands: Command[];
+  commands: Commands;
 };
 type Defer = Core
            | Call
