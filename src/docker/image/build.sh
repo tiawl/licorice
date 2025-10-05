@@ -26,7 +26,7 @@ ___ () { #HELP <repository> <tag> <context> [<buildargs>]|Build an image from a 
   coproc HTTP_CODE {
     json::filter '.scheme + " " + (.response_code | tostring)'
   }
-  defer 'exec {HTTP_CODE[1]}>&- 4>&-; sed "${sed[colored_http_code]}" <&${HTTP_CODE[0]} >&2'
+  defer 'exec {HTTP_CODE[1]}>&- 4>&-; sed "${sed[http-logger]}" <&${HTTP_CODE[0]} >&2'
 
   exec 4>&${HTTP_CODE[1]}
 
@@ -40,6 +40,6 @@ ___ () { #HELP <repository> <tag> <context> [<buildargs>]|Build an image from a 
                 | decode_buildkit_protobuf
             } 3>&1 \
           | json::from::protobuf \
-          | json::filter "${jq[image-build-logging]}" --arg image "${repo}" >&2
+          | json::filter "${jq[builder]}" --arg image "${repo}" >&2
       done
 }

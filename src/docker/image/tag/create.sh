@@ -11,7 +11,7 @@ ___ () { #HELP <image_source> <tag_source> <new_image> <new_tag>|Create a tag <n
   coproc HTTP_CODE {
     json::filter '.scheme + " " + (.response_code | tostring)'
   }
-  defer 'exec {HTTP_CODE[1]}>&- 3>&-; sed "${sed[colored_http_code]}" <&${HTTP_CODE[0]} >&2'
+  defer 'exec {HTTP_CODE[1]}>&- 3>&-; sed "${sed[http-logger]}" <&${HTTP_CODE[0]} >&2'
 
   exec 3>&${HTTP_CODE[1]}
 
