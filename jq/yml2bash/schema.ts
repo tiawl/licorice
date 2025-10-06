@@ -7,10 +7,10 @@ function Variable(s: string) void {
 }
 type Group = {
   redirections: Redirection[];
-  commands: NotEmtpyCommands;
+  commands: NotEmptyCommandArray;
 };
-function NotEmptyCommands(c: Commands[]) void {
-  assert(c.length > 0);
+function NotEmptyCommandArray(A: Commands[]) void {
+  assert(A.length > 0);
 }
 type Redirection = Variable
                  | Output
@@ -59,78 +59,41 @@ type Command = ArithmeticExpr
              | Split
              | Switch
              ;
+type ArithmeticExpr = BinaryArithmeticExpr;
+type BinaryArithmeticExpr = {
+  left: ArithmeticOperand;
+  operator: BinaryArithmeticOperator;
+  right: ArithmeticOperand;
+};
 // TODO: more arithmetic operators
-type ArithmeticExpr = Addition
-                    | Substraction
-                    | Remainder
-                    | Gt
-                    | Lt
-                    | Ge
-                    | Le
-                    | Eq
-                    | Ne
-                    | Assignment
-                    | Increment
-                    ;
-type Addition = {
-  left: ArithmeticSide;
-  right: ArithmeticSide;
+enum BinaryArithmeticOperator {
+  Addition,
+  Substraction,
+  Remainder,
+  Gt,
+  Lt,
+  Ge,
+  Le,
+  Eq,
+  Ne,
+  Assignment,
+  Increment
 };
-type Substraction = {
-  left: ArithmeticSide;
-  right: ArithmeticSide;
-};
-type Remainder = {
-  left: ArithmeticSide;
-  right: ArithmeticSide;
-};
-type Gt = {
-  left: ArithmeticSide;
-  right: ArithmeticSide;
-};
-type Lt = {
-  left: ArithmeticSide;
-  right: ArithmeticSide;
-};
-type Ge = {
-  left: ArithmeticSide;
-  right: ArithmeticSide;
-};
-type Le = {
-  left: ArithmeticSide;
-  right: ArithmeticSide;
-};
-type Eq = {
-  left: ArithmeticSide;
-  right: ArithmeticSide;
-};
-type Ne = {
-  left: ArithmeticSide;
-  right: ArithmeticSide;
-};
-type Assignment = {
-  left: ArithmeticSide;
-  right: ArithmeticSide;
-};
-type Increment = {
-  left: ArithmeticSide;
-  right: ArithmeticSide;
-};
-type ArithmeticSide = Integer
-                    | Parameter
-                    | Variable
-                    | ArithmeticExpr
-                    ;
+type ArithmeticOperand = Integer
+                       | Parameter
+                       | Variable
+                       | ArithmeticExpr
+                       ;
 function Parameter(i: Integer) void {
   assert(i >= 0);
 }
 type Assign = {
   scope: Scope;
   type: Type;
-  variables: NotEmptySanitized;
+  variables: NotEmptySanitizedArray;
 };
-function NotEmptySanitized(s: Sanitized[]) void {
-  assert(s.length > 0);
+function NotEmptySanitizedArray(A: Sanitized[]) void {
+  assert(A.length > 0);
 }
 type Sanitized = Literal
                | Char
@@ -175,13 +138,13 @@ type OnOff = On
            | Off
            ;
 type On = {
-  options: NotEmptyOption;
+  options: NotEmptyOptionArray;
 };
 type Off = {
-  options: NotEmptyOption;
+  options: NotEmptyOptionArray;
 };
-function NotEmptyOptions(o: Option[]) void {
-  assert(o.length > 0);
+function NotEmptyOptionArray(A: Option[]) void {
+  assert(A.length > 0);
 }
 enum Option {
   AssocExpandOnce,
@@ -291,6 +254,28 @@ type If = {
   then: Group;
   else: Else[];
 };
+type BooleanExpr = UnaryBooleanExpr
+                 | BinaryBooleanExpr
+                 ;
+type UnaryBooleanExpr = {
+  operand: BooleanOperand;
+  operator: BinaryBooleanOperator;
+};
+enum UnaryBooleanOperator {
+  Not,
+};
+type BinaryBooleanExpr = {
+  left: BooleanOperand;
+  operator: BinaryBooleanOperator;
+  right: BooleanOperand;
+};
+enum BinaryBooleanOperator {
+  And,
+  Or,
+};
+type BooleanOperand = BooleanExpr
+                    | Group
+                    ;
 type Else = If
           | Group
           ;
