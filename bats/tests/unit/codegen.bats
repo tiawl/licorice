@@ -9,7 +9,7 @@ export -f setup
 # TODO: sanitize()
 
 @test 'codegen: harden' {
-  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/types.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
   group:
@@ -37,7 +37,7 @@ EOF
 }
 
 @test 'codegen: assign' {
-  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/types.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
   group:
@@ -104,7 +104,7 @@ EOF
   str eq "${lines[10]}" '}'
 
   # FAILURE CASES:
-  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF > /dev/null 2>&1
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/types.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF > /dev/null 2>&1
 define:
   name: test
   group:
@@ -114,7 +114,7 @@ define:
         - - literal: my_var1
 EOF
   not eq "${status}" '0'
-  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF > /dev/null 2>&1
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/types.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF > /dev/null 2>&1
 define:
   name: test
   group:
@@ -130,7 +130,7 @@ EOF
 }
 
 @test 'codegen: mutate' {
-  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/types.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
   group:
@@ -177,7 +177,7 @@ EOF
   str eq "${lines[6]}" '}'
 
   # FAILURE CASES:
-  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF > /dev/null 2>&1
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/types.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF > /dev/null 2>&1
 define:
   name: test
   group:
@@ -187,7 +187,7 @@ define:
           var: A
 EOF
   not eq "${status}" '0'
-  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF > /dev/null 2>&1
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/types.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF > /dev/null 2>&1
 define:
   name: test
   group:
@@ -203,7 +203,7 @@ EOF
 
 @test 'codegen: define' {
   # TODO: change define.group with define.body.group
-  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/types.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
   group:
@@ -257,7 +257,7 @@ EOF
 }
 
 @test 'codegen: readonly' {
-  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/types.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
   group:
@@ -277,7 +277,7 @@ EOF
 }
 
 @test 'codegen: if' {
-  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/types.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
   group:
@@ -495,7 +495,7 @@ EOF
 }
 
 @test 'codegen: loop' {
-  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/types.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
   group:
@@ -550,7 +550,7 @@ EOF
 # TODO: @test 'codegen: capture/restore'
 
 @test 'codegen: on/off' {
-  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
+  run gojq --raw-output --yaml-input "$(< jq/yml2bash/common.jq)$(< jq/yml2bash/types.jq)$(< jq/yml2bash/codegen.jq) define(-1; \$MODE.internal; false; false)" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 define:
   name: test
   group:

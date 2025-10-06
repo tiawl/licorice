@@ -196,8 +196,6 @@ def define(level; mode; nested_register; user_defined): (
           ; mode; quoted)
         ) elif (has("file")) then (
           (if (quoted) then "\"" else "" end) + "$(< " + (.file | sanitize(mode; true)) + ")" + (if (quoted) then "\"" else "" end)
-        ) elif (has("input")) then (
-          "<(" + ({group: .input} | group($NOINDENT; mode; false; false; false)) + ")"
         ) elif (has("unsafe")) then (
           if (mode != $MODE.internal) then (
             "\"unsafe\" can only be used as internal user" | exit

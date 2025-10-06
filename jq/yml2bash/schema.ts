@@ -16,6 +16,44 @@ type Redirection = Input
                  | Output
                  ;
 type Input = Sanitized;
+type Sanitized = Literal
+               | Char
+               | Variable
+               | ArrayElement
+               | Parameter
+               | Special
+               | Path       // TODO: why ??
+               | InternalLiteral
+               ;
+type Literal = string;
+function Char(s: string) void {
+  assert(s.length == 1);
+}
+type ArrayElement = {
+  name: Variable;
+  reference: Reference;
+};
+type Reference = Integer
+               | Key
+               ;
+function Integer(n: number) void {
+  assert(n.isInteger());
+}
+type Key = string;
+function Parameter(i: Integer) void {
+  assert(i >= 0);
+}
+enum Special {
+  last,
+  FUNCNAME,
+  USER,
+  UID,
+  HOME,
+  RUNNER,
+  sep
+};
+type Path = string;
+type InternalLiteral = string;
 type Output = {
   left: FileDescriptor;
   appending: boolean;
@@ -24,44 +62,29 @@ type Output = {
 function FileDescriptor(i: Integer) void {
   assert(i > 0);
 }
-function Integer(n: number) void {
-  assert(n.isInteger());
-}
 type File = Path
           | FileDescriptor
           | Variable
           | ArrayElement
           ;
-type ArrayElement = {
-  name: Variable;
-  reference: Reference;
-};
-type Reference = Integer
-               | Key
-               ;
-type Key = string;
-type Path = string;
 type Command = ArithmeticExpr
              | Assign
-             | Capture
+             | CaptureRestore
              | Color
-             | Coproc
              | Defer
              | Define
              | Group
              | Harden
              | If
+             | Internal
              | Json
              | Loop
              | Mutate
-             | On
-             | Off
+             | OnOff
              | Parameters
              | Print
-             | InternalCall
              | Readonly
              | Register
-             | Restore
              | Return
              | Runner
              | Skip
@@ -95,9 +118,6 @@ type ArithmeticOperand = Integer
                        | ArrayElement
                        | ArithmeticExpr
                        ;
-function Parameter(i: Integer) void {
-  assert(i >= 0);
-}
 type Assign = {
   scope: Scope;
   type: Type;
@@ -106,30 +126,6 @@ type Assign = {
 function NotEmptySanitizedArray(a: Sanitized[]) void {
   assert(a.length > 0);
 }
-type Sanitized = Literal
-               | Char
-               | Variable
-               | ArrayElement
-               | Parameter
-               | Special
-               | Path       // TODO: why ??
-               | Group      // TODO: why ??
-               | InternalLiteral
-               ;
-type Literal = string;
-function Char(s: string) void {
-  assert(s.length == 1);
-}
-enum Special {
-  last,
-  FUNCNAME,
-  USER,
-  UID,
-  HOME,
-  RUNNER,
-  sep
-};
-type InternalLiteral = string;
 enum Scope {
   Local,
   Global
@@ -148,15 +144,111 @@ type Color = {
   index: Integer;
   variable: Sanitized;
 };
-type OnOff = On
-           | Off
+type Defer = Core
+           | Call
            ;
-type On = {
-  options: NotEmptyOptionArray;
+type Core = Image
+          | Container
+          | Network
+          | Volume
+          | Runner
+          ;
+type Image = {}; type Container = {}; type Network = {}; type Volume = {};
+type Runner = {
+  imported: Path;
+  args: Sanitized[];
 };
-type Off = {
-  options: NotEmptyOptionArray;
+type Call = {
+  command: Sanitized;
+  args: Sanitized[];
+  pipe?: Group;
 };
+type Harden = {
+  command: Sanitized;
+  as?: Sanitized;
+};
+type If = {
+  conditional: LogicalExpr;
+  then: Group;
+  else: Else[];
+};
+type Internal = InternalCall
+              | Coproc
+              ;
+type InternalCall = {
+  command: string;
+  args: Sanitized[];
+  pipe?: Group;
+};
+type Coproc = {
+  name: Variable;
+  commands: Commands;
+};
+type LogicalExpr = UnaryLogicalExpr
+                 | BinaryLogicalExpr
+                 ;
+type UnaryLogicalExpr = {
+  operand: LogicalOperand;
+  operator: BinaryLogicalOperator;
+};
+enum UnaryLogicalOperator {
+  Not,
+};
+type BinaryLogicalExpr = {
+  left: LogicalOperand;
+  operator: BinaryLogicalOperator;
+  right: LogicalOperand;
+};
+enum BinaryLogicalOperator {
+  And,
+  Or,
+};
+type LogicalOperand = LogicalExpr
+                    | Group
+                    ;
+type Else = If
+          | Group
+          ;
+type Json = NotEmptySanitizedArray;
+type Loop = Range
+          | Iterator
+          | Conditional
+          ;
+type Range = {
+  initial: ArithmeticExpr;
+  conditional: ArithmeticExpr;
+  update: ArithmeticExpr;
+  do: Group;
+};
+type Iterator = {
+  name: Variable;
+  into: Iterable;
+  do: Group;
+};
+type Iterable = {
+  name?: Variable; // If null => "${@}"
+  sub?: SubArray;
+};
+type SubArray = {
+  offset: Integer;
+  length?: Integer;
+};
+type Conditional = {
+  conditional: LogicalExpr;
+  do: Group;
+};
+type Mutate = {
+  name: Mutable;
+  variables: NotEmptySanitizedArray;
+};
+type Mutable = Variable
+             | ArrayElement
+             | Last
+             ;
+function Last(s: Special) void {
+  assert(s.valueOf() === Special.last.valueOf());
+}
+type OnOff = NotEmptyOptionArray;
 function NotEmptyOptionArray(a: Option[]) void {
   assert(a.length > 0);
 }
@@ -241,107 +333,6 @@ enum Option {
   vi,
   xtrace
 };
-type Coproc = {
-  name: Variable;
-  commands: Commands;
-};
-type Defer = Core
-           | Call
-           ;
-type Core = Image
-          | Container
-          | Network
-          | Volume
-          | Runner
-          ;
-type Image = {}; type Container = {}; type Network = {}; type Volume = {};
-type Runner = {
-  imported: Path;
-  args: Sanitized[];
-};
-type Call = {
-  command: Sanitized;
-  args: Sanitized[];
-  pipe?: Group;
-};
-type InternalCall = {
-  command: string;
-  args: Sanitized[];
-  pipe?: Group;
-};
-type Harden = {
-  command: Sanitized;
-  as?: Sanitized;
-};
-type If = {
-  conditional: LogicalExpr;
-  then: Group;
-  else: Else[];
-};
-type LogicalExpr = UnaryLogicalExpr
-                 | BinaryLogicalExpr
-                 ;
-type UnaryLogicalExpr = {
-  operand: LogicalOperand;
-  operator: BinaryLogicalOperator;
-};
-enum UnaryLogicalOperator {
-  Not,
-};
-type BinaryLogicalExpr = {
-  left: LogicalOperand;
-  operator: BinaryLogicalOperator;
-  right: LogicalOperand;
-};
-enum BinaryLogicalOperator {
-  And,
-  Or,
-};
-type LogicalOperand = LogicalExpr
-                    | Group
-                    ;
-type Else = If
-          | Group
-          ;
-type Json = NotEmptySanitizedArray;
-type Loop = Range
-          | Iterator
-          | Conditional
-          ;
-type Range = {
-  initial: ArithmeticExpr;
-  conditional: ArithmeticExpr;
-  update: ArithmeticExpr;
-  do: Group;
-};
-type Iterator = {
-  name: Variable;
-  into: Iterable;
-  do: Group;
-};
-type Iterable = {
-  name?: Variable; // If null => "${@}"
-  sub?: SubArray;
-};
-type SubArray = {
-  offset: Integer;
-  length?: Integer;
-};
-type Conditional = {
-  conditional: LogicalExpr;
-  do: Group;
-};
-type Mutate = {
-  name: Mutable;
-  variables: NotEmptySanitizedArray;
-};
-type Mutable = Variable
-             | ArrayElement
-             | Last
-             ;
-function Last(s: Special) void {
-  assert(s.valueOf() === Special.last.valueOf());
-}
 type Parameters = NotEmptySanitizedArray;
 type Print = {
   variable?: Variable;
