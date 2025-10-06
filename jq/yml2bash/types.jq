@@ -47,16 +47,30 @@ def isParameter: (
   (. >= 0)
 );
 
-def isSpecial: (
+def isSpecialString: (
   isFieldFromEnum([
     "last",
     "FUNCNAME",
     "USER",
     "UID",
     "HOME",
-    "RUNNER",
+    "ROUTINE"
+  ])
+);
+
+def isSpecialArray: (
+  isFieldFromEnum([
     "sep"
   ])
+);
+
+def isSpecialArrayElement: (
+  (type == "object") and
+  has("name") and
+  has("reference") and
+  (length == 2) and
+  (.name | isSpecialArray) and
+  (.reference | isReference)
 );
 
 def isPath: (type == "string");
@@ -68,7 +82,8 @@ def isSanitized: (
   isVariable or
   isArrayElement or
   isParameter or
-  isSpecial or
+  isSpecialString or
+  isSpecialArrayElement or
   isPath or
   isInternalLiteral
 );
@@ -561,76 +576,112 @@ def isRoutine: {
 #   tag: Sanitized;
 # };
 # type ImageTagCompute = {
-#   // TODO
+#   input: NotEmptyContextArray;
+# };
+# function NotEmptyContextArray(a: Context[]) void {
+#   assert(a.length > 0);
+# }
+# type Context = {
+#   path: Sanitized;
+#   args: BuildArg[];
+# };
+# type BuildArg = {
+#   name: Variable;
+#   value: Sanitized;
 # };
 # type ImageBuild = {
-#   // TODO
+#   image: Sanitized;
+#   tag: Sanitized;
+#   context: Context;
 # };
 # type ImageMerge = {
-#   // TODO
+#   image: Sanitized;
+#   tag: Sanitized;
+#   base: Sanitized;
+#   chain: NotEmptyContextArray;
 # };
 # type ImagePrune = {
-#   // TODO
+#   pattern: Sanitized;
 # };
 # type ImagePull = {
-#   // TODO
+#   registry: Sanitized;
+#   library: Sanitized;
+#   image: Sanitized;
+#   tag: Sanitized;
 # };
 # type ImageRemove = {
-#   // TODO
+#   image: Sanitized;
+#   tag: Sanitized;
 # };
 # type ContainerResourceCopy = {
-#   // TODO
+#   name: Sanitized;
+#   source: Sanitized;
+#   target: Sanitized;
 # };
 # type ContainerStatusGet = {
-#   // TODO
+#   name: Sanitized;
 # };
 # type ContainerStatusCreated = {
-#   // TODO
+#   name: Sanitized;
 # };
 # type ContainerStatusRunning = {
-#   // TODO
+#   name: Sanitized;
 # };
 # type ContainerStatusHealthy = {
-#   // TODO
+#   name: Sanitized;
 # };
 # type ContainerCreate = {
-#   // TODO
+#   name: Sanitized;
+#   image: Sanitized;
+#   hostname: Sanitized;
+#   volumes: Volume[];
+# };
+# type Volume = {
+#   source: Sanitized;
+#   target: Sanitized;
 # };
 # type ContainerExec = {
-#   // TODO
+#   name: Sanitized;
+#   detached: Sanitized;
+#   user: Sanitized;
+#   command: NotEmptySanitizedArray;
 # };
 # type ContainerStart = {
-#   // TODO
+#   name: Sanitized;
 # };
 # type ContainerStop = {
-#   // TODO
+#   name: Sanitized;
 # };
 # type NetworkIpGet = {
-#   // TODO
+#   container: Sanitized;
+#   network: Sanitized;
 # };
 # type NetworkCreate = {
-#   // TODO
+#   name: Sanitized;
+#   isolated: Sanitized;
 # };
 # type NetworkCreated = {
-#   // TODO
+#   name: Sanitized;
 # };
 # type NetworkConnect = {
-#   // TODO
+#   container: Sanitized;
+#   network: Sanitized;
 # };
 # type NetworkDisconnect = {
-#   // TODO
+#   container: Sanitized;
+#   network: Sanitized;
 # };
 # type NetworkList = {
-#   // TODO
+#   pattern: Sanitized;
 # };
 # type VolumeCreate = {
-#   // TODO
+#   name: Sanitized;
 # };
 # type VolumeCreated = {
-#   // TODO
+#   name: Sanitized;
 # };
 # type VolumeList = {
-#   // TODO
+#   pattern: Sanitized;
 # };
 # type RoutineExec = {
 #   imported: Path;
@@ -726,6 +777,9 @@ def isRoutine: {
 # function Last(s: Special) void {
 #   assert(s.valueOf() === Special.last.valueOf());
 # }
+# type Special = SpecialString
+#              | SpecialArray
+#              ;
 # type OnOff = NotEmptyOptionArray;
 # function NotEmptyOptionArray(a: Option[]) void {
 #   assert(a.length > 0);

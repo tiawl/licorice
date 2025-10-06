@@ -26,7 +26,7 @@
 } as $MODE |
 -2 as $NOINDENT |
 .import as $IMPORT |
-.name as $RUNNER |
+.name as $ROUTINE |
 $ARGS.named.EXE as $EXE |
 $ARGS.named.BACKEND as $BACKEND |
 $ARGS.named.FUNCTIONS as $FUNCTIONS |
@@ -189,7 +189,7 @@ def define(level; mode; nested_register; user_defined): (
         ) elif (has("special")) then (
           variable(
             if (.special == "last") then "_"
-            elif ((.special == "FUNCNAME") or (.special == "USER") or (.special == "UID") or (.special == "HOME") or (.special == "RUNNER") or (.special == "sep")) then .special
+            elif ((.special == "FUNCNAME") or (.special == "USER") or (.special == "UID") or (.special == "HOME") or (.special == "ROUTINE") or (.special == "sep")) then .special
             else (
               "Unknown special variable: \"" + .special + "\"" | exit
             ) end
@@ -467,12 +467,9 @@ def define(level; mode; nested_register; user_defined): (
         create: (try (
           .network.create as $create |
             if $create then (
-              if ($create.isolated | type != "boolean") then (
-                "network.create.isolated must be a boolean" | exit
-              ) else null end |
               "network create " +
                 ($create.name | sanitize(mode; true)) + " " +
-                ($create.isolated | tostring)
+                ($create.isolated | sanitize(mode; true) | toboolean | tostring)
             ) else null end
         ) catch null),
         connect: (try (

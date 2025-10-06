@@ -17,7 +17,8 @@ type Sanitized = Literal
                | Variable
                | ArrayElement
                | Parameter
-               | Special
+               | SpecialString
+               | SpecialArrayElement
                | Path       // TODO: why ??
                | InternalLiteral
                ;
@@ -39,14 +40,20 @@ type Key = string;
 function Parameter(i: Integer) void {
   assert(i >= 0);
 }
-enum Special {
+enum SpecialString {
   last,
   FUNCNAME,
   USER,
   UID,
   HOME,
-  RUNNER,
+  ROUTINE
+};
+enum SpecialArray {
   sep
+};
+type SpecialArrayElement = {
+  name: SpecialArray;
+  reference: Reference;
 };
 type Path = string;
 type InternalLiteral = string;
@@ -128,7 +135,7 @@ type _Coproc = {
   coproc: Coproc;
 };
 type _Json = {
-  json: Json;
+  json.encode: Json;
 };
 type _Loop = {
   loop: Loop;
@@ -357,76 +364,112 @@ type Image = {
   tag: Sanitized;
 };
 type ImageTagCompute = {
-  // TODO
+  input: NotEmptyContextArray;
+};
+function NotEmptyContextArray(a: Context[]) void {
+  assert(a.length > 0);
+}
+type Context = {
+  path: Sanitized;
+  args: BuildArg[];
+};
+type BuildArg = {
+  name: Variable;
+  value: Sanitized;
 };
 type ImageBuild = {
-  // TODO
+  image: Sanitized;
+  tag: Sanitized;
+  context: Context;
 };
 type ImageMerge = {
-  // TODO
+  image: Sanitized;
+  tag: Sanitized;
+  base: Sanitized;
+  chain: NotEmptyContextArray;
 };
 type ImagePrune = {
-  // TODO
+  pattern: Sanitized;
 };
 type ImagePull = {
-  // TODO
+  registry: Sanitized;
+  library: Sanitized;
+  image: Sanitized;
+  tag: Sanitized;
 };
 type ImageRemove = {
-  // TODO
+  image: Sanitized;
+  tag: Sanitized;
 };
 type ContainerResourceCopy = {
-  // TODO
+  name: Sanitized;
+  source: Sanitized;
+  target: Sanitized;
 };
 type ContainerStatusGet = {
-  // TODO
+  name: Sanitized;
 };
 type ContainerStatusCreated = {
-  // TODO
+  name: Sanitized;
 };
 type ContainerStatusRunning = {
-  // TODO
+  name: Sanitized;
 };
 type ContainerStatusHealthy = {
-  // TODO
+  name: Sanitized;
 };
 type ContainerCreate = {
-  // TODO
+  name: Sanitized;
+  image: Sanitized;
+  hostname: Sanitized;
+  volumes: Volume[];
+};
+type Volume = {
+  source: Sanitized;
+  target: Sanitized;
 };
 type ContainerExec = {
-  // TODO
+  name: Sanitized;
+  detached: Sanitized;
+  user: Sanitized;
+  command: NotEmptySanitizedArray;
 };
 type ContainerStart = {
-  // TODO
+  name: Sanitized;
 };
 type ContainerStop = {
-  // TODO
+  name: Sanitized;
 };
 type NetworkIpGet = {
-  // TODO
+  container: Sanitized;
+  network: Sanitized;
 };
 type NetworkCreate = {
-  // TODO
+  name: Sanitized;
+  isolated: Sanitized;
 };
 type NetworkCreated = {
-  // TODO
+  name: Sanitized;
 };
 type NetworkConnect = {
-  // TODO
+  container: Sanitized;
+  network: Sanitized;
 };
 type NetworkDisconnect = {
-  // TODO
+  container: Sanitized;
+  network: Sanitized;
 };
 type NetworkList = {
-  // TODO
+  pattern: Sanitized;
 };
 type VolumeCreate = {
-  // TODO
+  name: Sanitized;
 };
 type VolumeCreated = {
-  // TODO
+  name: Sanitized;
 };
 type VolumeList = {
-  // TODO
+  pattern: Sanitized;
 };
 type RoutineExec = {
   imported: Path;
@@ -519,6 +562,9 @@ type Mutable = Variable
 function Last(s: Special) void {
   assert(s.valueOf() === Special.last.valueOf());
 }
+type Special = SpecialString
+             | SpecialArray
+             ;
 type OnOff = NotEmptyOptionArray;
 function NotEmptyOptionArray(a: Option[]) void {
   assert(a.length > 0);

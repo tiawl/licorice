@@ -112,7 +112,7 @@ def main(level): (
           [
             {on: [[{literal: "errexit"}], [{literal: "inherit_errexit"}], [{literal: "errtrace"}], [{literal: "functrace"}], [{literal: "noclobber"}], [{literal: "nounset"}], [{literal: "pipefail"}], [{literal: "lastpipe"}], [{literal: "extglob"}]]},
             {raw: {command: ($EXE + $NAMESPACE.sep + "core" + $NAMESPACE.sep + "init"), args: []}},
-            {assign: {vars: [[{literal: "USER"}], [{literal: "HOME"}], [{literal: "RUNNER"}]], scope: "global"}},
+            {assign: {vars: [[{literal: "USER"}], [{literal: "HOME"}], [{literal: "ROUTINE"}]], scope: "global"}},
             {
               register: {
                 group: {commands: [{skip: [[{literal: "\\u"}]]}, {print: {format: "%s", args: [[{special: "last", "prompt": true}]]}}]},
@@ -121,8 +121,8 @@ def main(level): (
             },
             {mutate: {name: {var: "USER"}, value: [[{special: "USER", default: [{special: "last"}]}]]}},
             {print: {format: "%s", var: "HOME", args: [[{char: "tilde"}]]}},
-            {mutate: {name: {var: "RUNNER"}, value: [[{literal: $RUNNER}]]}},
-            {readonly: [[{literal: "USER"}], [{literal: "HOME"}], [{literal: "RUNNER"}]]},
+            {mutate: {name: {var: "ROUTINE"}, value: [[{literal: $ROUTINE}]]}},
+            {readonly: [[{literal: "USER"}], [{literal: "HOME"}], [{literal: "ROUTINE"}]]},
             {initialized: true}
           ] + .group.commands
         )

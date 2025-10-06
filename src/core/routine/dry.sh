@@ -64,7 +64,8 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
 
   readonly inv import
 
-  json::filter "${jq[yml2bash/common]}${jq[yml2bash/types]}${jq[yml2bash/codegen]}${jq[yml2bash/writer]}" --arg NAMESPACE_SEP "${sep[namespace]}" --arg EXE "${exe}" --arg BACKEND "${backend}" --rawfile FUNCTIONS <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \
+  #json::filter "${jq[yml2bash/common]}${jq[yml2bash/types]}${jq[yml2bash/codegen]}${jq[yml2bash/writer]}" --arg NAMESPACE_SEP "${sep[namespace]}" --arg EXE "${exe}" --arg BACKEND "${backend}" --rawfile FUNCTIONS <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \
+  json::filter "${jq[yml2bash/common]}${jq[yml2bash/codegen]}${jq[yml2bash/writer]}" --arg NAMESPACE_SEP "${sep[namespace]}" --arg EXE "${exe}" --arg BACKEND "${backend}" --rawfile FUNCTIONS <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \
     <<< "$(json::from::yaml --arg ROOT "$(path::normalized "$(path::dir "${1}")")/" --slurpfile INV <(print '%s' "${inv}") --slurpfile IMPORT <(print '{"import": %s}' "${import}") '
             (if ($IMPORT | type == "array") then $IMPORT[0] else $IMPORT end) as $IMPORT |
             (if ($INV | type == "array") then $INV[0] else $INV end) as $INV |
