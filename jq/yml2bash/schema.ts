@@ -1,15 +1,11 @@
-type Define = {
-  name: Variable;
-  body: Group;
+type Routine = {
+  routine: Group;
 };
-function Variable(s: string) void {
-  assert(s.match("/[a-zA-Z_][a-zA-Z0-9_]*/"));
-}
 type Group = {
   redirections: Redirection[];
   commands: NotEmptyCommandArray;
 };
-function NotEmptyCommandArray(a: Commands[]) void {
+function NotEmptyCommandArray(a: Command[]) void {
   assert(a.length > 0);
 }
 type Redirection = Input
@@ -67,31 +63,228 @@ type File = Path
           | Variable
           | ArrayElement
           ;
-type Command = ArithmeticExpr
-             | Assign
-             | CaptureRestore
-             | Color
-             | Defer
-             | Define
+type Command = _ArithmeticExpr
+             | _Assign
+             | _CaptureRestore
+             | _Color
+             | _Defer
+             | _Define
              | Group
-             | Harden
+             | _Harden
              | If
-             | Internal
-             | Json
-             | Loop
-             | Mutate
-             | OnOff
-             | Parameters
-             | Print
-             | Readonly
-             | Register
-             | Return
-             | Runner
-             | Skip
-             | Source
-             | Split
-             | Switch
+             | _Internal
+             | _Json
+             | _Loop
+             | _Mutate
+             | _OnOff
+             | _Parameters
+             | _Print
+             | _Readonly
+             | _Register
+             | _Return
+             | _Skip
+             | _Source
+             | _Switch
+             | _Call
+             | _Module
              ;
+type _ArithmeticExpr = {
+  arithmetic: ArithmeticExpr;
+};
+type _Assign = {
+  assign: Assign;
+};
+type _CaptureRestore = _Capture
+                     | _Restore
+                     ;
+type _Capture = {
+  capture: null;
+};
+type _Restore = {
+  restore: null;
+};
+type _Color = {
+  color: Color;
+};
+type _Defer = {
+  defer: Defer;
+};
+type _Define = {
+  define: Define;
+};
+type _Harden = {
+  harden: Harden;
+};
+type _Internal = {
+  internal: Internal;
+};
+type Internal = _InternalCall
+              | _Coproc
+              ;
+type _InternalCall = {
+  call: InternalCall;
+};
+type _Coproc = {
+  coproc: Coproc;
+};
+type _Json = {
+  json: Json;
+};
+type _Loop = {
+  loop: Loop;
+};
+type _Mutate = {
+  mutate: Mutate;
+};
+type _OnOff = _On
+            | _Off
+            ;
+type _On = {
+  on: OnOff;
+};
+type _Off = {
+  off: OnOff;
+};
+type _Parameters = {
+  parameters: Parameters;
+};
+type _Print = {
+  print: Print;
+};
+type _Readonly = {
+  readonly: Readonly;
+};
+type _Register = {
+  register: Register;
+};
+type _Return = {
+  return: Return;
+};
+type _Skip = {
+  skip: Skip;
+};
+type _Source = {
+  source: Source;
+};
+type _Switch = {
+  switch: Switch;
+};
+type _Call = {
+  call: Call;
+};
+type _Module = _ImageBuilderPrune
+             | _ImageTagDefined
+             | _ImageTagCreate
+             | _ImageTagCompute
+             | _ImageBuild
+             | _ImageMerge
+             | _ImagePrune
+             | _ImagePull
+             | _ImageRemove
+             | _ContainerResourceCopy
+             | _ContainerStatusGet
+             | _ContainerStatusCreated
+             | _ContainerStatusRunning
+             | _ContainerStatusHealthy
+             | _ContainerCreate
+             | _ContainerExec
+             | _ContainerStart
+             | _ContainerStop
+             | _NetworkIpGet
+             | _NetworkCreate
+             | _NetworkCreated
+             | _NetworkConnect
+             | _NetworkDisconnect
+             | _NetworkList
+             | _VolumeCreate
+             | _VolumeCreated
+             | _VolumeList
+             | _RoutineExec
+             ;
+type _ImageBuilderPrune = {
+  image.builder.prune: ImageBuilderPrune;
+};
+type _ImageTagDefined = {
+  image.tag.defined: ImageTagDefined;
+};
+type _ImageTagCreate = {
+  image.tag.create: ImageTagCreate;
+};
+type _ImageTagCompute = {
+  image.tag.compute: ImageTagCompute;
+};
+type _ImageBuild = {
+  image.build: ImageBuild;
+};
+type _ImageMerge = {
+  image.merge: ImageMerge;
+};
+type _ImagePrune = {
+  image.prune: ImagePrune;
+};
+type _ImagePull = {
+  image.pull: ImagePull;
+};
+type _ImageRemove = {
+  image.remove: ImageRemove;
+};
+type _ContainerResourceCopy = {
+  container.resource.copy: ContainerResourceCopy;
+};
+type _ContainerStatusGet = {
+  container.status.get: ContainerStatusGet;
+};
+type _ContainerStatusCreated = {
+  container.status.created: ContainerStatusCreated;
+};
+type _ContainerStatusRunning = {
+  container.status.running: ContainerStatusRunning;
+};
+type _ContainerStatusHealthy = {
+  container.status.healthy: ContainerStatusHealthy;
+};
+type _ContainerCreate = {
+  container.create: ContainerCreate;
+};
+type _ContainerExec = {
+  container.exec: ContainerExec;
+};
+type _ContainerStart = {
+  container.start: ContainerStart;
+};
+type _ContainerStop = {
+  container.stop: ContainerStop;
+};
+type _NetworkIpGet = {
+  network.ip.get: NetworkIpGet;
+};
+type _NetworkCreate = {
+  network.create: NetworkCreate;
+};
+type _NetworkCreated = {
+  network.created: NetworkCreated;
+};
+type _NetworkConnect = {
+  network.connect: NetworkConnect;
+};
+type _NetworkDisconnect = {
+  network.disconnect: NetworkDisconnect;
+};
+type _NetworkList = {
+  network.list: NetworkList;
+};
+type _VolumeCreate = {
+  volume.create: VolumeCreate;
+};
+type _VolumeCreated = {
+  volume.created: VolumeCreated;
+};
+type _VolumeList = {
+  volume.list: VolumeList;
+};
+type _RoutineExec = {
+  routine.exec: RoutineExec;
+};
 type ArithmeticExpr = BinaryArithmeticExpr;
 type BinaryArithmeticExpr = {
   left: ArithmeticOperand;
@@ -136,25 +329,106 @@ enum Type {
   Indexed,
   Reference
 };
-enum CaptureRestore {
-  Capture,
-  Restore
-}
 type Color = {
   index: Integer;
   variable: Sanitized;
 };
-type Defer = Core
-           | Call
+type Defer = _Module
+           | _Call
            ;
-type Core = Image
-          | Container
-          | Network
-          | Volume
-          | Runner
-          ;
-type Image = {}; type Container = {}; type Network = {}; type Volume = {};
-type Runner = {
+type Define = {
+  name: Variable;
+  body: Group;
+};
+function Variable(s: string) void {
+  assert(s.match("/[a-zA-Z_][a-zA-Z0-9_]*/"));
+}
+type ImageBuilderPrune = {};
+type ImageTagDefined = {
+  image: Sanitized;
+  tag: Sanitized;
+};
+type ImageTagCreate = {
+  from: Image;
+  to: Image;
+};
+type Image = {
+  image: Sanitized;
+  tag: Sanitized;
+};
+type ImageTagCompute = {
+  // TODO
+};
+type ImageBuild = {
+  // TODO
+};
+type ImageMerge = {
+  // TODO
+};
+type ImagePrune = {
+  // TODO
+};
+type ImagePull = {
+  // TODO
+};
+type ImageRemove = {
+  // TODO
+};
+type ContainerResourceCopy = {
+  // TODO
+};
+type ContainerStatusGet = {
+  // TODO
+};
+type ContainerStatusCreated = {
+  // TODO
+};
+type ContainerStatusRunning = {
+  // TODO
+};
+type ContainerStatusHealthy = {
+  // TODO
+};
+type ContainerCreate = {
+  // TODO
+};
+type ContainerExec = {
+  // TODO
+};
+type ContainerStart = {
+  // TODO
+};
+type ContainerStop = {
+  // TODO
+};
+type NetworkIpGet = {
+  // TODO
+};
+type NetworkCreate = {
+  // TODO
+};
+type NetworkCreated = {
+  // TODO
+};
+type NetworkConnect = {
+  // TODO
+};
+type NetworkDisconnect = {
+  // TODO
+};
+type NetworkList = {
+  // TODO
+};
+type VolumeCreate = {
+  // TODO
+};
+type VolumeCreated = {
+  // TODO
+};
+type VolumeList = {
+  // TODO
+};
+type RoutineExec = {
   imported: Path;
   args: Sanitized[];
 };
@@ -168,13 +442,10 @@ type Harden = {
   as?: Sanitized;
 };
 type If = {
-  conditional: LogicalExpr;
+  if: LogicalExpr;
   then: Group;
   else: Else[];
 };
-type Internal = InternalCall
-              | Coproc
-              ;
 type InternalCall = {
   command: string;
   args: Sanitized[];
@@ -182,7 +453,7 @@ type InternalCall = {
 };
 type Coproc = {
   name: Variable;
-  commands: Commands;
+  commands: NotEmptyCommandArray;
 };
 type LogicalExpr = UnaryLogicalExpr
                  | BinaryLogicalExpr
@@ -221,7 +492,7 @@ type Range = {
   do: Group;
 };
 type Iterator = {
-  name: Variable;
+  for: Variable;
   into: Iterable;
   do: Group;
 };
@@ -234,7 +505,7 @@ type SubArray = {
   length?: Integer;
 };
 type Conditional = {
-  conditional: LogicalExpr;
+  while: LogicalExpr;
   do: Group;
 };
 type Mutate = {
@@ -354,7 +625,7 @@ type Source = Sanitized
             | Call
             ;
 type Switch = {
-  evaluated: Sanitized;
+  evaluate: Sanitized;
   branches: NotEmptyBranchArray;
 };
 function NotEmptyBranchArray(a: Branch[]) void {

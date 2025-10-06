@@ -14,7 +14,7 @@
     user: "__"
   },
   fn: {
-    internal: ("runner" + $ARGS.named.NAMESPACE_SEP),
+    internal: ("routine" + $ARGS.named.NAMESPACE_SEP),
     user: ("user" + $ARGS.named.NAMESPACE_SEP)
   },
   sep: $ARGS.named.NAMESPACE_SEP
@@ -685,8 +685,8 @@ def define(level; mode; nested_register; user_defined): (
           ) + "\""
       );
 
-      def runner_exec(level; mode; nested_register): (
-        .runner.exec as $exec |
+      def routine_exec(level; mode; nested_register): (
+        .routine.exec as $exec |
         $exec.args // [] as $exec_args |
         ("exec" + $NAMESPACE.sep + $exec.imported) as $fn_name |
           {
@@ -697,7 +697,7 @@ def define(level; mode; nested_register; user_defined): (
           } | define(level; mode; nested_register; false) + (
             {
               program: ($NAMESPACE.fn.internal + $fn_name + (if ($exec_args | length > 0) then " " else "" end) + ($exec_args | map(sanitize(mode; true)) | join(" "))),
-              xtrace: ("runner exec " + $exec.imported + (if ($exec_args | length > 0) then " " else "" end) + ($exec_args | map(sanitize(mode; true)) | join(" ")))
+              xtrace: ("routine exec " + $exec.imported + (if ($exec_args | length > 0) then " " else "" end) + ($exec_args | map(sanitize(mode; true)) | join(" ")))
             } | xtrace(mode) | map(indent(level)) | join("\n")
           )
       );
@@ -1067,8 +1067,8 @@ def define(level; mode; nested_register; user_defined): (
         return(level)
       ) elif (has("skip")) then (
         skip(level; mode)
-      ) elif (has("runner")) then (
-        runner_exec(level; mode; nested_register)
+      ) elif (has("routine")) then (
+        routine_exec(level; mode; nested_register)
       ) elif (has("group")) then (
         group(level; mode; multilined; true; nested_register)
       ) elif (has("raw")) then (

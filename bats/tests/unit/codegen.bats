@@ -28,7 +28,7 @@ define:
 EOF
   eq "${status}" '0'
   eq "${#lines[@]}" '6'
-  str eq "${lines[0]}" 'runner::test ()'
+  str eq "${lines[0]}" 'routine::test ()'
   str eq "${lines[1]}" '{'
   str eq "${lines[2]}" "    harden 'ssh'"
   str eq "${lines[3]}" '    harden "${harden_me}"'
@@ -91,7 +91,7 @@ define:
 EOF
   eq "${status}" '0'
   eq "${#lines[@]}" '11'
-  str eq "${lines[0]}"  'runner::test ()'
+  str eq "${lines[0]}"  'routine::test ()'
   str eq "${lines[1]}"  '{'
   str eq "${lines[2]}"  "    local 'my_var1' 'my_var2'"
   str eq "${lines[3]}"  "    global 'my_var3' 'my_var4'"
@@ -168,7 +168,7 @@ define:
 EOF
   eq "${status}" '0'
   eq "${#lines[@]}" '7'
-  str eq "${lines[0]}" 'runner::test ()'
+  str eq "${lines[0]}" 'routine::test ()'
   str eq "${lines[1]}" '{'
   str eq "${lines[2]}" "    A='prefix_'\"\${A[K]}\""
   str eq "${lines[3]}" "    arr=('aa' 'bb' 'cc')"
@@ -238,7 +238,7 @@ define:
 EOF
   eq "${status}" '0'
   eq "${#lines[@]}" '16'
-  str eq "${lines[0]}"  'runner::test ()'
+  str eq "${lines[0]}"  'routine::test ()'
   str eq "${lines[1]}"  '{'
   str eq "${lines[2]}"  '    user::A ()'
   str eq "${lines[3]}"  '    {'
@@ -248,11 +248,11 @@ EOF
   str eq "${lines[7]}"  '            {'
   str eq "${lines[8]}"  "                harden 'true'"
   str eq "${lines[9]}"  '            }'
-  str eq "${lines[10]}" "            runner::call \"\$(echo 'user::''AAA')\""
+  str eq "${lines[10]}" "            routine::call \"\$(echo 'user::''AAA')\""
   str eq "${lines[11]}" '        }'
-  str eq "${lines[12]}" "        runner::call \"\$(echo 'user::''AA')\""
+  str eq "${lines[12]}" "        routine::call \"\$(echo 'user::''AA')\""
   str eq "${lines[13]}" '    }'
-  str eq "${lines[14]}" "    runner::call \"\$(echo 'user::''A')\""
+  str eq "${lines[14]}" "    routine::call \"\$(echo 'user::''A')\""
   str eq "${lines[15]}" '}'
 }
 
@@ -270,7 +270,7 @@ define:
 EOF
   eq "${status}" '0'
   eq "${#lines[@]}" '4'
-  str eq "${lines[0]}" 'runner::test ()'
+  str eq "${lines[0]}" 'routine::test ()'
   str eq "${lines[1]}" '{'
   str eq "${lines[2]}" "    readonly -- 'prefix_'\"\${A}\"'_suffix' 'B'"
   str eq "${lines[3]}" '}'
@@ -452,7 +452,7 @@ define:
 EOF
   eq "${status}" '0'
   eq "${#lines[@]}" '40'
-  str eq "${lines[0]}"  'runner::test ()'
+  str eq "${lines[0]}"  'routine::test ()'
   str eq "${lines[1]}"  '{'
   str eq "${lines[2]}"  '    if { true; }; then {'
   str eq "${lines[3]}"  '        true'
@@ -532,7 +532,7 @@ define:
 EOF
   eq "${status}" '0'
   eq "${#lines[@]}" '6'
-  str eq "${lines[0]}" 'runner::test ()'
+  str eq "${lines[0]}" 'routine::test ()'
   str eq "${lines[1]}" '{'
   str eq "${lines[2]}" '    for (( i = 0; i < 10; i += 1 )); do {'
   str eq "${lines[3]}" '        true'
@@ -578,7 +578,7 @@ define:
 EOF
   eq "${status}" '0'
   eq "${#lines[@]}" '5'
-  str eq "${lines[0]}" 'runner::test ()'
+  str eq "${lines[0]}" 'routine::test ()'
   str eq "${lines[1]}" '{'
   str eq "${lines[2]}" "    on 'errexit' 'inherit_errexit' 'errtrace' 'functrace' 'noclubber' 'nounset' 'pipefail' 'lastpipe' 'extglob'"
   str eq "${lines[3]}" "    off 'errexit' 'inherit_errexit' 'errtrace' 'functrace' 'noclubber' 'nounset' 'pipefail' 'lastpipe' 'extglob'"
@@ -593,7 +593,7 @@ EOF
 # TODO: @test 'codegen: return'
 # TODO: @test 'codegen: skip'
 # TODO: @test 'codegen: split'
-# TODO: @test 'codegen: runner'
+# TODO: @test 'codegen: routine'
 # TODO: @test 'codegen: group'
 # TODO: @test 'codegen: raw'
 # TODO: @test 'codegen: coproc'

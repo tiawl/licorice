@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-___ () { #HELP <yaml_file>|Display the runner bash script without executing it
+___ () { #HELP <yaml_file>|Display the routine bash script without executing it
   local rainbow filepath json inv import visited
   local -A raw_import raw_visited
   rainbow=( '21' '27' '33' '39' '45' '51' '50' '49' '48' '47' '46' '82' '118' '154' '190' '226' '220' '214' '208' '202' '196' '197' '198' '199' '200' '201' '165' '129' '93' '57' )

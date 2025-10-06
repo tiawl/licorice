@@ -5,7 +5,7 @@ def debug(msgs): (
 );
 
 def exit: (
-  "runner: " + . + "\n" | halt_error(1)
+  "routine: " + . + "\n" | halt_error(1)
 );
 
 def debug_var(varname): (

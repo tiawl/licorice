@@ -237,7 +237,7 @@ ${exe} () {
   ${namespace[core]}init
 
   case "\${1:-}" in
-  ( image|container|network|volume|runner|version|help ) "${namespace[core]}\${1}" "\${@:2}" ;;
+  ( image|container|network|volume|routine|version|help ) "${namespace[core]}\${1}" "\${@:2}" ;;
   ( * ) ${namespace[core]}help ;;
   esac
 }

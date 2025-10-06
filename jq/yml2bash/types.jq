@@ -112,6 +112,13 @@ def isArithmeticExpr: (
   isBinaryArithmeticExpr
 );
 
+def is_ArithmeticExpr: (
+  (type == "object") and
+  has("arithmetic") and
+  (length == 1) and
+  (.arithmetic | isArithmeticExpr)
+);
+
 def isScope: (
   isFieldFromEnum([
     "Local",
@@ -145,11 +152,30 @@ def isAssign: (
   (.variables | isNotEmptySanitizedArray)
 );
 
-def isCaptureRestore: (
-  isFieldFromEnum([
-    "Capture",
-    "Restore"
-  ])
+def is_Assign: (
+  (type == "object") and
+  has("assign") and
+  (length == 1) and
+  (.assign | isAssign)
+);
+
+def is_Capture: (
+  (type == "object") and
+  has("capture") and
+  (length == 1) and
+  (.capture == "null")
+);
+
+def is_Restore: (
+  (type == "object") and
+  has("restore") and
+  (length == 1) and
+  (.restore == "null")
+);
+
+def is_CaptureRestore: (
+  is_Capture or
+  is_Restore
 );
 
 def isColor: (
@@ -161,52 +187,42 @@ def isColor: (
   (.variable | isSanitized)
 );
 
-def isImage: (
+def is_Color: (
+  (type == "object") and
+  has("color") and
+  (length == 1) and
+  (.color | isColor)
+);
+
+def is_Module: (
   # TODO
 );
 
-def isContainer: (
+def is_Call: (
   # TODO
 );
 
-def isNetwork: (
+def is_Defer: (
   # TODO
-);
-
-def isVolume: (
-  # TODO
-);
-
-def isRunner: (
-  # TODO
-);
-
-def isCore: (
-  isImage or
-  isContainer or
-  isNetwork or
-  isVolume or
-  isRunner
-);
-
-def isCall: (
-  # TODO
-);
-
-def isDefer: (
-  isCore or
-  isCall
 );
 
 def isDefine: (
-  # TODO
+  (type == "object") and
+  has("name") and
+  has("body") and
+  (length == 2) and
+  (.name | isVariable) and
+  (.body | isGroup)
 );
 
-def isGroup: (
-  # TODO
+def is_Define: (
+  (type == "object") and
+  has("define") and
+  (length == 1) and
+  (.define | isDefine)
 );
 
-def isHarden: (
+def is_Harden: (
   # TODO
 );
 
@@ -214,93 +230,83 @@ def isIf: (
   # TODO
 );
 
-def isInternal: (
+def is_Internal: (
   # TODO
 );
 
-def isJson: (
+def is_Json: (
   # TODO
 );
 
-def isLoop: (
+def is_Loop: (
   # TODO
 );
 
-def isMutate: (
+def is_Mutate: (
   # TODO
 );
 
-def isOnOff: (
+def is_OnOff: (
   # TODO
 );
 
-def isParameters: (
+def is_Parameters: (
   # TODO
 );
 
-def isPrint: (
+def is_Print: (
   # TODO
 );
 
-def isReadonly: (
+def is_Readonly: (
   # TODO
 );
 
-def isRegister: (
+def is_Register: (
   # TODO
 );
 
-def isReturn: (
+def is_Return: (
   # TODO
 );
 
-def isRunner: (
+def is_Skip: (
   # TODO
 );
 
-def isSkip: (
+def is_Source: (
   # TODO
 );
 
-def isSource: (
-  # TODO
-);
-
-def isSplit: (
-  # TODO
-);
-
-def isSwitch: (
+def is_Switch: (
   # TODO
 );
 
 def isCommand: (
-  isArithmeticExpr or
-  isAssign or
-  isCapture or
-  isColor or
-  isCoproc or
-  isDefer or
-  isDefine or
+  is_ArithmeticExpr or
+  is_Assign or
+  is_CaptureRestore or
+  is_Color or
+  is_Defer or
+  is_Define or
   isGroup or
-  isHarden or
+  is_Harden or
   isIf or
-  isInternal or
-  isJson or
-  isLoop or
-  isMutate or
-  isOnOff or
-  isParameters or
-  isPrint or
-  isReadonly or
-  isRegister or
-  isRestore or
-  isReturn or
-  isRunner or
-  isSkip or
-  isSource or
-  isSplit or
-  isSwitch
+  is_Internal or
+  is_Json or
+  is_Loop or
+  is_Mutate or
+  is_OnOff or
+  is_Parameters or
+  is_Print or
+  is_Readonly or
+  is_Register or
+  is_Return or
+  is_Skip or
+  is_Source or
+  is_Switch or
+  is_Call or
+  is_Module
 );
 
 def isNotEmptyCommandArray: (
@@ -355,23 +361,278 @@ def isGroup: (
   (.commands | isNotEmptyCommandArray)
 );
 
-def isDefine: (
+def isRoutine: {
   (type == "object") and
-  has("name") and
-  has("body") and
-  (length == 2) and
-  (.name | isVariable) and
-  (.body | isGroup)
+  has("routine") and
+  (length == 1) and
+  (.routine | isGroup)
 );
 
-# type Core = Image
-#           | Container
-#           | Network
-#           | Volume
-#           | Runner
-#           ;
-# type Image = {}; type Container = {}; type Network = {}; type Volume = {};
-# type Runner = {
+# type _Defer = {
+#   defer: Defer;
+# };
+# type _Harden = {
+#   harden: Harden;
+# };
+# type _Internal = {
+#   internal: Internal;
+# };
+# type Internal = _InternalCall
+#               | _Coproc
+#               ;
+# type _InternalCall = {
+#   call: InternalCall;
+# };
+# type _Coproc = {
+#   coproc: Coproc;
+# };
+# type _Json = {
+#   json: Json;
+# };
+# type _Loop = {
+#   loop: Loop;
+# };
+# type _Mutate = {
+#   mutate: Mutate;
+# };
+# type _OnOff = _On
+#             | _Off
+#             ;
+# type _On = {
+#   on: OnOff;
+# };
+# type _Off = {
+#   off: OnOff;
+# };
+# type _Parameters = {
+#   parameters: Parameters;
+# };
+# type _Print = {
+#   print: Print;
+# };
+# type _Readonly = {
+#   readonly: Readonly;
+# };
+# type _Register = {
+#   register: Register;
+# };
+# type _Return = {
+#   return: Return;
+# };
+# type _Skip = {
+#   skip: Skip;
+# };
+# type _Source = {
+#   source: Source;
+# };
+# type _Switch = {
+#   switch: Switch;
+# };
+# type _Call = {
+#   call: Call;
+# };
+# type _Module = _ImageBuilderPrune
+#              | _ImageTagDefined
+#              | _ImageTagCreate
+#              | _ImageTagCompute
+#              | _ImageBuild
+#              | _ImageMerge
+#              | _ImagePrune
+#              | _ImagePull
+#              | _ImageRemove
+#              | _ContainerResourceCopy
+#              | _ContainerStatusGet
+#              | _ContainerStatusCreated
+#              | _ContainerStatusRunning
+#              | _ContainerStatusHealthy
+#              | _ContainerCreate
+#              | _ContainerExec
+#              | _ContainerStart
+#              | _ContainerStop
+#              | _NetworkIpGet
+#              | _NetworkCreate
+#              | _NetworkCreated
+#              | _NetworkConnect
+#              | _NetworkDisconnect
+#              | _NetworkList
+#              | _VolumeCreate
+#              | _VolumeCreated
+#              | _VolumeList
+#              | _RoutineExec
+#              ;
+# type _ImageBuilderPrune = {
+#   image.builder.prune: ImageBuilderPrune;
+# };
+# type _ImageTagDefined = {
+#   image.tag.defined: ImageTagDefined;
+# };
+# type _ImageTagCreate = {
+#   image.tag.create: ImageTagCreate;
+# };
+# type _ImageTagCompute = {
+#   image.tag.compute: ImageTagCompute;
+# };
+# type _ImageBuild = {
+#   image.build: ImageBuild;
+# };
+# type _ImageMerge = {
+#   image.merge: ImageMerge;
+# };
+# type _ImagePrune = {
+#   image.prune: ImagePrune;
+# };
+# type _ImagePull = {
+#   image.pull: ImagePull;
+# };
+# type _ImageRemove = {
+#   image.remove: ImageRemove;
+# };
+# type _ContainerResourceCopy = {
+#   container.resource.copy: ContainerResourceCopy;
+# };
+# type _ContainerStatusGet = {
+#   container.status.get: ContainerStatusGet;
+# };
+# type _ContainerStatusCreated = {
+#   container.status.created: ContainerStatusCreated;
+# };
+# type _ContainerStatusRunning = {
+#   container.status.running: ContainerStatusRunning;
+# };
+# type _ContainerStatusHealthy = {
+#   container.status.healthy: ContainerStatusHealthy;
+# };
+# type _ContainerCreate = {
+#   container.create: ContainerCreate;
+# };
+# type _ContainerExec = {
+#   container.exec: ContainerExec;
+# };
+# type _ContainerStart = {
+#   container.start: ContainerStart;
+# };
+# type _ContainerStop = {
+#   container.stop: ContainerStop;
+# };
+# type _NetworkIpGet = {
+#   network.ip.get: NetworkIpGet;
+# };
+# type _NetworkCreate = {
+#   network.create: NetworkCreate;
+# };
+# type _NetworkCreated = {
+#   network.created: NetworkCreated;
+# };
+# type _NetworkConnect = {
+#   network.connect: NetworkConnect;
+# };
+# type _NetworkDisconnect = {
+#   network.disconnect: NetworkDisconnect;
+# };
+# type _NetworkList = {
+#   network.list: NetworkList;
+# };
+# type _VolumeCreate = {
+#   volume.create: VolumeCreate;
+# };
+# type _VolumeCreated = {
+#   volume.created: VolumeCreated;
+# };
+# type _VolumeList = {
+#   volume.list: VolumeList;
+# };
+# type _RoutineExec = {
+#   routine.exec: RoutineExec;
+# };
+# type Defer = _Module
+#            | _Call
+#            ;
+# type ImageBuilderPrune = {};
+# type ImageTagDefined = {
+#   image: Sanitized;
+#   tag: Sanitized;
+# };
+# type ImageTagCreate = {
+#   from: Image;
+#   to: Image;
+# };
+# type Image = {
+#   image: Sanitized;
+#   tag: Sanitized;
+# };
+# type ImageTagCompute = {
+#   // TODO
+# };
+# type ImageBuild = {
+#   // TODO
+# };
+# type ImageMerge = {
+#   // TODO
+# };
+# type ImagePrune = {
+#   // TODO
+# };
+# type ImagePull = {
+#   // TODO
+# };
+# type ImageRemove = {
+#   // TODO
+# };
+# type ContainerResourceCopy = {
+#   // TODO
+# };
+# type ContainerStatusGet = {
+#   // TODO
+# };
+# type ContainerStatusCreated = {
+#   // TODO
+# };
+# type ContainerStatusRunning = {
+#   // TODO
+# };
+# type ContainerStatusHealthy = {
+#   // TODO
+# };
+# type ContainerCreate = {
+#   // TODO
+# };
+# type ContainerExec = {
+#   // TODO
+# };
+# type ContainerStart = {
+#   // TODO
+# };
+# type ContainerStop = {
+#   // TODO
+# };
+# type NetworkIpGet = {
+#   // TODO
+# };
+# type NetworkCreate = {
+#   // TODO
+# };
+# type NetworkCreated = {
+#   // TODO
+# };
+# type NetworkConnect = {
+#   // TODO
+# };
+# type NetworkDisconnect = {
+#   // TODO
+# };
+# type NetworkList = {
+#   // TODO
+# };
+# type VolumeCreate = {
+#   // TODO
+# };
+# type VolumeCreated = {
+#   // TODO
+# };
+# type VolumeList = {
+#   // TODO
+# };
+# type RoutineExec = {
 #   imported: Path;
 #   args: Sanitized[];
 # };
@@ -385,7 +646,7 @@ def isDefine: (
 #   as?: Sanitized;
 # };
 # type If = {
-#   conditional: LogicalExpr;
+#   if: LogicalExpr;
 #   then: Group;
 #   else: Else[];
 # };
@@ -399,7 +660,7 @@ def isDefine: (
 # };
 # type Coproc = {
 #   name: Variable;
-#   commands: Commands;
+#   commands: NotEmptyCommandArray;
 # };
 # type LogicalExpr = UnaryLogicalExpr
 #                  | BinaryLogicalExpr
@@ -438,7 +699,7 @@ def isDefine: (
 #   do: Group;
 # };
 # type Iterator = {
-#   name: Variable;
+#   for: Variable;
 #   into: Iterable;
 #   do: Group;
 # };
@@ -451,7 +712,7 @@ def isDefine: (
 #   length?: Integer;
 # };
 # type Conditional = {
-#   conditional: LogicalExpr;
+#   while: LogicalExpr;
 #   do: Group;
 # };
 # type Mutate = {
@@ -571,7 +832,7 @@ def isDefine: (
 #             | Call
 #             ;
 # type Switch = {
-#   evaluated: Sanitized;
+#   evaluate: Sanitized;
 #   branches: NotEmptyBranchArray;
 # };
 # function NotEmptyBranchArray(a: Branch[]) void {
