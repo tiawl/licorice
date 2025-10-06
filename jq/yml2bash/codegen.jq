@@ -732,8 +732,8 @@ def define(level; mode; nested_register; user_defined): (
           if (has("into") | not) then (
             ".register used without .register.into" | exit
           ) end |
-          if (among(["group", "arithmetic", "split"]) == 2) then (
-            "You can only use one of \"group\", \"arithmetic\" or \"split\" fields into register" | exit
+          if (among(["group", "arithmetic"]) == 2) then (
+            "You can only use one of \"group\" or \"arithmetic\" fields into register" | exit
           ) end |
           if (has("group")) then (
             if (mode == $MODE.internal) then (
@@ -769,8 +769,6 @@ def define(level; mode; nested_register; user_defined): (
             ) else (
               "In .register.into you can only use var or special \"last\": " + tostring | exit
             ) end | indent(level)
-          ) elif (has("split")) then (
-            ("mapfile -t " + ($input.split | if (has("delimiter")) then ("-d " + (.delimiter | sanitize(mode; true))) else "" end) + " " + ($input.into | sanitize(mode; true)) + " <<< " + ($input.split.string | sanitize(mode; true))) | indent(level | incr_indent_level($offset))
           ) else (
             "Authorized fields into register are: arithmetic and group" | exit
           ) end
@@ -1071,8 +1069,6 @@ def define(level; mode; nested_register; user_defined): (
         return(level)
       ) elif (has("skip")) then (
         skip(level; mode)
-      ) elif (has("split")) then (
-        split(level)
       ) elif (has("runner")) then (
         runner_exec(level; mode; nested_register)
       ) elif (has("group")) then (
