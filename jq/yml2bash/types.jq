@@ -1,6 +1,6 @@
 #! /usr/bin/env --split-string gojq --from-file
 
-def isFieldFromEnum(fields): (
+def isFromEnum(fields): (
   . as $input |
   (fields | type == "array") and
   (fields | length > 0) and
@@ -9,18 +9,15 @@ def isFieldFromEnum(fields): (
   (fields | contains([$input]))
 );
 
-def isNonEmptyArray(function): (
+def isArray(function): (
   (type == "array") and
-  (length > 0) and
   (function | type == "boolean") and
   (map(function) | all)
 );
 
-def isLiteral: (type == "string");
-
-def isChar: (
-  (type == "string") and
-  (length == 1)
+def isNonEmptyArray(function): (
+  (isArray(function)) and
+  (length > 0)
 );
 
 def isIdentifier: (
@@ -28,25 +25,14 @@ def isIdentifier: (
   test("^[a-zA-Z_][a-zA-Z0-9_]*$")
 );
 
+def isChar: (
+  (type == "string") and
+  (length == 1)
+);
+
 def isInteger: (
   (type == "number") and
   (. == floor)
-);
-
-def isKey: (type == "string");
-
-def isReference: (
-  isInteger or
-  isKey
-);
-
-def isArrayElement: (
-  (type == "object") and
-  has("name") and
-  has("reference") and
-  (length == 2) and
-  (.name | isIdentifier) and
-  (.reference | isReference)
 );
 
 def isParameter: (
@@ -54,8 +40,13 @@ def isParameter: (
   (. >= 0)
 );
 
+def isFileDescriptor: (
+  isInteger and
+  (. > 0)
+);
+
 def isSpecialString: (
-  isFieldFromEnum([
+  isFromEnum([
     "last",
     "FUNCNAME",
     "USER",
@@ -66,45 +57,13 @@ def isSpecialString: (
 );
 
 def isSpecialArray: (
-  isFieldFromEnum([
+  isFromEnum([
     "sep"
   ])
 );
 
-def isSpecialArrayElement: (
-  (type == "object") and
-  has("name") and
-  has("reference") and
-  (length == 2) and
-  (.name | isSpecialArray) and
-  (.reference | isReference)
-);
-
-def isPath: (type == "string");
-def isInternalLiteral: (type == "string");
-
-def isSanitized: (
-  isLiteral or
-  isChar or
-  isIdentifier or
-  isArrayElement or
-  isParameter or
-  isSpecialString or
-  isSpecialArrayElement or
-  isPath or
-  isInternalLiteral
-);
-
-def isArithmeticOperand: (
-  isInteger or
-  isParameter or
-  isIdentifier or
-  isArrayElement or
-  isArithmeticExpr
-);
-
 def isBinaryArithmeticOperator: (
-  isFieldFromEnum([
+  isFromEnum([
     "Addition",
     "Substraction",
     "Remainder",
@@ -119,37 +78,15 @@ def isBinaryArithmeticOperator: (
   ])
 );
 
-def isBinaryArithmeticExpr: (
-  (type == "object") and
-  has("left") and
-  has("operator") and
-  has("right") and
-  (length == 3) and
-  (.left | isArithmeticOperand) and
-  (.operator | isBinaryArithmeticOperator) and
-  (.right | isArithmeticOperand)
-);
-
-def isArithmeticExpr: (
-  isBinaryArithmeticExpr
-);
-
-def is_ArithmeticExpr: (
-  (type == "object") and
-  has("arithmetic") and
-  (length == 1) and
-  (.arithmetic | isArithmeticExpr)
-);
-
 def isScope: (
-  isFieldFromEnum([
+  isFromEnum([
     "Local",
     "Global"
   ])
 );
 
 def isType: (
-  isFieldFromEnum([
+  isFromEnum([
     "String",
     "Associative",
     "Indexed",
@@ -157,198 +94,173 @@ def isType: (
   ])
 );
 
-def isAssign: (
-  (type == "object") and
-  has("scope") and
-  has("type") and
-  has("variables") and
-  (length == 3) and
-  (.scope | isScope) and
-  (.type | isType) and
-  (.variables | isNonEmptyArray(Sanitized))
+def isUnaryLogicalOperator: (
+  isFromEnum([
+    "Not"
+  ])
 );
 
-def is_Assign: (
-  (type == "object") and
-  has("assign") and
-  (length == 1) and
-  (.assign | isAssign)
+def isBinaryLogicalOperator: (
+  isFromEnum([
+    "And",
+    "Or"
+  ])
 );
 
-def is_Capture: (
-  (type == "object") and
-  has("capture") and
-  (length == 1) and
-  (.capture == "null")
+def isOption: (
+  isFromEnum([
+    "assoc_expand_once",
+    "autocd",
+    "cdable_vars",
+    "cdspell",
+    "checkhash",
+    "checkjobs",
+    "checkwinsize",
+    "cmdhist",
+    "compat31",
+    "compat32",
+    "compat40",
+    "compat41",
+    "compat42",
+    "compat43",
+    "compat44",
+    "complete_fullquote",
+    "direxpand",
+    "dirspell",
+    "dotglob",
+    "execfail",
+    "expand_aliases",
+    "extdebug",
+    "extglob",
+    "extquote",
+    "failglob",
+    "force_fignore",
+    "globasciiranges",
+    "globstar",
+    "gnu_errfmt",
+    "histappend",
+    "histreedit",
+    "histverify",
+    "hostcomplete",
+    "huponexit",
+    "inherit_errexit",
+    "interactive_comments",
+    "lastpipe",
+    "lithist",
+    "localvar_inherit",
+    "localvar_unset",
+    "login_shell",
+    "mailwarn",
+    "no_empty_cmd_completion",
+    "nocaseglob",
+    "nocasematch",
+    "nullglob",
+    "progcomp",
+    "progcomp_alias",
+    "promptvars",
+    "restricted_shell",
+    "shift_verbose",
+    "sourcepath",
+    "xpg_echo",
+    "allexport",
+    "braceexpand",
+    "emacs",
+    "errexit",
+    "errtrace",
+    "functrace",
+    "hashall",
+    "histexpand",
+    "history",
+    "ignoreeof",
+    "keyword",
+    "monitor",
+    "noclobber",
+    "noexec",
+    "noglob",
+    "nolog",
+    "notify",
+    "nounset",
+    "onecmd",
+    "physical",
+    "pipefail",
+    "posix",
+    "privileged",
+    "verbose",
+    "vi",
+    "xtrace"
+  ])
 );
 
-def is_Restore: (
-  (type == "object") and
-  has("restore") and
-  (length == 1) and
-  (.restore == "null")
+def isInternalLiteral: (
+  (type == "string")
 );
 
-def is_CaptureRestore: (
-  is_Capture or
-  is_Restore
+def isKey: (
+  (type == "string")
 );
 
-def isColor: (
+def isLiteral: (
+  (type == "string")
+);
+
+def isPath: (
+  (type == "string")
+);
+
+def isReference: (
+  isInteger or
+  isKey
+);
+
+def isArrayElement: (
   (type == "object") and
-  has("index") and
-  has("variable") and
   (length == 2) and
-  (.index | isInteger) and
-  (.variable | isSanitized)
-);
-
-def is_Color: (
-  (type == "object") and
-  has("color") and
-  (length == 1) and
-  (.color | isColor)
-);
-
-def is_Module: (
-  # TODO
-);
-
-def is_Call: (
-  # TODO
-);
-
-def is_Defer: (
-  # TODO
-);
-
-def isDefine: (
-  (type == "object") and
   has("name") and
-  has("body") and
-  (length == 2) and
   (.name | isIdentifier) and
-  (.body | isGroup)
+  has("reference") and
+  (.reference | isReference)
 );
 
-def is_Define: (
+def isSpecialArrayElement: (
   (type == "object") and
-  has("define") and
-  (length == 1) and
-  (.define | isDefine)
+  (length == 2) and
+  has("name") and
+  (.name | isSpecialArray) and
+  has("reference") and
+  (.reference | isReference)
 );
 
-def is_Harden: (
-  # TODO
-);
-
-def isIf: (
-  # TODO
-);
-
-def is_Internal: (
-  # TODO
-);
-
-def is_Json: (
-  # TODO
-);
-
-def is_Loop: (
-  # TODO
-);
-
-def is_Mutate: (
-  # TODO
-);
-
-def is_OnOff: (
-  # TODO
-);
-
-def is_Parameters: (
-  # TODO
-);
-
-def is_Print: (
-  # TODO
-);
-
-def is_Readonly: (
-  # TODO
-);
-
-def is_Register: (
-  # TODO
-);
-
-def is_Return: (
-  # TODO
-);
-
-def is_Skip: (
-  # TODO
-);
-
-def is_Source: (
-  # TODO
-);
-
-def is_Switch: (
-  # TODO
-);
-
-def isCommand: (
-  is_ArithmeticExpr or
-  is_Assign or
-  is_CaptureRestore or
-  is_Color or
-  is_Defer or
-  is_Define or
-  isGroup or
-  is_Harden or
-  isIf or
-  is_Internal or
-  is_Json or
-  is_Loop or
-  is_Mutate or
-  is_OnOff or
-  is_Parameters or
-  is_Print or
-  is_Readonly or
-  is_Register or
-  is_Return or
-  is_Skip or
-  is_Source or
-  is_Switch or
-  is_Call or
-  is_Module
+def isSanitized: (
+  isLiteral or
+  isChar or
+  isIdentifier or
+  isArrayElement or
+  isParameter or
+  isSpecialString or
+  isSpecialArrayElement or
+  isPath or
+  isInternalLiteral
 );
 
 def isInput: (
   isSanitized
 );
 
-def isFileDescriptor: (
-  isInteger and
-  (. > 0)
-}
-
 def isFile: (
   isPath or
   isFileDescriptor or
   isIdentifier or
   isArrayElement
-}
+);
 
 def isOutput: (
   (type == "object") and
-  has("left") and
-  has("appending") and
-  has("right") and
   (length == 3) and
+  has("left") and
   (.left | isFileDescriptor) and
+  has("appending") and
   (.appending | type == "boolean") and
+  has("right") and
   (.right | isFile)
 );
 
@@ -357,525 +269,1039 @@ def isRedirection: (
   isOutput
 );
 
-def isRedirectionArray: (
-  (type == "array") and
-  (map(isRedirection) | all)
+def isImageBuilderPrune: (
+  (type == "object") and
+  (length == 0)
+);
+
+def isImageTagDefined: (
+  (type == "object") and
+  (length == 2) and
+  has("image") and
+  (.image | isSanitized) and
+  has("tag") and
+  (.tag | isSanitized)
+);
+
+def isImage: (
+  (type == "object") and
+  (length == 2) and
+  has("image") and
+  (.image | isSanitized) and
+  has("tag") and
+  (.tag | isSanitized)
+);
+
+def isImageTagCreate: (
+  (type == "object") and
+  (length == 2) and
+  has("from") and
+  (.from | isImage) and
+  has("to") and
+  (.to | isImage)
+);
+
+def isBuildArg: (
+  (type == "object") and
+  (length == 2) and
+  has("name") and
+  (.name | isIdentifier) and
+  has("value") and
+  (.value | isSanitized)
+);
+
+def isContext: (
+  (type == "object") and
+  (length == 2) and
+  has("path") and
+  (.path | isSanitized) and
+  has("args") and
+  (.args | isArray(isBuildArg))
+);
+
+def isImageTagCompute: (
+  (type == "object") and
+  (length == 1) and
+  has("input") and
+  (.input | isNonEmptyArray(isContext))
+);
+
+def isImageBuild: (
+  (type == "object") and
+  (length == 3) and
+  has("image") and
+  (.image | isSanitized) and
+  has("tag") and
+  (.tag | isSanitized) and
+  has("context") and
+  (.context | isContext)
+);
+
+def isImageMerge: (
+  (type == "object") and
+  (length == 4) and
+  has("image") and
+  (.image | isSanitized) and
+  has("tag") and
+  (.tag | isSanitized) and
+  has("base") and
+  (.base | isSanitized) and
+  has("chain") and
+  (.chain | isNonEmptyArray(isContext))
+);
+
+def isImagePrune: (
+  (type == "object") and
+  (length == 1) and
+  has("pattern") and
+  (.pattern | isSanitized)
+);
+
+def isImagePull: (
+  (type == "object") and
+  (length == 4) and
+  has("registry") and
+  (.registry | isSanitized) and
+  has("library") and
+  (.library | isSanitized) and
+  has("image") and
+  (.image | isSanitized) and
+  has("tag") and
+  (.tag | isSanitized)
+);
+
+def isImageRemove: (
+  (type == "object") and
+  (length == 2) and
+  has("image") and
+  (.image | isSanitized) and
+  has("tag") and
+  (.tag | isSanitized)
+);
+
+def isContainerResourceCopy: (
+  (type == "object") and
+  (length == 3) and
+  has("name") and
+  (.name | isSanitized) and
+  has("source") and
+  (.source | isSanitized) and
+  has("target") and
+  (.target | isSanitized)
+);
+
+def isContainerStatusGet: (
+  (type == "object") and
+  (length == 1) and
+  has("name") and
+  (.name | isSanitized)
+);
+
+def isContainerStatusCreated: (
+  (type == "object") and
+  (length == 1) and
+  has("name") and
+  (.name | isSanitized)
+);
+
+def isContainerStatusRunning: (
+  (type == "object") and
+  (length == 1) and
+  has("name") and
+  (.name | isSanitized)
+);
+
+def isContainerStatusHealthy: (
+  (type == "object") and
+  (length == 1) and
+  has("name") and
+  (.name | isSanitized)
+);
+
+def isVolume: (
+  (type == "object") and
+  (length == 2) and
+  has("source") and
+  (.source | isSanitized) and
+  has("target") and
+  (.target | isSanitized)
+);
+
+def isContainerCreate: (
+  (type == "object") and
+  (length == 4) and
+  has("name") and
+  (.name | isSanitized) and
+  has("image") and
+  (.image | isSanitized) and
+  has("hostname") and
+  (.hostname | isSanitized) and
+  has("volumes") and
+  (.volumes | isArray(isVolume))
+);
+
+def isContainerExec: (
+  (type == "object") and
+  (length == 4) and
+  has("name") and
+  (.name | isSanitized) and
+  has("detached") and
+  (.detached | isSanitized) and
+  has("user") and
+  (.user | isSanitized) and
+  has("command") and
+  (.command | isNonEmptyArray(isSanitized))
+);
+
+def isContainerStart: (
+  (type == "object") and
+  (length == 1) and
+  has("name") and
+  (.name | isSanitized)
+);
+
+def isContainerStop: (
+  (type == "object") and
+  (length == 1) and
+  has("name") and
+  (.name | isSanitized)
+);
+
+def isNetworkIpGet: (
+  (type == "object") and
+  (length == 2) and
+  has("container") and
+  (.container | isSanitized) and
+  has("network") and
+  (.network | isSanitized)
+);
+
+def isNetworkCreate: (
+  (type == "object") and
+  (length == 2) and
+  has("name") and
+  (.name | isSanitized) and
+  has("isolated") and
+  (.isolated | isSanitized)
+);
+
+def isNetworkCreated: (
+  (type == "object") and
+  (length == 1) and
+  has("name") and
+  (.name | isSanitized)
+);
+
+def isNetworkConnect: (
+  (type == "object") and
+  (length == 2) and
+  has("container") and
+  (.container | isSanitized) and
+  has("network") and
+  (.network | isSanitized)
+);
+
+def isNetworkDisconnect: (
+  (type == "object") and
+  (length == 2) and
+  has("container") and
+  (.container | isSanitized) and
+  has("network") and
+  (.network | isSanitized)
+);
+
+def isNetworkList: (
+  (type == "object") and
+  (length == 1) and
+  has("pattern") and
+  (.pattern | isSanitized)
+);
+
+def isVolumeCreate: (
+  (type == "object") and
+  (length == 1) and
+  has("name") and
+  (.name | isSanitized)
+);
+
+def isVolumeCreated: (
+  (type == "object") and
+  (length == 1) and
+  has("name") and
+  (.name | isSanitized)
+);
+
+def isVolumeList: (
+  (type == "object") and
+  (length == 1) and
+  has("pattern") and
+  (.pattern | isSanitized)
+);
+
+def isRoutineExec: (
+  (type == "object") and
+  (length == 2) and
+  has("imported") and
+  (.imported | type == "string") and
+  has("args") and
+  (.args | isArray(isSanitized))
+);
+
+def is_ImageBuilderPrune: (
+  (type == "object") and
+  (length == 1) and
+  has("image.builder.prune") and
+  (.image.builder.prune | isImageBuilderPrune)
+);
+
+def is_ImageTagDefined: (
+  (type == "object") and
+  (length == 1) and
+  has("image.tag.defined") and
+  (.image.tag.defined | isImageTagDefined)
+);
+
+def is_ImageTagCreate: (
+  (type == "object") and
+  (length == 1) and
+  has("image.tag.create") and
+  (.image.tag.create | isImageTagCreate)
+);
+
+def is_ImageTagCompute: (
+  (type == "object") and
+  (length == 1) and
+  has("image.tag.compute") and
+  (.image.tag.compute | isImageTagCompute)
+);
+
+def is_ImageBuild: (
+  (type == "object") and
+  (length == 1) and
+  has("image.build") and
+  (.image.build | isImageBuild)
+);
+
+def is_ImageMerge: (
+  (type == "object") and
+  (length == 1) and
+  has("image.merge") and
+  (.image.merge | isImageMerge)
+);
+
+def is_ImagePrune: (
+  (type == "object") and
+  (length == 1) and
+  has("image.prune") and
+  (.image.prune | isImagePrune)
+);
+
+def is_ImagePull: (
+  (type == "object") and
+  (length == 1) and
+  has("image.pull") and
+  (.image.pull | isImagePull)
+);
+
+def is_ImageRemove: (
+  (type == "object") and
+  (length == 1) and
+  has("image.remove") and
+  (.image.remove | isImageRemove)
+);
+
+def is_ContainerResourceCopy: (
+  (type == "object") and
+  (length == 1) and
+  has("container.resource.copy") and
+  (.container.resource.copy | isContainerResourceCopy)
+);
+
+def is_ContainerStatusGet: (
+  (type == "object") and
+  (length == 1) and
+  has("container.status.get") and
+  (.container.status.get | isContainerStatusGet)
+);
+
+def is_ContainerStatusCreated: (
+  (type == "object") and
+  (length == 1) and
+  has("container.status.created") and
+  (.container.status.created | isContainerStatusCreated)
+);
+
+def is_ContainerStatusRunning: (
+  (type == "object") and
+  (length == 1) and
+  has("container.status.running") and
+  (.container.status.running | isContainerStatusRunning)
+);
+
+def is_ContainerStatusHealthy: (
+  (type == "object") and
+  (length == 1) and
+  has("container.status.healthy") and
+  (.container.status.healthy | isContainerStatusHealthy)
+);
+
+def is_ContainerCreate: (
+  (type == "object") and
+  (length == 1) and
+  has("container.create") and
+  (.container.create | isContainerCreate)
+);
+
+def is_ContainerExec: (
+  (type == "object") and
+  (length == 1) and
+  has("container.exec") and
+  (.container.exec | isContainerExec)
+);
+
+def is_ContainerStart: (
+  (type == "object") and
+  (length == 1) and
+  has("container.start") and
+  (.container.start | isContainerStart)
+);
+
+def is_ContainerStop: (
+  (type == "object") and
+  (length == 1) and
+  has("container.stop") and
+  (.container.stop | isContainerStop)
+);
+
+def is_NetworkIpGet: (
+  (type == "object") and
+  (length == 1) and
+  has("network.ip.get") and
+  (.network.ip.get | isNetworkIpGet)
+);
+
+def is_NetworkCreate: (
+  (type == "object") and
+  (length == 1) and
+  has("network.create") and
+  (.network.create | isNetworkCreate)
+);
+
+def is_NetworkCreated: (
+  (type == "object") and
+  (length == 1) and
+  has("network.created") and
+  (.network.created | isNetworkCreated)
+);
+
+def is_NetworkConnect: (
+  (type == "object") and
+  (length == 1) and
+  has("network.connect") and
+  (.network.connect | isNetworkConnect)
+);
+
+def is_NetworkDisconnect: (
+  (type == "object") and
+  (length == 1) and
+  has("network.disconnect") and
+  (.network.disconnect | isNetworkDisconnect)
+);
+
+def is_NetworkList: (
+  (type == "object") and
+  (length == 1) and
+  has("network.list") and
+  (.network.list | isNetworkList)
+);
+
+def is_VolumeCreate: (
+  (type == "object") and
+  (length == 1) and
+  has("volume.create") and
+  (.volume.create | isVolumeCreate)
+);
+
+def is_VolumeCreated: (
+  (type == "object") and
+  (length == 1) and
+  has("volume.created") and
+  (.volume.created | isVolumeCreated)
+);
+
+def is_VolumeList: (
+  (type == "object") and
+  (length == 1) and
+  has("volume.list") and
+  (.volume.list | isVolumeList)
+);
+
+def is_RoutineExec: (
+  (type == "object") and
+  (length == 1) and
+  has("routine.exec") and
+  (.routine.exec | isRoutineExec)
+);
+
+def is_Module: (
+  is_ImageBuilderPrune or
+  is_ImageTagDefined or
+  is_ImageTagCreate or
+  is_ImageTagCompute or
+  is_ImageBuild or
+  is_ImageMerge or
+  is_ImagePrune or
+  is_ImagePull or
+  is_ImageRemove or
+  is_ContainerResourceCopy or
+  is_ContainerStatusGet or
+  is_ContainerStatusCreated or
+  is_ContainerStatusRunning or
+  is_ContainerStatusHealthy or
+  is_ContainerCreate or
+  is_ContainerExec or
+  is_ContainerStart or
+  is_ContainerStop or
+  is_NetworkIpGet or
+  is_NetworkCreate or
+  is_NetworkCreated or
+  is_NetworkConnect or
+  is_NetworkDisconnect or
+  is_NetworkList or
+  is_VolumeCreate or
+  is_VolumeCreated or
+  is_VolumeList or
+  is_RoutineExec
+);
+
+def isUnaryArithmeticExpr: (
+  (type == "object") and
+  (length == 0)
+);
+
+def isArithmeticExpr: (
+  def isArithmeticOperand: (
+    isInteger or
+    isParameter or
+    isIdentifier or
+    isArrayElement or
+    isArithmeticExpr
+  );
+
+  def isBinaryArithmeticExpr: (
+    (type == "object") and
+    (length == 3) and
+    has("left") and
+    (.left | isArithmeticOperand) and
+    has("operator") and
+    (.operator | isBinaryArithmeticOperator) and
+    has("right") and
+    (.right | isArithmeticOperand)
+  );
+
+  isUnaryArithmeticExpr or
+  isBinaryArithmeticExpr
+);
+
+def isAssign: (
+  (type == "object") and
+  (length == 3) and
+  has("scope") and
+  (.scope | isScope) and
+  has("type") and
+  (.type | isType) and
+  has("variables") and
+  (.variables | isNonEmptyArray(isSanitized))
+);
+
+def isColor: (
+  (type == "object") and
+  (length == 2) and
+  has("index") and
+  (.index | isInteger) and
+  has("variable") and
+  (.variable | isSanitized)
+);
+
+def isHarden: (
+  (type == "object") and
+  (length == 2) and
+  has("command") and
+  (.command | isSanitized) and
+  has("as") and
+  (.as | isSanitized)
+);
+
+def isJson: (
+  isNonEmptyArray(isSanitized)
+);
+
+def isSubArray: (
+  (type == "object") and
+  (length == 2) and
+  has("offset") and
+  (.offset | isInteger) and
+  has("length") and
+  (.length | isInteger)
+);
+
+def isIterable: (
+  (type == "object") and
+  (length == 2) and
+  has("name") and
+  (.name | isIdentifier) and
+  has("sub") and
+  (.sub | isSubArray)
+);
+
+def isMutable: (
+  isIdentifier or
+  isArrayElement or
+  isSpecialString.last
+);
+
+def isMutate: (
+  (type == "object") and
+  (length == 2) and
+  has("name") and
+  (.name | isMutable) and
+  has("variables") and
+  (.variables | isNonEmptyArray(isSanitized))
+);
+
+def isSpecial: (
+  isSpecialString or
+  isSpecialArray
+);
+
+def isOnOff: (
+  isNonEmptyArray(isOption)
+);
+
+def isParameters: (
+  isNonEmptyArray(isSanitized)
+);
+
+def isPrint: (
+  (type == "object") and
+  (length == 3) and
+  has("variable") and
+  (.variable | isIdentifier) and
+  has("format") and
+  (.format | type == "string") and
+  has("args") and
+  (.args | isArray(isSanitized))
+);
+
+def isReadonly: (
+  isNonEmptyArray(isSanitized)
+);
+
+def isReturn: (
+  isInteger
+);
+
+def isSkip: (
+  isSanitized
+);
+
+def is_ArithmeticExpr: (
+  (type == "object") and
+  (length == 1) and
+  has("arithmetic") and
+  (.arithmetic | isArithmeticExpr)
+);
+
+def is_Assign: (
+  (type == "object") and
+  (length == 1) and
+  has("assign") and
+  (.assign | isAssign)
+);
+
+def is_Capture: (
+  (type == "object") and
+  (length == 1) and
+  has("capture") and
+  (.capture | type == "null")
+);
+
+def is_Restore: (
+  (type == "object") and
+  (length == 1) and
+  has("restore") and
+  (.restore | type == "null")
+);
+
+def is_CaptureRestore: (
+  is_Capture or
+  is_Restore
+);
+
+def is_Color: (
+  (type == "object") and
+  (length == 1) and
+  has("color") and
+  (.color | isColor)
+);
+
+def is_Harden: (
+  (type == "object") and
+  (length == 1) and
+  has("harden") and
+  (.harden | isHarden)
+);
+
+def is_Json: (
+  (type == "object") and
+  (length == 1) and
+  has("json.encode") and
+  (.json.encode | isJson)
+);
+
+def is_Mutate: (
+  (type == "object") and
+  (length == 1) and
+  has("mutate") and
+  (.mutate | isMutate)
+);
+
+def is_On: (
+  (type == "object") and
+  (length == 1) and
+  has("on") and
+  (.on | isOnOff)
+);
+
+def is_Off: (
+  (type == "object") and
+  (length == 1) and
+  has("off") and
+  (.off | isOnOff)
+);
+
+def is_OnOff: (
+  is_On or
+  is_Off
+);
+
+def is_Parameters: (
+  (type == "object") and
+  (length == 1) and
+  has("parameters") and
+  (.parameters | isParameters)
+);
+
+def is_Print: (
+  (type == "object") and
+  (length == 1) and
+  has("print") and
+  (.print | isPrint)
+);
+
+def is_Readonly: (
+  (type == "object") and
+  (length == 1) and
+  has("readonly") and
+  (.readonly | isReadonly)
+);
+
+def is_Return: (
+  (type == "object") and
+  (length == 1) and
+  has("return") and
+  (.return | isInteger)
+);
+
+def is_Skip: (
+  (type == "object") and
+  (length == 1) and
+  has("skip") and
+  (.skip | isSanitized)
 );
 
 def isGroup: (
+  def isCall: (
+    (type == "object") and
+    (length == 3) and
+    has("command") and
+    (.command | isSanitized) and
+    has("args") and
+    (.args | isArray(isSanitized)) and
+    has("pipe") and
+    (.pipe | isGroup)
+  );
+
+  def isSource: (
+    isSanitized or
+    isPrint or
+    isCall
+  );
+
+  def is_Source: (
+    (type == "object") and
+    (length == 1) and
+    has("source") and
+    (.source | isSource)
+  );
+
+  def is_Call: (
+    (type == "object") and
+    (length == 1) and
+    has("call") and
+    (.call | isCall)
+  );
+
+  def isDefer: (
+    is_Module or
+    is_Call
+  );
+
+  def is_Defer: (
+    (type == "object") and
+    (length == 1) and
+    has("defer") and
+    (.defer | isDefer)
+  );
+
+  def isInternalCall: (
+    (type == "object") and
+    (length == 3) and
+    has("command") and
+    (.command | type == "string") and
+    has("args") and
+    (.args | isArray(isSanitized)) and
+    has("pipe") and
+    (.pipe | isGroup)
+  );
+
+  def is_InternalCall: (
+    (type == "object") and
+    (length == 1) and
+    has("call") and
+    (.call | isInternalCall)
+  );
+
+  def isLogicalExpr: (
+    def isLogicalOperand: (
+      isLogicalExpr or
+      isGroup
+    );
+
+    def isUnaryLogicalExpr: (
+      (type == "object") and
+      (length == 2) and
+      has("operand") and
+      (.operand | isLogicalOperand) and
+      has("operator") and
+      (.operator | isBinaryLogicalOperator)
+    );
+
+    def isBinaryLogicalExpr: (
+      (type == "object") and
+      (length == 3) and
+      has("left") and
+      (.left | isLogicalOperand) and
+      has("operator") and
+      (.operator | isBinaryLogicalOperator) and
+      has("right") and
+      (.right | isLogicalOperand)
+    );
+
+    isUnaryLogicalExpr or
+    isBinaryLogicalExpr
+  );
+
+  def isIf: (
+    def isElse: (
+      isIf or
+      isGroup
+    );
+
+    (type == "object") and
+    (length == 3) and
+    has("if") and
+    (.if | isLogicalExpr) and
+    has("then") and
+    (.then | isGroup) and
+    has("else") and
+    (.else | isArray(isElse))
+  );
+
+  def isRange: (
+    (type == "object") and
+    (length == 4) and
+    has("initial") and
+    (.initial | isArithmeticExpr) and
+    has("conditional") and
+    (.conditional | isArithmeticExpr) and
+    has("update") and
+    (.update | isArithmeticExpr) and
+    has("do") and
+    (.do | isGroup)
+  );
+
+  def isIterator: (
+    (type == "object") and
+    (length == 3) and
+    has("for") and
+    (.for | isIdentifier) and
+    has("into") and
+    (.into | isIterable) and
+    has("do") and
+    (.do | isGroup)
+  );
+
+  def isConditional: (
+    (type == "object") and
+    (length == 2) and
+    has("while") and
+    (.while | isLogicalExpr) and
+    has("do") and
+    (.do | isGroup)
+  );
+
+  def isLoop: (
+    isRange or
+    isIterator or
+    isConditional
+  );
+
+  def is_Loop: (
+    (type == "object") and
+    (length == 1) and
+    has("loop") and
+    (.loop | isLoop)
+  );
+
+  def isSubshell: (
+    isGroup or
+    isArithmeticExpr
+  );
+
+  def isRegister: (
+    (type == "object") and
+    (length == 2) and
+    has("variable") and
+    (.variable | isMutable) and
+    has("subshell") and
+    (.subshell | isSubshell)
+  );
+
+  def is_Register: (
+    (type == "object") and
+    (length == 1) and
+    has("register") and
+    (.register | isRegister)
+  );
+
+  def isCommand: (
+    def isCoproc: (
+      (type == "object") and
+      (length == 2) and
+      has("name") and
+      (.name | isIdentifier) and
+      has("commands") and
+      (.commands | isNonEmptyArray(isCommand))
+    );
+
+    def is_Coproc: (
+      (type == "object") and
+      (length == 1) and
+      has("coproc") and
+      (.coproc | isCoproc)
+    );
+
+    def isInternal: (
+      is_InternalCall or
+      is_Coproc
+    );
+
+    def is_Internal: (
+      (type == "object") and
+      (length == 1) and
+      has("internal") and
+      (.internal | isInternal)
+    );
+
+    def isBranch: (
+      (type == "object") and
+      (length == 2) and
+      has("pattern") and
+      (.pattern | isSanitized) and
+      has("commands") and
+      (.commands | isNonEmptyArray(isCommand))
+    );
+
+    def isSwitch: (
+      (type == "object") and
+      (length == 2) and
+      has("evaluate") and
+      (.evaluate | isSanitized) and
+      has("branches") and
+      (.branches | isNonEmptyArray(isBranch))
+    );
+
+    def is_Switch: (
+      (type == "object") and
+      (length == 1) and
+      has("switch") and
+      (.switch | isSwitch)
+    );
+
+    def isDefine: (
+      (type == "object") and
+      (length == 2) and
+      has("name") and
+      (.name | isIdentifier) and
+      has("body") and
+      (.body | isGroup)
+    );
+
+    def is_Define: (
+      (type == "object") and
+      (length == 1) and
+      has("define") and
+      (.define | isDefine)
+    );
+
+    is_ArithmeticExpr or
+    is_Assign or
+    is_CaptureRestore or
+    is_Color or
+    is_Defer or
+    is_Define or
+    isGroup or
+    is_Harden or
+    isIf or
+    is_Internal or
+    is_Json or
+    is_Loop or
+    is_Mutate or
+    is_OnOff or
+    is_Parameters or
+    is_Print or
+    is_Readonly or
+    is_Register or
+    is_Return or
+    is_Skip or
+    is_Source or
+    is_Switch or
+    is_Call or
+    is_Module
+  );
+
   (type == "object") and
-  has("redirections") and
-  has("commands") and
   (length == 2) and
-  (.redirections | isRedirectionArray) and
-  (.commands | isNonEmptyArray(Command))
+  has("redirections") and
+  (.redirections | isArray(isRedirection)) and
+  has("commands") and
+  (.commands | isNonEmptyArray(isCommand))
 );
 
-def isRoutine: {
+def isRoutine: (
   (type == "object") and
-  has("routine") and
   (length == 1) and
+  has("routine") and
   (.routine | isGroup)
 );
-
-# type _Defer = {
-#   defer: Defer;
-# };
-# type _Harden = {
-#   harden: Harden;
-# };
-# type _Internal = {
-#   internal: Internal;
-# };
-# type Internal = _InternalCall
-#               | _Coproc
-#               ;
-# type _InternalCall = {
-#   call: InternalCall;
-# };
-# type _Coproc = {
-#   coproc: Coproc;
-# };
-# type _Json = {
-#   json: Json;
-# };
-# type _Loop = {
-#   loop: Loop;
-# };
-# type _Mutate = {
-#   mutate: Mutate;
-# };
-# type _OnOff = _On
-#             | _Off
-#             ;
-# type _On = {
-#   on: OnOff;
-# };
-# type _Off = {
-#   off: OnOff;
-# };
-# type _Parameters = {
-#   parameters: Parameters;
-# };
-# type _Print = {
-#   print: Print;
-# };
-# type _Readonly = {
-#   readonly: Readonly;
-# };
-# type _Register = {
-#   register: Register;
-# };
-# type _Return = {
-#   return: Return;
-# };
-# type _Skip = {
-#   skip: Skip;
-# };
-# type _Source = {
-#   source: Source;
-# };
-# type _Switch = {
-#   switch: Switch;
-# };
-# type _Call = {
-#   call: Call;
-# };
-# type _Module = _ImageBuilderPrune
-#              | _ImageTagDefined
-#              | _ImageTagCreate
-#              | _ImageTagCompute
-#              | _ImageBuild
-#              | _ImageMerge
-#              | _ImagePrune
-#              | _ImagePull
-#              | _ImageRemove
-#              | _ContainerResourceCopy
-#              | _ContainerStatusGet
-#              | _ContainerStatusCreated
-#              | _ContainerStatusRunning
-#              | _ContainerStatusHealthy
-#              | _ContainerCreate
-#              | _ContainerExec
-#              | _ContainerStart
-#              | _ContainerStop
-#              | _NetworkIpGet
-#              | _NetworkCreate
-#              | _NetworkCreated
-#              | _NetworkConnect
-#              | _NetworkDisconnect
-#              | _NetworkList
-#              | _VolumeCreate
-#              | _VolumeCreated
-#              | _VolumeList
-#              | _RoutineExec
-#              ;
-# type _ImageBuilderPrune = {
-#   image.builder.prune: ImageBuilderPrune;
-# };
-# type _ImageTagDefined = {
-#   image.tag.defined: ImageTagDefined;
-# };
-# type _ImageTagCreate = {
-#   image.tag.create: ImageTagCreate;
-# };
-# type _ImageTagCompute = {
-#   image.tag.compute: ImageTagCompute;
-# };
-# type _ImageBuild = {
-#   image.build: ImageBuild;
-# };
-# type _ImageMerge = {
-#   image.merge: ImageMerge;
-# };
-# type _ImagePrune = {
-#   image.prune: ImagePrune;
-# };
-# type _ImagePull = {
-#   image.pull: ImagePull;
-# };
-# type _ImageRemove = {
-#   image.remove: ImageRemove;
-# };
-# type _ContainerResourceCopy = {
-#   container.resource.copy: ContainerResourceCopy;
-# };
-# type _ContainerStatusGet = {
-#   container.status.get: ContainerStatusGet;
-# };
-# type _ContainerStatusCreated = {
-#   container.status.created: ContainerStatusCreated;
-# };
-# type _ContainerStatusRunning = {
-#   container.status.running: ContainerStatusRunning;
-# };
-# type _ContainerStatusHealthy = {
-#   container.status.healthy: ContainerStatusHealthy;
-# };
-# type _ContainerCreate = {
-#   container.create: ContainerCreate;
-# };
-# type _ContainerExec = {
-#   container.exec: ContainerExec;
-# };
-# type _ContainerStart = {
-#   container.start: ContainerStart;
-# };
-# type _ContainerStop = {
-#   container.stop: ContainerStop;
-# };
-# type _NetworkIpGet = {
-#   network.ip.get: NetworkIpGet;
-# };
-# type _NetworkCreate = {
-#   network.create: NetworkCreate;
-# };
-# type _NetworkCreated = {
-#   network.created: NetworkCreated;
-# };
-# type _NetworkConnect = {
-#   network.connect: NetworkConnect;
-# };
-# type _NetworkDisconnect = {
-#   network.disconnect: NetworkDisconnect;
-# };
-# type _NetworkList = {
-#   network.list: NetworkList;
-# };
-# type _VolumeCreate = {
-#   volume.create: VolumeCreate;
-# };
-# type _VolumeCreated = {
-#   volume.created: VolumeCreated;
-# };
-# type _VolumeList = {
-#   volume.list: VolumeList;
-# };
-# type _RoutineExec = {
-#   routine.exec: RoutineExec;
-# };
-# type Defer = _Module
-#            | _Call
-#            ;
-# type ImageBuilderPrune = {};
-# type ImageTagDefined = {
-#   image: Sanitized;
-#   tag: Sanitized;
-# };
-# type ImageTagCreate = {
-#   from: Image;
-#   to: Image;
-# };
-# type Image = {
-#   image: Sanitized;
-#   tag: Sanitized;
-# };
-# type ImageTagCompute = {
-#   input: NonEmptyArray(Context);
-# };
-# type Context = {
-#   path: Sanitized;
-#   args: BuildArg[];
-# };
-# type BuildArg = {
-#   name: Identifier;
-#   value: Sanitized;
-# };
-# type ImageBuild = {
-#   image: Sanitized;
-#   tag: Sanitized;
-#   context: Context;
-# };
-# type ImageMerge = {
-#   image: Sanitized;
-#   tag: Sanitized;
-#   base: Sanitized;
-#   chain: NonEmptyArray(Context);
-# };
-# type ImagePrune = {
-#   pattern: Sanitized;
-# };
-# type ImagePull = {
-#   registry: Sanitized;
-#   library: Sanitized;
-#   image: Sanitized;
-#   tag: Sanitized;
-# };
-# type ImageRemove = {
-#   image: Sanitized;
-#   tag: Sanitized;
-# };
-# type ContainerResourceCopy = {
-#   name: Sanitized;
-#   source: Sanitized;
-#   target: Sanitized;
-# };
-# type ContainerStatusGet = {
-#   name: Sanitized;
-# };
-# type ContainerStatusCreated = {
-#   name: Sanitized;
-# };
-# type ContainerStatusRunning = {
-#   name: Sanitized;
-# };
-# type ContainerStatusHealthy = {
-#   name: Sanitized;
-# };
-# type ContainerCreate = {
-#   name: Sanitized;
-#   image: Sanitized;
-#   hostname: Sanitized;
-#   volumes: Volume[];
-# };
-# type Volume = {
-#   source: Sanitized;
-#   target: Sanitized;
-# };
-# type ContainerExec = {
-#   name: Sanitized;
-#   detached: Sanitized;
-#   user: Sanitized;
-#   command: NonEmptyArray(Sanitized);
-# };
-# type ContainerStart = {
-#   name: Sanitized;
-# };
-# type ContainerStop = {
-#   name: Sanitized;
-# };
-# type NetworkIpGet = {
-#   container: Sanitized;
-#   network: Sanitized;
-# };
-# type NetworkCreate = {
-#   name: Sanitized;
-#   isolated: Sanitized;
-# };
-# type NetworkCreated = {
-#   name: Sanitized;
-# };
-# type NetworkConnect = {
-#   container: Sanitized;
-#   network: Sanitized;
-# };
-# type NetworkDisconnect = {
-#   container: Sanitized;
-#   network: Sanitized;
-# };
-# type NetworkList = {
-#   pattern: Sanitized;
-# };
-# type VolumeCreate = {
-#   name: Sanitized;
-# };
-# type VolumeCreated = {
-#   name: Sanitized;
-# };
-# type VolumeList = {
-#   pattern: Sanitized;
-# };
-# type RoutineExec = {
-#   imported: Path;
-#   args: Sanitized[];
-# };
-# type Call = {
-#   command: Sanitized;
-#   args: Sanitized[];
-#   pipe?: Group;
-# };
-# type Harden = {
-#   command: Sanitized;
-#   as?: Sanitized;
-# };
-# type If = {
-#   if: LogicalExpr;
-#   then: Group;
-#   else: Else[];
-# };
-# type Internal = InternalCall
-#               | Coproc
-#               ;
-# type InternalCall = {
-#   command: string;
-#   args: Sanitized[];
-#   pipe?: Group;
-# };
-# type Coproc = {
-#   name: Identifier;
-#   commands: NonEmptyArray(Command);
-# };
-# type LogicalExpr = UnaryLogicalExpr
-#                  | BinaryLogicalExpr
-#                  ;
-# type UnaryLogicalExpr = {
-#   operand: LogicalOperand;
-#   operator: BinaryLogicalOperator;
-# };
-# enum UnaryLogicalOperator {
-#   Not,
-# };
-# type BinaryLogicalExpr = {
-#   left: LogicalOperand;
-#   operator: BinaryLogicalOperator;
-#   right: LogicalOperand;
-# };
-# enum BinaryLogicalOperator {
-#   And,
-#   Or,
-# };
-# type LogicalOperand = LogicalExpr
-#                     | Group
-#                     ;
-# type Else = If
-#           | Group
-#           ;
-# type Json = NonEmptyArray(Sanitized);
-# type Loop = Range
-#           | Iterator
-#           | Conditional
-#           ;
-# type Range = {
-#   initial: ArithmeticExpr;
-#   conditional: ArithmeticExpr;
-#   update: ArithmeticExpr;
-#   do: Group;
-# };
-# type Iterator = {
-#   for: Identifier;
-#   into: Iterable;
-#   do: Group;
-# };
-# type Iterable = {
-#   name?: Identifier; // If null => "${@}"
-#   sub?: SubArray;
-# };
-# type SubArray = {
-#   offset: Integer;
-#   length?: Integer;
-# };
-# type Conditional = {
-#   while: LogicalExpr;
-#   do: Group;
-# };
-# type Mutate = {
-#   name: Mutable;
-#   variables: NonEmptyArray(Sanitized);
-# };
-# type Mutable = Identifier
-#              | ArrayElement
-#              | SpecialString.last
-#              ;
-# type Special = SpecialString
-#              | SpecialArray
-#              ;
-# type OnOff = NonEmptyArray(Option);
-# enum Option {
-#   assoc_expand_once,
-#   autocd,
-#   cdable_vars,
-#   cdspell,
-#   checkhash,
-#   checkjobs,
-#   checkwinsize,
-#   cmdhist,
-#   compat31,
-#   compat32,
-#   compat40,
-#   compat41,
-#   compat42,
-#   compat43,
-#   compat44,
-#   complete_fullquote,
-#   direxpand,
-#   dirspell,
-#   dotglob,
-#   execfail,
-#   expand_aliases,
-#   extdebug,
-#   extglob,
-#   extquote,
-#   failglob,
-#   force_fignore,
-#   globasciiranges,
-#   globstar,
-#   gnu_errfmt,
-#   histappend,
-#   histreedit,
-#   histverify,
-#   hostcomplete,
-#   huponexit,
-#   inherit_errexit,
-#   interactive_comments,
-#   lastpipe,
-#   lithist,
-#   localvar_inherit,
-#   localvar_unset,
-#   login_shell,
-#   mailwarn,
-#   no_empty_cmd_completion,
-#   nocaseglob,
-#   nocasematch,
-#   nullglob,
-#   progcomp,
-#   progcomp_alias,
-#   promptvars,
-#   restricted_shell,
-#   shift_verbose,
-#   sourcepath,
-#   xpg_echo,
-#   allexport,
-#   braceexpand,
-#   emacs,
-#   errexit,
-#   errtrace,
-#   functrace,
-#   hashall,
-#   histexpand,
-#   history,
-#   ignoreeof,
-#   keyword,
-#   monitor,
-#   noclobber,
-#   noexec,
-#   noglob,
-#   nolog,
-#   notify,
-#   nounset,
-#   onecmd,
-#   physical,
-#   pipefail,
-#   posix,
-#   privileged,
-#   verbose,
-#   vi,
-#   xtrace
-# };
-# type Parameters = NonEmptyArray(Sanitized);
-# type Print = {
-#   variable?: Identifier;
-#   format: string;
-#   args: Sanitized[];
-# };
-# type Readonly = NonEmptyArray(Sanitized);
-# type Register = {
-#   variable: Mutable;
-#   subshell: Subshell;
-# };
-# type Subshell = Group
-#               | ArithmeticExpr
-#               ;
-# type Return = Integer;
-# type Skip = Sanitized;
-# type Source = Sanitized
-#             | Print
-#             | Call
-#             ;
-# type Switch = {
-#   evaluate: Sanitized;
-#   branches: NonEmptyArray(Branch);
-# };
-# type Branch = {
-#   pattern: Sanitized;
-#   commands: NonEmptyArray(Command);
-# };

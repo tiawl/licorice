@@ -1,37 +1,14 @@
-type Routine = {
-  "routine": Group;
-};
-type Group = {
-  "redirections": Redirection[];
-  "commands": NonEmptyArray<Command>;
-};
-type NonEmptyArray<T> = T[] & { __brand: 'NonEmptyArray' };
-type Redirection = Input
-                 | Output
-                 ;
-type Input = Sanitized;
-type Sanitized = Literal
-               | Char
-               | Identifier
-               | ArrayElement
-               | Parameter
-               | SpecialString
-               | SpecialArrayElement
-               | Path       // TODO: why ??
-               | InternalLiteral
-               ;
-type Literal = string;
+// Schema file to describe formally types encountered into routine files
 type Char = string & { __brand: 'SingleChar' };
-type ArrayElement = {
-  "name": Identifier;
-  "reference": Reference;
-};
-type Reference = Integer
-               | Key
-               ;
+type FileDescriptor = number & { __brand: 'PositiveInteger' };
+type Identifier = string & { __brand: 'IdentifierString' };
 type Integer = number & { __brand: 'Integer' };
+type InternalLiteral = string;
 type Key = string;
+type Literal = string;
+type NonEmptyArray<T> = T[] & { __brand: 'NonEmptyArray' };
 type Parameter = number & { __brand: 'NonNegativeInteger' };
+type Path = string;
 enum SpecialString {
   last,
   FUNCNAME,
@@ -43,161 +20,275 @@ enum SpecialString {
 enum SpecialArray {
   sep
 };
+// TODO: more arithmetic operators
+enum BinaryArithmeticOperator {
+  Addition,
+  Substraction,
+  Remainder,
+  Gt,
+  Lt,
+  Ge,
+  Le,
+  Eq,
+  Ne,
+  Assignment,
+  Increment
+};
+enum Scope {
+  Local,
+  Global
+};
+enum Type {
+  String,
+  Associative,
+  Indexed,
+  Reference
+};
+enum UnaryLogicalOperator {
+  Not,
+};
+enum BinaryLogicalOperator {
+  And,
+  Or,
+};
+enum Option {
+  assoc_expand_once,
+  autocd,
+  cdable_vars,
+  cdspell,
+  checkhash,
+  checkjobs,
+  checkwinsize,
+  cmdhist,
+  compat31,
+  compat32,
+  compat40,
+  compat41,
+  compat42,
+  compat43,
+  compat44,
+  complete_fullquote,
+  direxpand,
+  dirspell,
+  dotglob,
+  execfail,
+  expand_aliases,
+  extdebug,
+  extglob,
+  extquote,
+  failglob,
+  force_fignore,
+  globasciiranges,
+  globstar,
+  gnu_errfmt,
+  histappend,
+  histreedit,
+  histverify,
+  hostcomplete,
+  huponexit,
+  inherit_errexit,
+  interactive_comments,
+  lastpipe,
+  lithist,
+  localvar_inherit,
+  localvar_unset,
+  login_shell,
+  mailwarn,
+  no_empty_cmd_completion,
+  nocaseglob,
+  nocasematch,
+  nullglob,
+  progcomp,
+  progcomp_alias,
+  promptvars,
+  restricted_shell,
+  shift_verbose,
+  sourcepath,
+  xpg_echo,
+  allexport,
+  braceexpand,
+  emacs,
+  errexit,
+  errtrace,
+  functrace,
+  hashall,
+  histexpand,
+  history,
+  ignoreeof,
+  keyword,
+  monitor,
+  noclobber,
+  noexec,
+  noglob,
+  nolog,
+  notify,
+  nounset,
+  onecmd,
+  physical,
+  pipefail,
+  posix,
+  privileged,
+  verbose,
+  vi,
+  xtrace
+};
+type Reference = Integer
+               | Key
+               ;
+type ArrayElement = {
+  "name": Identifier;
+  "reference": Reference;
+};
 type SpecialArrayElement = {
   "name": SpecialArray;
   "reference": Reference;
 };
-type Path = string;
-type InternalLiteral = string;
-type Output = {
-  "left": FileDescriptor;
-  "appending": boolean;
-  "right": File;
-};
-type FileDescriptor = number & { __brand: 'PositiveInteger' };
+type Sanitized = Literal
+               | Char
+               | Identifier
+               | ArrayElement
+               | Parameter
+               | SpecialString
+               | SpecialArrayElement
+               | Path       // TODO: why ??
+               | InternalLiteral
+               ;
+type Input = Sanitized;
 type File = Path
           | FileDescriptor
           | Identifier
           | ArrayElement
           ;
-type Command = _ArithmeticExpr
-             | _Assign
-             | _CaptureRestore
-             | _Color
-             | _Defer
-             | _Define
-             | Group
-             | _Harden
-             | If
-             | _Internal
-             | _Json
-             | _Loop
-             | _Mutate
-             | _OnOff
-             | _Parameters
-             | _Print
-             | _Readonly
-             | _Register
-             | _Return
-             | _Skip
-             | _Source
-             | _Switch
-             | _Call
-             | _Module
-             ;
-type _ArithmeticExpr = {
-  "arithmetic": ArithmeticExpr;
+type Output = {
+  "left": FileDescriptor;
+  "appending": boolean;
+  "right": File;
 };
-type _Assign = {
-  "assign": Assign;
+type Redirection = Input
+                 | Output
+                 ;
+type ImageBuilderPrune = {};
+type ImageTagDefined = {
+  "image": Sanitized;
+  "tag": Sanitized;
 };
-type _CaptureRestore = _Capture
-                     | _Restore
-                     ;
-type _Capture = {
-  "capture": null;
+type Image = {
+  "image": Sanitized;
+  "tag": Sanitized;
 };
-type _Restore = {
-  "restore": null;
+type ImageTagCreate = {
+  "from": Image;
+  "to": Image;
 };
-type _Color = {
-  "color": Color;
+type BuildArg = {
+  "name": Identifier;
+  "value": Sanitized;
 };
-type _Defer = {
-  "defer": Defer;
+type Context = {
+  "path": Sanitized;
+  "args": BuildArg[];
 };
-type _Define = {
-  "define": Define;
+type ImageTagCompute = {
+  "input": NonEmptyArray<Context>;
 };
-type _Harden = {
-  "harden": Harden;
+type ImageBuild = {
+  "image": Sanitized;
+  "tag": Sanitized;
+  "context": Context;
 };
-type _Internal = {
-  "internal": Internal;
+type ImageMerge = {
+  "image": Sanitized;
+  "tag": Sanitized;
+  "base": Sanitized;
+  "chain": NonEmptyArray<Context>;
 };
-type Internal = _InternalCall
-              | _Coproc
-              ;
-type _InternalCall = {
-  "call": InternalCall;
+type ImagePrune = {
+  "pattern": Sanitized;
 };
-type _Coproc = {
-  "coproc": Coproc;
+type ImagePull = {
+  "registry": Sanitized;
+  "library": Sanitized;
+  "image": Sanitized;
+  "tag": Sanitized;
 };
-type _Json = {
-  "json.encode": Json;
+type ImageRemove = {
+  "image": Sanitized;
+  "tag": Sanitized;
 };
-type _Loop = {
-  "loop": Loop;
+type ContainerResourceCopy = {
+  "name": Sanitized;
+  "source": Sanitized;
+  "target": Sanitized;
 };
-type _Mutate = {
-  "mutate": Mutate;
+type ContainerStatusGet = {
+  "name": Sanitized;
 };
-type _OnOff = _On
-            | _Off
-            ;
-type _On = {
-  "on": OnOff;
+type ContainerStatusCreated = {
+  "name": Sanitized;
 };
-type _Off = {
-  "off": OnOff;
+type ContainerStatusRunning = {
+  "name": Sanitized;
 };
-type _Parameters = {
-  "parameters": Parameters;
+type ContainerStatusHealthy = {
+  "name": Sanitized;
 };
-type _Print = {
-  "print": Print;
+type Volume = {
+  "source": Sanitized;
+  "target": Sanitized;
 };
-type _Readonly = {
-  "readonly": Readonly;
+type ContainerCreate = {
+  "name": Sanitized;
+  "image": Sanitized;
+  "hostname": Sanitized;
+  "volumes": Volume[];
 };
-type _Register = {
-  "register": Register;
+type ContainerExec = {
+  "name": Sanitized;
+  "detached": Sanitized;
+  "user": Sanitized;
+  "command": NonEmptyArray<Sanitized>;
 };
-type _Return = {
-  "return": Return;
+type ContainerStart = {
+  "name": Sanitized;
 };
-type _Skip = {
-  "skip": Skip;
+type ContainerStop = {
+  "name": Sanitized;
 };
-type _Source = {
-  "source": Source;
+type NetworkIpGet = {
+  "container": Sanitized;
+  "network": Sanitized;
 };
-type _Switch = {
-  "switch": Switch;
+type NetworkCreate = {
+  "name": Sanitized;
+  "isolated": Sanitized;
 };
-type _Call = {
-  "call": Call;
+type NetworkCreated = {
+  "name": Sanitized;
 };
-type _Module = _ImageBuilderPrune
-             | _ImageTagDefined
-             | _ImageTagCreate
-             | _ImageTagCompute
-             | _ImageBuild
-             | _ImageMerge
-             | _ImagePrune
-             | _ImagePull
-             | _ImageRemove
-             | _ContainerResourceCopy
-             | _ContainerStatusGet
-             | _ContainerStatusCreated
-             | _ContainerStatusRunning
-             | _ContainerStatusHealthy
-             | _ContainerCreate
-             | _ContainerExec
-             | _ContainerStart
-             | _ContainerStop
-             | _NetworkIpGet
-             | _NetworkCreate
-             | _NetworkCreated
-             | _NetworkConnect
-             | _NetworkDisconnect
-             | _NetworkList
-             | _VolumeCreate
-             | _VolumeCreated
-             | _VolumeList
-             | _RoutineExec
-             ;
+type NetworkConnect = {
+  "container": Sanitized;
+  "network": Sanitized;
+};
+type NetworkDisconnect = {
+  "container": Sanitized;
+  "network": Sanitized;
+};
+type NetworkList = {
+  "pattern": Sanitized;
+};
+type VolumeCreate = {
+  "name": Sanitized;
+};
+type VolumeCreated = {
+  "name": Sanitized;
+};
+type VolumeList = {
+  "pattern": Sanitized;
+};
+type RoutineExec = {
+  "imported": Path;
+  "args": Sanitized[];
+};
 type _ImageBuilderPrune = {
   "image.builder.prune": ImageBuilderPrune;
 };
@@ -282,234 +373,202 @@ type _VolumeList = {
 type _RoutineExec = {
   "routine.exec": RoutineExec;
 };
-type ArithmeticExpr = BinaryArithmeticExpr;
-type BinaryArithmeticExpr = {
-  "left": ArithmeticOperand;
-  "operator": BinaryArithmeticOperator;
-  "right": ArithmeticOperand;
-};
-// TODO: more arithmetic operators
-enum BinaryArithmeticOperator {
-  Addition,
-  Substraction,
-  Remainder,
-  Gt,
-  Lt,
-  Ge,
-  Le,
-  Eq,
-  Ne,
-  Assignment,
-  Increment
-};
+type _Module = _ImageBuilderPrune
+             | _ImageTagDefined
+             | _ImageTagCreate
+             | _ImageTagCompute
+             | _ImageBuild
+             | _ImageMerge
+             | _ImagePrune
+             | _ImagePull
+             | _ImageRemove
+             | _ContainerResourceCopy
+             | _ContainerStatusGet
+             | _ContainerStatusCreated
+             | _ContainerStatusRunning
+             | _ContainerStatusHealthy
+             | _ContainerCreate
+             | _ContainerExec
+             | _ContainerStart
+             | _ContainerStop
+             | _NetworkIpGet
+             | _NetworkCreate
+             | _NetworkCreated
+             | _NetworkConnect
+             | _NetworkDisconnect
+             | _NetworkList
+             | _VolumeCreate
+             | _VolumeCreated
+             | _VolumeList
+             | _RoutineExec
+             ;
 type ArithmeticOperand = Integer
                        | Parameter
                        | Identifier
                        | ArrayElement
                        | ArithmeticExpr
                        ;
+type BinaryArithmeticExpr = {
+  "left": ArithmeticOperand;
+  "operator": BinaryArithmeticOperator;
+  "right": ArithmeticOperand;
+};
+type UnaryArithmeticExpr = {};
+type ArithmeticExpr = UnaryArithmeticExpr
+                    | BinaryArithmeticExpr
+                    ;
 type Assign = {
   "scope": Scope;
   "type": Type;
   "variables": NonEmptyArray<Sanitized>;
 };
-enum Scope {
-  Local,
-  Global
-};
-enum Type {
-  String,
-  Associative,
-  Indexed,
-  Reference
-};
 type Color = {
   "index": Integer;
   "variable": Sanitized;
 };
-type Defer = _Module
-           | _Call
-           ;
-type Define = {
-  "name": Identifier;
-  "body": Group;
+type Harden = {
+  "command": Sanitized;
+  "as"?: Sanitized;
 };
-type Identifier = string & { __brand: 'IdentifierString' };
-type ImageBuilderPrune = {};
-type ImageTagDefined = {
-  "image": Sanitized;
-  "tag": Sanitized;
+type Json = NonEmptyArray<Sanitized>;
+type SubArray = {
+  "offset": Integer;
+  "length"?: Integer;
 };
-type ImageTagCreate = {
-  "from": Image;
-  "to": Image;
+type Iterable = {
+  "name"?: Identifier; // If null => "${@}"
+  "sub"?: SubArray;
 };
-type Image = {
-  "image": Sanitized;
-  "tag": Sanitized;
+type Mutable = Identifier
+             | ArrayElement
+             | SpecialString.last
+             ;
+type Mutate = {
+  "name": Mutable;
+  "variables": NonEmptyArray<Sanitized>;
 };
-type ImageTagCompute = {
-  "input": NonEmptyArray<Context>;
-};
-type Context = {
-  "path": Sanitized;
-  "args": BuildArg[];
-};
-type BuildArg = {
-  "name": Identifier;
-  "value": Sanitized;
-};
-type ImageBuild = {
-  "image": Sanitized;
-  "tag": Sanitized;
-  "context": Context;
-};
-type ImageMerge = {
-  "image": Sanitized;
-  "tag": Sanitized;
-  "base": Sanitized;
-  "chain": NonEmptyArray<Context>;
-};
-type ImagePrune = {
-  "pattern": Sanitized;
-};
-type ImagePull = {
-  "registry": Sanitized;
-  "library": Sanitized;
-  "image": Sanitized;
-  "tag": Sanitized;
-};
-type ImageRemove = {
-  "image": Sanitized;
-  "tag": Sanitized;
-};
-type ContainerResourceCopy = {
-  "name": Sanitized;
-  "source": Sanitized;
-  "target": Sanitized;
-};
-type ContainerStatusGet = {
-  "name": Sanitized;
-};
-type ContainerStatusCreated = {
-  "name": Sanitized;
-};
-type ContainerStatusRunning = {
-  "name": Sanitized;
-};
-type ContainerStatusHealthy = {
-  "name": Sanitized;
-};
-type ContainerCreate = {
-  "name": Sanitized;
-  "image": Sanitized;
-  "hostname": Sanitized;
-  "volumes": Volume[];
-};
-type Volume = {
-  "source": Sanitized;
-  "target": Sanitized;
-};
-type ContainerExec = {
-  "name": Sanitized;
-  "detached": Sanitized;
-  "user": Sanitized;
-  "command": NonEmptyArray<Sanitized>;
-};
-type ContainerStart = {
-  "name": Sanitized;
-};
-type ContainerStop = {
-  "name": Sanitized;
-};
-type NetworkIpGet = {
-  "container": Sanitized;
-  "network": Sanitized;
-};
-type NetworkCreate = {
-  "name": Sanitized;
-  "isolated": Sanitized;
-};
-type NetworkCreated = {
-  "name": Sanitized;
-};
-type NetworkConnect = {
-  "container": Sanitized;
-  "network": Sanitized;
-};
-type NetworkDisconnect = {
-  "container": Sanitized;
-  "network": Sanitized;
-};
-type NetworkList = {
-  "pattern": Sanitized;
-};
-type VolumeCreate = {
-  "name": Sanitized;
-};
-type VolumeCreated = {
-  "name": Sanitized;
-};
-type VolumeList = {
-  "pattern": Sanitized;
-};
-type RoutineExec = {
-  "imported": Path;
+type Special = SpecialString
+             | SpecialArray
+             ;
+type OnOff = NonEmptyArray<Option>;
+type Parameters = NonEmptyArray<Sanitized>;
+type Print = {
+  "variable"?: Identifier;
+  "format": string;
   "args": Sanitized[];
+};
+type Readonly = NonEmptyArray<Sanitized>;
+type Return = Integer;
+type Skip = Sanitized;
+type _ArithmeticExpr = {
+  "arithmetic": ArithmeticExpr;
+};
+type _Assign = {
+  "assign": Assign;
+};
+type _Capture = {
+  "capture": null;
+};
+type _Restore = {
+  "restore": null;
+};
+type _CaptureRestore = _Capture
+                     | _Restore
+                     ;
+type _Color = {
+  "color": Color;
+};
+type _Harden = {
+  "harden": Harden;
+};
+type _Json = {
+  "json.encode": Json;
+};
+type _Mutate = {
+  "mutate": Mutate;
+};
+type _On = {
+  "on": OnOff;
+};
+type _Off = {
+  "off": OnOff;
+};
+type _OnOff = _On
+            | _Off
+            ;
+type _Parameters = {
+  "parameters": Parameters;
+};
+type _Print = {
+  "print": Print;
+};
+type _Readonly = {
+  "readonly": Readonly;
+};
+type _Register = {
+  "register": Register;
+};
+type _Return = {
+  "return": Return;
+};
+type _Skip = {
+  "skip": Skip;
+};
+type _Source = {
+  "source": Source;
+};
+type _Switch = {
+  "switch": Switch;
 };
 type Call = {
   "command": Sanitized;
   "args": Sanitized[];
   "pipe"?: Group;
 };
-type Harden = {
-  "command": Sanitized;
-  "as"?: Sanitized;
+type Source = Sanitized
+            | Print
+            | Call
+            ;
+type _Call = {
+  "call": Call;
 };
-type If = {
-  "if": LogicalExpr;
-  "then": Group;
-  "else": Else[];
+type Defer = _Module
+           | _Call
+           ;
+type _Defer = {
+  "defer": Defer;
 };
 type InternalCall = {
   "command": string;
   "args": Sanitized[];
   "pipe"?: Group;
 };
-type Coproc = {
-  "name": Identifier;
-  "commands": NonEmptyArray<Command>;
+type _InternalCall = {
+  "call": InternalCall;
 };
-type LogicalExpr = UnaryLogicalExpr
-                 | BinaryLogicalExpr
-                 ;
+type LogicalOperand = LogicalExpr
+                    | Group
+                    ;
 type UnaryLogicalExpr = {
   "operand": LogicalOperand;
   "operator": BinaryLogicalOperator;
-};
-enum UnaryLogicalOperator {
-  Not,
 };
 type BinaryLogicalExpr = {
   "left": LogicalOperand;
   "operator": BinaryLogicalOperator;
   "right": LogicalOperand;
 };
-enum BinaryLogicalOperator {
-  And,
-  Or,
-};
-type LogicalOperand = LogicalExpr
-                    | Group
-                    ;
+type LogicalExpr = UnaryLogicalExpr
+                 | BinaryLogicalExpr
+                 ;
 type Else = If
           | Group
           ;
-type Json = NonEmptyArray<Sanitized>;
-type Loop = Range
-          | Iterator
-          | Conditional
-          ;
+type If = {
+  "if": LogicalExpr;
+  "then": Group;
+  "else": Else[];
+};
 type Range = {
   "initial": ArithmeticExpr;
   "conditional": ArithmeticExpr;
@@ -521,136 +580,81 @@ type Iterator = {
   "into": Iterable;
   "do": Group;
 };
-type Iterable = {
-  "name"?: Identifier; // If null => "${@}"
-  "sub"?: SubArray;
-};
-type SubArray = {
-  "offset": Integer;
-  "length"?: Integer;
-};
 type Conditional = {
   "while": LogicalExpr;
   "do": Group;
 };
-type Mutate = {
-  "name": Mutable;
-  "variables": NonEmptyArray<Sanitized>;
-};
-type Mutable = Identifier
-             | ArrayElement
-             | SpecialString.last
-             ;
-type Special = SpecialString
-             | SpecialArray
-             ;
-type OnOff = NonEmptyArray<Option>;
-enum Option {
-  assoc_expand_once,
-  autocd,
-  cdable_vars,
-  cdspell,
-  checkhash,
-  checkjobs,
-  checkwinsize,
-  cmdhist,
-  compat31,
-  compat32,
-  compat40,
-  compat41,
-  compat42,
-  compat43,
-  compat44,
-  complete_fullquote,
-  direxpand,
-  dirspell,
-  dotglob,
-  execfail,
-  expand_aliases,
-  extdebug,
-  extglob,
-  extquote,
-  failglob,
-  force_fignore,
-  globasciiranges,
-  globstar,
-  gnu_errfmt,
-  histappend,
-  histreedit,
-  histverify,
-  hostcomplete,
-  huponexit,
-  inherit_errexit,
-  interactive_comments,
-  lastpipe,
-  lithist,
-  localvar_inherit,
-  localvar_unset,
-  login_shell,
-  mailwarn,
-  no_empty_cmd_completion,
-  nocaseglob,
-  nocasematch,
-  nullglob,
-  progcomp,
-  progcomp_alias,
-  promptvars,
-  restricted_shell,
-  shift_verbose,
-  sourcepath,
-  xpg_echo,
-  allexport,
-  braceexpand,
-  emacs,
-  errexit,
-  errtrace,
-  functrace,
-  hashall,
-  histexpand,
-  history,
-  ignoreeof,
-  keyword,
-  monitor,
-  noclobber,
-  noexec,
-  noglob,
-  nolog,
-  notify,
-  nounset,
-  onecmd,
-  physical,
-  pipefail,
-  posix,
-  privileged,
-  verbose,
-  vi,
-  xtrace
-};
-type Parameters = NonEmptyArray<Sanitized>;
-type Print = {
-  "variable"?: Identifier;
-  "format": string;
-  "args": Sanitized[];
-};
-type Readonly = NonEmptyArray<Sanitized>;
-type Register = {
-  "variable": Mutable;
-  "subshell": Subshell;
+type Loop = Range
+          | Iterator
+          | Conditional
+          ;
+type _Loop = {
+  "loop": Loop;
 };
 type Subshell = Group
               | ArithmeticExpr
               ;
-type Return = Integer;
-type Skip = Sanitized;
-type Source = Sanitized
-            | Print
-            | Call
-            ;
-type Switch = {
-  "evaluate": Sanitized;
-  "branches": NonEmptyArray<Branch>;
+type Register = {
+  "variable": Mutable;
+  "subshell": Subshell;
+};
+type Coproc = {
+  "name": Identifier;
+  "commands": NonEmptyArray<Command>;
+};
+type _Coproc = {
+  "coproc": Coproc;
+};
+type Internal = _InternalCall
+              | _Coproc
+              ;
+type _Internal = {
+  "internal": Internal;
 };
 type Branch = {
   "pattern": Sanitized;
   "commands": NonEmptyArray<Command>;
+};
+type Switch = {
+  "evaluate": Sanitized;
+  "branches": NonEmptyArray<Branch>;
+};
+type Command = _ArithmeticExpr
+             | _Assign
+             | _CaptureRestore
+             | _Color
+             | _Defer
+             | _Define
+             | Group
+             | _Harden
+             | If
+             | _Internal
+             | _Json
+             | _Loop
+             | _Mutate
+             | _OnOff
+             | _Parameters
+             | _Print
+             | _Readonly
+             | _Register
+             | _Return
+             | _Skip
+             | _Source
+             | _Switch
+             | _Call
+             | _Module
+             ;
+type Group = {
+  "redirections": Redirection[];
+  "commands": NonEmptyArray<Command>;
+};
+type Define = {
+  "name": Identifier;
+  "body": Group;
+};
+type _Define = {
+  "define": Define;
+};
+type Routine = {
+  "routine": Group;
 };
