@@ -1,20 +1,18 @@
 type Routine = {
-  routine: Group;
+  "routine": Group;
 };
 type Group = {
-  redirections: Redirection[];
-  commands: NotEmptyCommandArray;
+  "redirections": Redirection[];
+  "commands": NonEmptyArray<Command>;
 };
-function NotEmptyCommandArray(a: Command[]) void {
-  assert(a.length > 0);
-}
+type NonEmptyArray<T> = T[] & { __brand: 'NonEmptyArray' };
 type Redirection = Input
                  | Output
                  ;
 type Input = Sanitized;
 type Sanitized = Literal
                | Char
-               | Variable
+               | Identifier
                | ArrayElement
                | Parameter
                | SpecialString
@@ -23,23 +21,17 @@ type Sanitized = Literal
                | InternalLiteral
                ;
 type Literal = string;
-function Char(s: string) void {
-  assert(s.length == 1);
-}
+type Char = string & { __brand: 'SingleChar' };
 type ArrayElement = {
-  name: Variable;
-  reference: Reference;
+  "name": Identifier;
+  "reference": Reference;
 };
 type Reference = Integer
                | Key
                ;
-function Integer(n: number) void {
-  assert(n.isInteger());
-}
+type Integer = number & { __brand: 'Integer' };
 type Key = string;
-function Parameter(i: Integer) void {
-  assert(i >= 0);
-}
+type Parameter = number & { __brand: 'NonNegativeInteger' };
 enum SpecialString {
   last,
   FUNCNAME,
@@ -52,22 +44,20 @@ enum SpecialArray {
   sep
 };
 type SpecialArrayElement = {
-  name: SpecialArray;
-  reference: Reference;
+  "name": SpecialArray;
+  "reference": Reference;
 };
 type Path = string;
 type InternalLiteral = string;
 type Output = {
-  left: FileDescriptor;
-  appending: boolean;
-  right: File;
+  "left": FileDescriptor;
+  "appending": boolean;
+  "right": File;
 };
-function FileDescriptor(i: Integer) void {
-  assert(i > 0);
-}
+type FileDescriptor = number & { __brand: 'PositiveInteger' };
 type File = Path
           | FileDescriptor
-          | Variable
+          | Identifier
           | ArrayElement
           ;
 type Command = _ArithmeticExpr
@@ -96,88 +86,88 @@ type Command = _ArithmeticExpr
              | _Module
              ;
 type _ArithmeticExpr = {
-  arithmetic: ArithmeticExpr;
+  "arithmetic": ArithmeticExpr;
 };
 type _Assign = {
-  assign: Assign;
+  "assign": Assign;
 };
 type _CaptureRestore = _Capture
                      | _Restore
                      ;
 type _Capture = {
-  capture: null;
+  "capture": null;
 };
 type _Restore = {
-  restore: null;
+  "restore": null;
 };
 type _Color = {
-  color: Color;
+  "color": Color;
 };
 type _Defer = {
-  defer: Defer;
+  "defer": Defer;
 };
 type _Define = {
-  define: Define;
+  "define": Define;
 };
 type _Harden = {
-  harden: Harden;
+  "harden": Harden;
 };
 type _Internal = {
-  internal: Internal;
+  "internal": Internal;
 };
 type Internal = _InternalCall
               | _Coproc
               ;
 type _InternalCall = {
-  call: InternalCall;
+  "call": InternalCall;
 };
 type _Coproc = {
-  coproc: Coproc;
+  "coproc": Coproc;
 };
 type _Json = {
-  json.encode: Json;
+  "json.encode": Json;
 };
 type _Loop = {
-  loop: Loop;
+  "loop": Loop;
 };
 type _Mutate = {
-  mutate: Mutate;
+  "mutate": Mutate;
 };
 type _OnOff = _On
             | _Off
             ;
 type _On = {
-  on: OnOff;
+  "on": OnOff;
 };
 type _Off = {
-  off: OnOff;
+  "off": OnOff;
 };
 type _Parameters = {
-  parameters: Parameters;
+  "parameters": Parameters;
 };
 type _Print = {
-  print: Print;
+  "print": Print;
 };
 type _Readonly = {
-  readonly: Readonly;
+  "readonly": Readonly;
 };
 type _Register = {
-  register: Register;
+  "register": Register;
 };
 type _Return = {
-  return: Return;
+  "return": Return;
 };
 type _Skip = {
-  skip: Skip;
+  "skip": Skip;
 };
 type _Source = {
-  source: Source;
+  "source": Source;
 };
 type _Switch = {
-  switch: Switch;
+  "switch": Switch;
 };
 type _Call = {
-  call: Call;
+  "call": Call;
 };
 type _Module = _ImageBuilderPrune
              | _ImageTagDefined
@@ -209,94 +199,94 @@ type _Module = _ImageBuilderPrune
              | _RoutineExec
              ;
 type _ImageBuilderPrune = {
-  image.builder.prune: ImageBuilderPrune;
+  "image.builder.prune": ImageBuilderPrune;
 };
 type _ImageTagDefined = {
-  image.tag.defined: ImageTagDefined;
+  "image.tag.defined": ImageTagDefined;
 };
 type _ImageTagCreate = {
-  image.tag.create: ImageTagCreate;
+  "image.tag.create": ImageTagCreate;
 };
 type _ImageTagCompute = {
-  image.tag.compute: ImageTagCompute;
+  "image.tag.compute": ImageTagCompute;
 };
 type _ImageBuild = {
-  image.build: ImageBuild;
+  "image.build": ImageBuild;
 };
 type _ImageMerge = {
-  image.merge: ImageMerge;
+  "image.merge": ImageMerge;
 };
 type _ImagePrune = {
-  image.prune: ImagePrune;
+  "image.prune": ImagePrune;
 };
 type _ImagePull = {
-  image.pull: ImagePull;
+  "image.pull": ImagePull;
 };
 type _ImageRemove = {
-  image.remove: ImageRemove;
+  "image.remove": ImageRemove;
 };
 type _ContainerResourceCopy = {
-  container.resource.copy: ContainerResourceCopy;
+  "container.resource.copy": ContainerResourceCopy;
 };
 type _ContainerStatusGet = {
-  container.status.get: ContainerStatusGet;
+  "container.status.get": ContainerStatusGet;
 };
 type _ContainerStatusCreated = {
-  container.status.created: ContainerStatusCreated;
+  "container.status.created": ContainerStatusCreated;
 };
 type _ContainerStatusRunning = {
-  container.status.running: ContainerStatusRunning;
+  "container.status.running": ContainerStatusRunning;
 };
 type _ContainerStatusHealthy = {
-  container.status.healthy: ContainerStatusHealthy;
+  "container.status.healthy": ContainerStatusHealthy;
 };
 type _ContainerCreate = {
-  container.create: ContainerCreate;
+  "container.create": ContainerCreate;
 };
 type _ContainerExec = {
-  container.exec: ContainerExec;
+  "container.exec": ContainerExec;
 };
 type _ContainerStart = {
-  container.start: ContainerStart;
+  "container.start": ContainerStart;
 };
 type _ContainerStop = {
-  container.stop: ContainerStop;
+  "container.stop": ContainerStop;
 };
 type _NetworkIpGet = {
-  network.ip.get: NetworkIpGet;
+  "network.ip.get": NetworkIpGet;
 };
 type _NetworkCreate = {
-  network.create: NetworkCreate;
+  "network.create": NetworkCreate;
 };
 type _NetworkCreated = {
-  network.created: NetworkCreated;
+  "network.created": NetworkCreated;
 };
 type _NetworkConnect = {
-  network.connect: NetworkConnect;
+  "network.connect": NetworkConnect;
 };
 type _NetworkDisconnect = {
-  network.disconnect: NetworkDisconnect;
+  "network.disconnect": NetworkDisconnect;
 };
 type _NetworkList = {
-  network.list: NetworkList;
+  "network.list": NetworkList;
 };
 type _VolumeCreate = {
-  volume.create: VolumeCreate;
+  "volume.create": VolumeCreate;
 };
 type _VolumeCreated = {
-  volume.created: VolumeCreated;
+  "volume.created": VolumeCreated;
 };
 type _VolumeList = {
-  volume.list: VolumeList;
+  "volume.list": VolumeList;
 };
 type _RoutineExec = {
-  routine.exec: RoutineExec;
+  "routine.exec": RoutineExec;
 };
 type ArithmeticExpr = BinaryArithmeticExpr;
 type BinaryArithmeticExpr = {
-  left: ArithmeticOperand;
-  operator: BinaryArithmeticOperator;
-  right: ArithmeticOperand;
+  "left": ArithmeticOperand;
+  "operator": BinaryArithmeticOperator;
+  "right": ArithmeticOperand;
 };
 // TODO: more arithmetic operators
 enum BinaryArithmeticOperator {
@@ -314,18 +304,15 @@ enum BinaryArithmeticOperator {
 };
 type ArithmeticOperand = Integer
                        | Parameter
-                       | Variable
+                       | Identifier
                        | ArrayElement
                        | ArithmeticExpr
                        ;
 type Assign = {
-  scope: Scope;
-  type: Type;
-  variables: NotEmptySanitizedArray;
+  "scope": Scope;
+  "type": Type;
+  "variables": NonEmptyArray<Sanitized>;
 };
-function NotEmptySanitizedArray(a: Sanitized[]) void {
-  assert(a.length > 0);
-}
 enum Scope {
   Local,
   Global
@@ -337,181 +324,176 @@ enum Type {
   Reference
 };
 type Color = {
-  index: Integer;
-  variable: Sanitized;
+  "index": Integer;
+  "variable": Sanitized;
 };
 type Defer = _Module
            | _Call
            ;
 type Define = {
-  name: Variable;
-  body: Group;
+  "name": Identifier;
+  "body": Group;
 };
-function Variable(s: string) void {
-  assert(s.match("/[a-zA-Z_][a-zA-Z0-9_]*/"));
-}
+type Identifier = string & { __brand: 'IdentifierString' };
 type ImageBuilderPrune = {};
 type ImageTagDefined = {
-  image: Sanitized;
-  tag: Sanitized;
+  "image": Sanitized;
+  "tag": Sanitized;
 };
 type ImageTagCreate = {
-  from: Image;
-  to: Image;
+  "from": Image;
+  "to": Image;
 };
 type Image = {
-  image: Sanitized;
-  tag: Sanitized;
+  "image": Sanitized;
+  "tag": Sanitized;
 };
 type ImageTagCompute = {
-  input: NotEmptyContextArray;
+  "input": NonEmptyArray<Context>;
 };
-function NotEmptyContextArray(a: Context[]) void {
-  assert(a.length > 0);
-}
 type Context = {
-  path: Sanitized;
-  args: BuildArg[];
+  "path": Sanitized;
+  "args": BuildArg[];
 };
 type BuildArg = {
-  name: Variable;
-  value: Sanitized;
+  "name": Identifier;
+  "value": Sanitized;
 };
 type ImageBuild = {
-  image: Sanitized;
-  tag: Sanitized;
-  context: Context;
+  "image": Sanitized;
+  "tag": Sanitized;
+  "context": Context;
 };
 type ImageMerge = {
-  image: Sanitized;
-  tag: Sanitized;
-  base: Sanitized;
-  chain: NotEmptyContextArray;
+  "image": Sanitized;
+  "tag": Sanitized;
+  "base": Sanitized;
+  "chain": NonEmptyArray<Context>;
 };
 type ImagePrune = {
-  pattern: Sanitized;
+  "pattern": Sanitized;
 };
 type ImagePull = {
-  registry: Sanitized;
-  library: Sanitized;
-  image: Sanitized;
-  tag: Sanitized;
+  "registry": Sanitized;
+  "library": Sanitized;
+  "image": Sanitized;
+  "tag": Sanitized;
 };
 type ImageRemove = {
-  image: Sanitized;
-  tag: Sanitized;
+  "image": Sanitized;
+  "tag": Sanitized;
 };
 type ContainerResourceCopy = {
-  name: Sanitized;
-  source: Sanitized;
-  target: Sanitized;
+  "name": Sanitized;
+  "source": Sanitized;
+  "target": Sanitized;
 };
 type ContainerStatusGet = {
-  name: Sanitized;
+  "name": Sanitized;
 };
 type ContainerStatusCreated = {
-  name: Sanitized;
+  "name": Sanitized;
 };
 type ContainerStatusRunning = {
-  name: Sanitized;
+  "name": Sanitized;
 };
 type ContainerStatusHealthy = {
-  name: Sanitized;
+  "name": Sanitized;
 };
 type ContainerCreate = {
-  name: Sanitized;
-  image: Sanitized;
-  hostname: Sanitized;
-  volumes: Volume[];
+  "name": Sanitized;
+  "image": Sanitized;
+  "hostname": Sanitized;
+  "volumes": Volume[];
 };
 type Volume = {
-  source: Sanitized;
-  target: Sanitized;
+  "source": Sanitized;
+  "target": Sanitized;
 };
 type ContainerExec = {
-  name: Sanitized;
-  detached: Sanitized;
-  user: Sanitized;
-  command: NotEmptySanitizedArray;
+  "name": Sanitized;
+  "detached": Sanitized;
+  "user": Sanitized;
+  "command": NonEmptyArray<Sanitized>;
 };
 type ContainerStart = {
-  name: Sanitized;
+  "name": Sanitized;
 };
 type ContainerStop = {
-  name: Sanitized;
+  "name": Sanitized;
 };
 type NetworkIpGet = {
-  container: Sanitized;
-  network: Sanitized;
+  "container": Sanitized;
+  "network": Sanitized;
 };
 type NetworkCreate = {
-  name: Sanitized;
-  isolated: Sanitized;
+  "name": Sanitized;
+  "isolated": Sanitized;
 };
 type NetworkCreated = {
-  name: Sanitized;
+  "name": Sanitized;
 };
 type NetworkConnect = {
-  container: Sanitized;
-  network: Sanitized;
+  "container": Sanitized;
+  "network": Sanitized;
 };
 type NetworkDisconnect = {
-  container: Sanitized;
-  network: Sanitized;
+  "container": Sanitized;
+  "network": Sanitized;
 };
 type NetworkList = {
-  pattern: Sanitized;
+  "pattern": Sanitized;
 };
 type VolumeCreate = {
-  name: Sanitized;
+  "name": Sanitized;
 };
 type VolumeCreated = {
-  name: Sanitized;
+  "name": Sanitized;
 };
 type VolumeList = {
-  pattern: Sanitized;
+  "pattern": Sanitized;
 };
 type RoutineExec = {
-  imported: Path;
-  args: Sanitized[];
+  "imported": Path;
+  "args": Sanitized[];
 };
 type Call = {
-  command: Sanitized;
-  args: Sanitized[];
-  pipe?: Group;
+  "command": Sanitized;
+  "args": Sanitized[];
+  "pipe"?: Group;
 };
 type Harden = {
-  command: Sanitized;
-  as?: Sanitized;
+  "command": Sanitized;
+  "as"?: Sanitized;
 };
 type If = {
-  if: LogicalExpr;
-  then: Group;
-  else: Else[];
+  "if": LogicalExpr;
+  "then": Group;
+  "else": Else[];
 };
 type InternalCall = {
-  command: string;
-  args: Sanitized[];
-  pipe?: Group;
+  "command": string;
+  "args": Sanitized[];
+  "pipe"?: Group;
 };
 type Coproc = {
-  name: Variable;
-  commands: NotEmptyCommandArray;
+  "name": Identifier;
+  "commands": NonEmptyArray<Command>;
 };
 type LogicalExpr = UnaryLogicalExpr
                  | BinaryLogicalExpr
                  ;
 type UnaryLogicalExpr = {
-  operand: LogicalOperand;
-  operator: BinaryLogicalOperator;
+  "operand": LogicalOperand;
+  "operator": BinaryLogicalOperator;
 };
 enum UnaryLogicalOperator {
   Not,
 };
 type BinaryLogicalExpr = {
-  left: LogicalOperand;
-  operator: BinaryLogicalOperator;
-  right: LogicalOperand;
+  "left": LogicalOperand;
+  "operator": BinaryLogicalOperator;
+  "right": LogicalOperand;
 };
 enum BinaryLogicalOperator {
   And,
@@ -523,52 +505,46 @@ type LogicalOperand = LogicalExpr
 type Else = If
           | Group
           ;
-type Json = NotEmptySanitizedArray;
+type Json = NonEmptyArray<Sanitized>;
 type Loop = Range
           | Iterator
           | Conditional
           ;
 type Range = {
-  initial: ArithmeticExpr;
-  conditional: ArithmeticExpr;
-  update: ArithmeticExpr;
-  do: Group;
+  "initial": ArithmeticExpr;
+  "conditional": ArithmeticExpr;
+  "update": ArithmeticExpr;
+  "do": Group;
 };
 type Iterator = {
-  for: Variable;
-  into: Iterable;
-  do: Group;
+  "for": Identifier;
+  "into": Iterable;
+  "do": Group;
 };
 type Iterable = {
-  name?: Variable; // If null => "${@}"
-  sub?: SubArray;
+  "name"?: Identifier; // If null => "${@}"
+  "sub"?: SubArray;
 };
 type SubArray = {
-  offset: Integer;
-  length?: Integer;
+  "offset": Integer;
+  "length"?: Integer;
 };
 type Conditional = {
-  while: LogicalExpr;
-  do: Group;
+  "while": LogicalExpr;
+  "do": Group;
 };
 type Mutate = {
-  name: Mutable;
-  variables: NotEmptySanitizedArray;
+  "name": Mutable;
+  "variables": NonEmptyArray<Sanitized>;
 };
-type Mutable = Variable
+type Mutable = Identifier
              | ArrayElement
-             | Last
+             | SpecialString.last
              ;
-function Last(s: Special) void {
-  assert(s.valueOf() === Special.last.valueOf());
-}
 type Special = SpecialString
              | SpecialArray
              ;
-type OnOff = NotEmptyOptionArray;
-function NotEmptyOptionArray(a: Option[]) void {
-  assert(a.length > 0);
-}
+type OnOff = NonEmptyArray<Option>;
 enum Option {
   assoc_expand_once,
   autocd,
@@ -650,16 +626,16 @@ enum Option {
   vi,
   xtrace
 };
-type Parameters = NotEmptySanitizedArray;
+type Parameters = NonEmptyArray<Sanitized>;
 type Print = {
-  variable?: Variable;
-  format: string;
-  args: Sanitized[];
+  "variable"?: Identifier;
+  "format": string;
+  "args": Sanitized[];
 };
-type Readonly = NotEmptySanitizedArray;
+type Readonly = NonEmptyArray<Sanitized>;
 type Register = {
-  variable: Mutable;
-  subshell: Subshell;
+  "variable": Mutable;
+  "subshell": Subshell;
 };
 type Subshell = Group
               | ArithmeticExpr
@@ -671,13 +647,10 @@ type Source = Sanitized
             | Call
             ;
 type Switch = {
-  evaluate: Sanitized;
-  branches: NotEmptyBranchArray;
+  "evaluate": Sanitized;
+  "branches": NonEmptyArray<Branch>;
 };
-function NotEmptyBranchArray(a: Branch[]) void {
-  assert(a.length > 0);
-}
 type Branch = {
-  pattern: Sanitized;
-  commands: NotEmptyCommandArray;
+  "pattern": Sanitized;
+  "commands": NonEmptyArray<Command>;
 };

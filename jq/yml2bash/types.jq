@@ -9,6 +9,13 @@ def isFieldFromEnum(fields): (
   (fields | contains([$input]))
 );
 
+def isNonEmptyArray(function): (
+  (type == "array") and
+  (length > 0) and
+  (function | type == "boolean") and
+  (map(function) | all)
+);
+
 def isLiteral: (type == "string");
 
 def isChar: (
@@ -16,7 +23,7 @@ def isChar: (
   (length == 1)
 );
 
-def isVariable: (
+def isIdentifier: (
   (type == "string") and
   test("^[a-zA-Z_][a-zA-Z0-9_]*$")
 );
@@ -38,7 +45,7 @@ def isArrayElement: (
   has("name") and
   has("reference") and
   (length == 2) and
-  (.name | isVariable) and
+  (.name | isIdentifier) and
   (.reference | isReference)
 );
 
@@ -79,7 +86,7 @@ def isInternalLiteral: (type == "string");
 def isSanitized: (
   isLiteral or
   isChar or
-  isVariable or
+  isIdentifier or
   isArrayElement or
   isParameter or
   isSpecialString or
@@ -91,7 +98,7 @@ def isSanitized: (
 def isArithmeticOperand: (
   isInteger or
   isParameter or
-  isVariable or
+  isIdentifier or
   isArrayElement or
   isArithmeticExpr
 );
@@ -150,12 +157,6 @@ def isType: (
   ])
 );
 
-def isNotEmptySanitizedArray: (
-  (type == "array") and
-  (length > 0) and
-  (map(isSanitized) | all)
-);
-
 def isAssign: (
   (type == "object") and
   has("scope") and
@@ -164,7 +165,7 @@ def isAssign: (
   (length == 3) and
   (.scope | isScope) and
   (.type | isType) and
-  (.variables | isNotEmptySanitizedArray)
+  (.variables | isNonEmptyArray(Sanitized))
 );
 
 def is_Assign: (
@@ -226,7 +227,7 @@ def isDefine: (
   has("name") and
   has("body") and
   (length == 2) and
-  (.name | isVariable) and
+  (.name | isIdentifier) and
   (.body | isGroup)
 );
 
@@ -324,12 +325,6 @@ def isCommand: (
   is_Module
 );
 
-def isNotEmptyCommandArray: (
-  (type == "array") and
-  (length > 0) and
-  (map(isCommand) | all)
-);
-
 def isInput: (
   isSanitized
 );
@@ -342,7 +337,7 @@ def isFileDescriptor: (
 def isFile: (
   isPath or
   isFileDescriptor or
-  isVariable or
+  isIdentifier or
   isArrayElement
 }
 
@@ -373,7 +368,7 @@ def isGroup: (
   has("commands") and
   (length == 2) and
   (.redirections | isRedirectionArray) and
-  (.commands | isNotEmptyCommandArray)
+  (.commands | isNonEmptyArray(Command))
 );
 
 def isRoutine: {
@@ -576,17 +571,14 @@ def isRoutine: {
 #   tag: Sanitized;
 # };
 # type ImageTagCompute = {
-#   input: NotEmptyContextArray;
+#   input: NonEmptyArray(Context);
 # };
-# function NotEmptyContextArray(a: Context[]) void {
-#   assert(a.length > 0);
-# }
 # type Context = {
 #   path: Sanitized;
 #   args: BuildArg[];
 # };
 # type BuildArg = {
-#   name: Variable;
+#   name: Identifier;
 #   value: Sanitized;
 # };
 # type ImageBuild = {
@@ -598,7 +590,7 @@ def isRoutine: {
 #   image: Sanitized;
 #   tag: Sanitized;
 #   base: Sanitized;
-#   chain: NotEmptyContextArray;
+#   chain: NonEmptyArray(Context);
 # };
 # type ImagePrune = {
 #   pattern: Sanitized;
@@ -644,7 +636,7 @@ def isRoutine: {
 #   name: Sanitized;
 #   detached: Sanitized;
 #   user: Sanitized;
-#   command: NotEmptySanitizedArray;
+#   command: NonEmptyArray(Sanitized);
 # };
 # type ContainerStart = {
 #   name: Sanitized;
@@ -710,8 +702,8 @@ def isRoutine: {
 #   pipe?: Group;
 # };
 # type Coproc = {
-#   name: Variable;
-#   commands: NotEmptyCommandArray;
+#   name: Identifier;
+#   commands: NonEmptyArray(Command);
 # };
 # type LogicalExpr = UnaryLogicalExpr
 #                  | BinaryLogicalExpr
@@ -738,7 +730,7 @@ def isRoutine: {
 # type Else = If
 #           | Group
 #           ;
-# type Json = NotEmptySanitizedArray;
+# type Json = NonEmptyArray(Sanitized);
 # type Loop = Range
 #           | Iterator
 #           | Conditional
@@ -750,12 +742,12 @@ def isRoutine: {
 #   do: Group;
 # };
 # type Iterator = {
-#   for: Variable;
+#   for: Identifier;
 #   into: Iterable;
 #   do: Group;
 # };
 # type Iterable = {
-#   name?: Variable; // If null => "${@}"
+#   name?: Identifier; // If null => "${@}"
 #   sub?: SubArray;
 # };
 # type SubArray = {
@@ -768,22 +760,16 @@ def isRoutine: {
 # };
 # type Mutate = {
 #   name: Mutable;
-#   variables: NotEmptySanitizedArray;
+#   variables: NonEmptyArray(Sanitized);
 # };
-# type Mutable = Variable
+# type Mutable = Identifier
 #              | ArrayElement
-#              | Last
+#              | SpecialString.last
 #              ;
-# function Last(s: Special) void {
-#   assert(s.valueOf() === Special.last.valueOf());
-# }
 # type Special = SpecialString
 #              | SpecialArray
 #              ;
-# type OnOff = NotEmptyOptionArray;
-# function NotEmptyOptionArray(a: Option[]) void {
-#   assert(a.length > 0);
-# }
+# type OnOff = NonEmptyArray(Option);
 # enum Option {
 #   assoc_expand_once,
 #   autocd,
@@ -865,13 +851,13 @@ def isRoutine: {
 #   vi,
 #   xtrace
 # };
-# type Parameters = NotEmptySanitizedArray;
+# type Parameters = NonEmptyArray(Sanitized);
 # type Print = {
-#   variable?: Variable;
+#   variable?: Identifier;
 #   format: string;
 #   args: Sanitized[];
 # };
-# type Readonly = NotEmptySanitizedArray;
+# type Readonly = NonEmptyArray(Sanitized);
 # type Register = {
 #   variable: Mutable;
 #   subshell: Subshell;
@@ -887,12 +873,9 @@ def isRoutine: {
 #             ;
 # type Switch = {
 #   evaluate: Sanitized;
-#   branches: NotEmptyBranchArray;
+#   branches: NonEmptyArray(Branch);
 # };
-# function NotEmptyBranchArray(a: Branch[]) void {
-#   assert(a.length > 0);
-# }
 # type Branch = {
 #   pattern: Sanitized;
-#   commands: NotEmptyCommandArray;
+#   commands: NonEmptyArray(Command);
 # };
