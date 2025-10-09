@@ -188,7 +188,7 @@ type DereferencedVariable = {
   "string_expansion"?: StringExpansion;
 };
 type DereferencedSpecial = {
-  "name": Special;
+  "special": Special;
   "array_expansion"?: ArrayExpansion;
   "string_expansion"?: StringExpansion;
 };

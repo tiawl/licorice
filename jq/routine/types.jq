@@ -351,8 +351,8 @@ def isRoutine: (
 
   def isDereferencedSpecial: (
     (type == "object") and
-    has("name") and
-    (.name | isSpecial) and
+    has("special") and
+    (.special | isSpecial) and
     (
       (
         (length == 3) and

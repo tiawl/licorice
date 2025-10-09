@@ -1,6 +1,6 @@
 #! /usr/bin/env --split-string gojq --from-file
 
-def internals(level): (
+def internals: (
   [
     {
       define: {
@@ -100,43 +100,40 @@ def internals(level): (
         }
       }
     }
-  ] | map(define(level; $MODE.internal; false; false)) | join("")
+  ] | map(internal_define) | join("")
 );
 
-def main(level): (
+def root: (
   {
-    define: {
-      name: "main",
-      group: {
-        commands: (
-          [
-            {on: [[{literal: "errexit"}], [{literal: "inherit_errexit"}], [{literal: "errtrace"}], [{literal: "functrace"}], [{literal: "noclobber"}], [{literal: "nounset"}], [{literal: "pipefail"}], [{literal: "lastpipe"}], [{literal: "extglob"}]]},
-            {raw: {command: ($EXE + $NAMESPACE.sep + "core" + $NAMESPACE.sep + "init"), args: []}},
-            {assign: {vars: [[{literal: "USER"}], [{literal: "HOME"}], [{literal: "ROUTINE"}]], scope: "global"}},
-            {
-              register: {
-                group: {commands: [{skip: [[{literal: "\\u"}]]}, {print: {format: "%s", args: [[{special: "last", "prompt": true}]]}}]},
-                into: {special: "last"}
-              }
-            },
-            {mutate: {name: {var: "USER"}, value: [[{special: "USER", default: [{special: "last"}]}]]}},
-            {print: {format: "%s", var: "HOME", args: [[{char: "tilde"}]]}},
-            {mutate: {name: {var: "ROUTINE"}, value: [[{literal: $ROUTINE}]]}},
-            {readonly: [[{literal: "USER"}], [{literal: "HOME"}], [{literal: "ROUTINE"}]]},
-            {initialized: true}
-          ] + .group.commands
-        )
-      }
+    routine: {
+      commands: (
+        [
+          {on: [[{literal: "errexit"}], [{literal: "inherit_errexit"}], [{literal: "errtrace"}], [{literal: "functrace"}], [{literal: "noclobber"}], [{literal: "nounset"}], [{literal: "pipefail"}], [{literal: "lastpipe"}], [{literal: "extglob"}]]},
+          {raw: {command: ($EXE + $NAMESPACE.sep + "core" + $NAMESPACE.sep + "init"), args: []}},
+          {assign: {vars: [[{literal: "USER"}], [{literal: "HOME"}], [{literal: "ROUTINE"}]], scope: "global"}},
+          {
+            register: {
+              group: {commands: [{skip: [[{literal: "\\u"}]]}, {print: {format: "%s", args: [[{special: "last", "prompt": true}]]}}]},
+              into: {special: "last"}
+            }
+          },
+          {mutate: {name: {var: "USER"}, value: [[{special: "USER", default: [{special: "last"}]}]]}},
+          {print: {format: "%s", var: "HOME", args: [[{char: "tilde"}]]}},
+          {mutate: {name: {var: "ROUTINE"}, value: [[{literal: $ROUTINE}]]}},
+          {readonly: [[{literal: "USER"}], [{literal: "HOME"}], [{literal: "ROUTINE"}]]},
+          {initialized: true}
+        ] + .group.commands
+      )
     }
-  } | define(level; $MODE.internal; false; false)
+  } | routine
 );
 
 def write: (
-  -1 as $level |
+  . as $input | isRoutine |
   $FUNCTIONS + "\n" +
-  internals($level) +
-  main($level) +
-  $NAMESPACE.fn.internal + "main \"${@}\""
+  internals +
+  $input | root +
+  $NAMESPACE.fn.internal + "root \"${@}\""
 );
 
 write

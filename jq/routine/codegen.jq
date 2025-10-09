@@ -955,3 +955,16 @@ def define(level; mode; nested_register; user_defined): (
       ((if (user_defined) then $NAMESPACE.fn.user else $NAMESPACE.fn.internal end) + .name + " ()\n") | indent(level)
     ) + $group + "\n"
 );
+
+def internal_define: (
+  define(-1; $MODE.internal; false; false)
+);
+
+def routine: (
+  {
+    define: {
+      name: "root",
+      group: .routine
+    }
+  } | internal_define
+);

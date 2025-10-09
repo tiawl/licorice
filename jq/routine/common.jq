@@ -47,7 +47,7 @@ def exit: (
 );
 
 def debug_var(varname): (
-  if (varname | type != "string") then (
+  if (varname | type != $JSON.TYPE.STRING) then (
     "debug_empty takes only 1 arg" | exit
   ) else . end |
   debug(varname + " = \(.)")

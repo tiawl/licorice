@@ -19,7 +19,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
 
     # TODO: refactore and gather slurpfiles
     json="$(json::from::yaml '.' "${filepath}")"
-    inv="$(json::program --slurpfile ROUTINE_JSON <(print '%s' "${json}") --slurpfile ROUTINE_INV <(print '%s' "${inv:-"{\"inventory\": {}}"}") "${jq[yml2bash/common]}"'
+    inv="$(json::program --slurpfile ROUTINE_JSON <(print '%s' "${json}") --slurpfile ROUTINE_INV <(print '%s' "${inv:-"{\"inventory\": {}}"}") "${jq[routine/common]}"'
       (if ($ROUTINE_JSON | type == "array") then $ROUTINE_JSON[0] else $ROUTINE_JSON end) as $ROUTINE_JSON |
       (if ($ROUTINE_INV | type == "array") then $ROUTINE_INV[0] else $ROUTINE_INV end) as $ROUTINE_INV |
       $ROUTINE_JSON |
@@ -36,9 +36,9 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     json="$(json::program --slurpfile ROUTINE_JSON <(print '%s' "${json}") --slurpfile ROUTINE_INV <(print '%s' "${inv}") '
       (if ($ROUTINE_JSON | type == "array") then $ROUTINE_JSON[0] else $ROUTINE_JSON end) as $ROUTINE_JSON |
       (if ($ROUTINE_INV | type == "array") then $ROUTINE_INV[0] else $ROUTINE_INV end) as $ROUTINE_INV |
-      $ROUTINE_JSON * $ROUTINE_INV | '"${jq[yml2bash/common]}${jq[yml2bash/replacer]}")"
+      $ROUTINE_JSON * $ROUTINE_INV | '"${jq[routine/common]}${jq[routine/replacer]}")"
 
-    source /proc/self/fd/0 <<< "$(json::program --slurpfile ROUTINE_JSON <(print '%s' "${json}") --slurpfile ROUTINE_IMPORT <(print '{"import": %s}' "${import:-"{}"}") --arg ROOT "$(path::dir "${filepath}")/" "${jq[yml2bash/common]}"'
+    source /proc/self/fd/0 <<< "$(json::program --slurpfile ROUTINE_JSON <(print '%s' "${json}") --slurpfile ROUTINE_IMPORT <(print '{"import": %s}' "${import:-"{}"}") --arg ROOT "$(path::dir "${filepath}")/" "${jq[routine/common]}"'
       (if ($ROUTINE_JSON | type == "array") then $ROUTINE_JSON[0] else $ROUTINE_JSON end) as $ROUTINE_JSON |
       (if ($ROUTINE_IMPORT | type == "array") then $ROUTINE_IMPORT[0] else $ROUTINE_IMPORT end) as $ROUTINE_IMPORT |
       $ROUTINE_JSON |
@@ -65,12 +65,11 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
 
   readonly inv import
 
-  #json::filter "${jq[yml2bash/common]}${jq[yml2bash/types]}${jq[yml2bash/codegen]}${jq[yml2bash/writer]}" --arg NAMESPACE_SEP "${sep[namespace]}" --arg EXE "${exe}" --arg BACKEND "${backend}" --rawfile FUNCTIONS <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \
-  json::filter "${jq[yml2bash/common]}${jq[yml2bash/codegen]}${jq[yml2bash/writer]}" --arg NAMESPACE_SEP "${sep[namespace]}" --arg EXE "${exe}" --arg BACKEND "${backend}" --rawfile FUNCTIONS <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \
+  json::filter "${jq[routine/common]}${jq[routine/types]}${jq[routine/codegen]}${jq[routine/writer]}" --arg NAMESPACE_SEP "${sep[namespace]}" --arg EXE "${exe}" --arg BACKEND "${backend}" --rawfile FUNCTIONS <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \
     <<< "$(json::from::yaml --arg ROOT "$(path::normalized "$(path::dir "${1}")")/" --slurpfile ROUTINE_INV <(print '%s' "${inv}") --slurpfile ROUTINE_IMPORT <(print '{"import": %s}' "${import}") '
             (if ($ROUTINE_IMPORT | type == "array") then $ROUTINE_IMPORT[0] else $ROUTINE_IMPORT end) as $ROUTINE_IMPORT |
             (if ($ROUTINE_INV | type == "array") then $ROUTINE_INV[0] else $ROUTINE_INV end) as $ROUTINE_INV |
-            . * $ROUTINE_IMPORT * $ROUTINE_INV | '"${jq[yml2bash/common]}${jq[yml2bash/replacer]}"' |
+            . * $ROUTINE_IMPORT * $ROUTINE_INV | '"${jq[routine/common]}${jq[routine/replacer]}"' |
             .group |= walk(
               if (type == "object") then (
                 with_entries(
