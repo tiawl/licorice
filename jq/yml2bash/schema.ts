@@ -1,5 +1,4 @@
 // Schema file to describe formally types encountered into routine files
-type Char = string & { __brand: 'SingleChar' };
 type FileDescriptor = number & { __brand: 'PositiveInteger' };
 type Identifier = string & { __brand: 'IdentifierString' };
 type Integer = number & { __brand: 'Integer' };
@@ -8,16 +7,24 @@ type Key = string;
 type Literal = string;
 type NonEmptyArray<T> = T[] & { __brand: 'NonEmptyArray' };
 type Parameter = number & { __brand: 'NonNegativeInteger' };
+type NoSpace = string & { __brand: 'NoSpaceString' };
 type Path = string;
-enum SpecialString {
+type Regex = string;
+type Empty = {};
+enum Char {
+  asterisk,
+  tilde,
+  atsign,
+  newline
+};
+enum Special {
   last,
   FUNCNAME,
   USER,
   UID,
   HOME,
-  ROUTINE
-};
-enum SpecialArray {
+  ROUTINE,
+  at_parameters,
   sep
 };
 // TODO: more arithmetic operators
@@ -132,32 +139,77 @@ enum Option {
   vi,
   xtrace
 };
-type Reference = Integer
-               | Key
-               ;
-type ArrayElement = {
+type ArrayReference = Integer
+                    | Key
+                    ;
+type ArrayIdentifier = {
   "name": Identifier;
-  "reference": Reference;
+  "reference": ArrayReference;
 };
-type SpecialArrayElement = {
-  "name": SpecialArray;
-  "reference": Reference;
+type ArrayExpansion = {
+  "reference": ArrayReference;
+  "offset": Integer;
+  "length"?: Integer;
 };
+type DefaultStringExpansion = {
+  "default": Sanitized;
+};
+type AlternateStringExpansion = {
+  "alternate": Sanitized;
+};
+type PromptStringExpansion = {
+  "prompt": Empty;
+};
+type RemoveStringExpansion = {
+  "short": boolean;
+  "from_start": boolean;
+  "pattern": Regex;
+};
+type _RemoveStringExpansion = {
+  "remove": RemoveStringExpansion;
+};
+type ReplaceStringExpansion = {
+  "global": boolean;
+  "match": Regex;
+  "with"?: string;
+};
+type _ReplaceStringExpansion = {
+  "replace": ReplaceStringExpansion;
+};
+type StringExpansion = DefaultStringExpansion
+                     | AlternateStringExpansion
+                     | PromptStringExpansion
+                     | _RemoveStringExpansion
+                     | _ReplaceStringExpansion
+                     ;
+type DereferencedVariable = {
+  "name": Identifier;
+  "array_expansion"?: ArrayExpansion;
+  "string_expansion"?: StringExpansion;
+};
+type DereferencedSpecial = {
+  "name": Special;
+  "array_expansion"?: ArrayExpansion;
+  "string_expansion"?: StringExpansion;
+};
+type DereferencedParameter = {
+  "parameter": Parameter;
+  "expansion"?: StringExpansion;
+};
+type Dereferenced = DereferencedVariable
+                  | DereferencedParameter
+                  | DereferencedSpecial
+                  ;
 type Sanitized = Literal
                | Char
-               | Identifier
-               | ArrayElement
-               | Parameter
-               | SpecialString
-               | SpecialArrayElement
-               | Path       // TODO: why ??
+               | Dereferenced
+               | Path
                | InternalLiteral
                ;
 type Input = Sanitized;
 type File = Path
           | FileDescriptor
-          | Identifier
-          | ArrayElement
+          | Dereferenced
           ;
 type Output = {
   "left": FileDescriptor;
@@ -167,7 +219,7 @@ type Output = {
 type Redirection = Input
                  | Output
                  ;
-type ImageBuilderPrune = {};
+type ImageBuilderPrune = Empty;
 type ImageTagDefined = {
   "image": Sanitized;
   "tag": Sanitized;
@@ -203,7 +255,7 @@ type ImageMerge = {
   "chain": NonEmptyArray<Context>;
 };
 type ImagePrune = {
-  "pattern": Sanitized;
+  "pattern": Regex;
 };
 type ImagePull = {
   "registry": Sanitized;
@@ -274,7 +326,7 @@ type NetworkDisconnect = {
   "network": Sanitized;
 };
 type NetworkList = {
-  "pattern": Sanitized;
+  "pattern": Regex;
 };
 type VolumeCreate = {
   "name": Sanitized;
@@ -283,7 +335,7 @@ type VolumeCreated = {
   "name": Sanitized;
 };
 type VolumeList = {
-  "pattern": Sanitized;
+  "pattern": Regex;
 };
 type RoutineExec = {
   "imported": Path;
@@ -403,9 +455,8 @@ type _Module = _ImageBuilderPrune
              | _RoutineExec
              ;
 type ArithmeticOperand = Integer
-                       | Parameter
                        | Identifier
-                       | ArrayElement
+                       | Dereferenced
                        | ArithmeticExpr
                        ;
 type BinaryArithmeticExpr = {
@@ -413,13 +464,10 @@ type BinaryArithmeticExpr = {
   "operator": BinaryArithmeticOperator;
   "right": ArithmeticOperand;
 };
-type UnaryArithmeticExpr = {};
-type ArithmeticExpr = UnaryArithmeticExpr
-                    | BinaryArithmeticExpr
-                    ;
+type ArithmeticExpr = BinaryArithmeticExpr;
 type Assign = {
   "scope": Scope;
-  "type": Type;
+  "type"?: Type = Type.String;
   "variables": NonEmptyArray<Sanitized>;
 };
 type Color = {
@@ -431,25 +479,15 @@ type Harden = {
   "as"?: Sanitized;
 };
 type Json = NonEmptyArray<Sanitized>;
-type SubArray = {
-  "offset": Integer;
-  "length"?: Integer;
-};
-type Iterable = {
-  "name"?: Identifier; // If null => "${@}"
-  "sub"?: SubArray;
-};
 type Mutable = Identifier
-             | ArrayElement
-             | SpecialString.last
+             | ArrayIdentifier
+             | Special.last
              ;
 type Mutate = {
   "name": Mutable;
-  "variables": NonEmptyArray<Sanitized>;
+  "type"?: Type = Type.String;
+  "value": NonEmptyArray<Sanitized>;
 };
-type Special = SpecialString
-             | SpecialArray
-             ;
 type OnOff = NonEmptyArray<Option>;
 type Parameters = NonEmptyArray<Sanitized>;
 type Print = {
@@ -525,10 +563,12 @@ type Call = {
   "args": Sanitized[];
   "pipe"?: Group;
 };
-type Source = Sanitized
-            | Print
-            | Call
+type Source = NonEmptyArray<Sanitized>
+            | NonEmptyArray<Sourceable>
             ;
+type Sourceable = Print
+                | Call
+                ;
 type _Call = {
   "call": Call;
 };
@@ -539,7 +579,7 @@ type _Defer = {
   "defer": Defer;
 };
 type InternalCall = {
-  "command": string;
+  "command": NoSpace;
   "args": Sanitized[];
   "pipe"?: Group;
 };
@@ -577,7 +617,7 @@ type Range = {
 };
 type Iterator = {
   "for": Identifier;
-  "into": Iterable;
+  "into": Dereferenced;
   "do": Group;
 };
 type Conditional = {
@@ -612,7 +652,7 @@ type _Internal = {
   "internal": Internal;
 };
 type Branch = {
-  "pattern": Sanitized;
+  "pattern": Regex;
   "commands": NonEmptyArray<Command>;
 };
 type Switch = {

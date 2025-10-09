@@ -1,4 +1,4 @@
-# placid
+# licorice
 
 A container engine with several backends
 

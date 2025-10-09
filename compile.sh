@@ -18,7 +18,7 @@ compile () {
   local -a help split
   local -A sep path namespace version
 
-  exe='placid'
+  exe='licorice'
   sep[namespace]='::'
   sep[image]='/'
   sep[tag]=':'

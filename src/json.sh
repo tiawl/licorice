@@ -56,7 +56,7 @@ json::test () {
 }
 
 json::to::queryString () {
-  json::filter --null-input --argjson JSON "${1}" '[$JSON | to_entries[] | .key + "=" + (.value | tostring)] | join("&")'
+  json::filter --null-input --argjson CONVERTME "${1}" '[$CONVERTME | to_entries[] | .key + "=" + (.value | tostring)] | join("&")'
 }
 
 json::from::yaml () {
