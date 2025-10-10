@@ -1,16 +1,17 @@
 #! /usr/bin/env --split-string gojq --from-file
 
+#TODO: rework this ?
 def replace: (
   def replace_rec(walk_path; root_inventory): (
     if (type == "object") then (
       if (has("inventory")) then (
         if (.inventory | type != "string") then (
-          "replace_rec: \"inventory\" must be string typed" | exit
+          "replace_rec: \"inventory\" must be string typed" | exit(1)
         ) else . end |
         .inventory as $key |
         if (walk_path | any(. == $key)) then (
           [($key | debug_var("$key")), (walk_path | debug_var("walk_path"))] |
-          "replace_rec: Inventory cycle detected" | exit
+          "replace_rec: Inventory cycle detected" | exit(1)
         ) else . end |
         root_inventory[$key] | replace_rec(walk_path + [$key]; root_inventory)
       ) else (

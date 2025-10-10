@@ -524,7 +524,7 @@ def define(level; mode; nested_register; user_defined): (
       def call(mode; nested_register): (
         .call |
           if (.command | sanitize(mode; true) | test("\\s")) then (
-            ".call.command must not contain space characters" | exit
+            ".call.command must not contain space characters" | exit(1)
           ) end |
           $NAMESPACE.fn.internal + "call \"$(echo '" + $NAMESPACE.fn.user + "'" + (.command | sanitize(mode; true)) + (if (.args | length > 0) then " " else "" end) + (.args | map(sanitize(mode; true)) | join(" ")) + ")" + (
             if (has("pipe")) then (

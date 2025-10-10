@@ -42,27 +42,27 @@ def debug(msgs): (
   (msgs | debug | empty), .
 );
 
-def exit: (
-  "routine: " + . + "\n" | halt_error(1)
+def exit(code): (
+  "routine: " + . + "\n" | halt_error(code)
 );
 
 def debug_var(varname): (
   if (varname | type != $JSON.TYPE.STRING) then (
-    "debug_empty takes only 1 arg" | exit
+    "debug_empty takes only 1 arg" | exit(1)
   ) else . end |
   debug(varname + " = \(.)")
 );
 
-def assert(conditional; message): (
-  if (conditional | not) then ("routine: assertion failed: " + message + "\n" | halt_error(2)) end
+def assert(conditional; message; jpath): (
+  if (conditional | not) then ("assertion failed: (" + message + ") must succeed for " + jpath | exit(2)) end
 );
 
 def unreachable(fn): (
-  "routine: reached unreachable code into " + fn + "()\n" | halt_error(3)
+  "reached unreachable code into " + fn + "()" | exit(3)
 );
 
 def permission_denied(mode): (
   if (mode != $MODE.internal) then (
-    "\"unsafe\" can only be used as internal user" | exit
-  ) end |
+    "\"unsafe\" can only be used as internal user" | exit(1)
+  ) end
 );

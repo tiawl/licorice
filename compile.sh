@@ -176,7 +176,7 @@ ${namespace[core]}init () {
   harden sha256sum
   #harden shuf
   harden tar
-  harden tee
+  #harden tee
 
   global backend exe
   exe='${exe}'
