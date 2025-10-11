@@ -53,8 +53,12 @@ def debug_var(varname): (
   debug(varname + " = \(.)")
 );
 
-def assert(conditional; message; jpath): (
+def ASSERT(conditional; message; jpath): (
   if (conditional | not) then ("assertion failed: (" + message + ") must succeed for " + jpath | exit(2)) end
+);
+
+def AND(conditional; dummy1; dummy2): (
+  . and conditional
 );
 
 def unreachable(fn): (

@@ -1,7 +1,7 @@
 #! /usr/bin/env --split-string gojq --from-file
 
 def isRoutine: (
-  def isFromEnum(fields; jpath): (
+  def isFromEnum(fields; assert; jpath): (
     . as $input |
     if (fields | type != "array") then unreachable("(fields | type != \"array\") case into isFromEnum") end |
     if (fields | length > 0) then unreachable("(fields | length > 0) case into inFromEnum") end |
@@ -10,57 +10,57 @@ def isRoutine: (
     assert(fields | contains([$input]); "fields | contains([$input])"; jpath)
   );
 
-  def isArray(function; jpath): (
+  def isArray(function; assert; jpath): (
     if (function | type != "boolean") then unreachable("isArray") end |
     assert(type == "array"; "type == \"array\""; jpath) |
     (to_entries | map(.value | function(jpath + "[" + (.key | tostring) + "]")) | all)
   );
 
-  def isNonEmptyArray(function; jpath): (
+  def isNonEmptyArray(function; assert; jpath): (
     assert(length > 0; "length > 0"; jpath) |
-    (isArray(function; jpath))
+    (isArray(function; assert; jpath))
   );
 
-  def isEmpty(jpath): (
+  def isEmpty(assert; jpath): (
     assert(type == "object"; "type == \"object\""; jpath) |
     assert(length == 0; "length == 0"; jpath)
   );
 
-  def isIdentifier(jpath): (
+  def isIdentifier(assert; jpath): (
     assert(type == "string"; "type == \"string\""; jpath) |
     assert(test("^[a-zA-Z_][a-zA-Z0-9_]*$"); "test(\"^[a-zA-Z_][a-zA-Z0-9_]*$\")"; jpath)
   );
 
-  def isNoSpace(jpath): (
+  def isNoSpace(assert; jpath): (
     assert(type == "string"; "type == \"string\""; jpath) |
     assert(test("^[^[:space:]]*$"); "test(\"^[^[:space:]]*$\")"; jpath)
   );
 
-  def isChar(jpath): (
+  def isChar(assert; jpath): (
     isFromEnum([
       "asterisk",
       "tilde",
       "atsign",
       "newline"
-    ]; jpath)
+    ]; assert; jpath)
   );
 
-  def isInteger(jpath): (
+  def isInteger(assert; jpath): (
     assert(type == "number"; "type == \"number\""; jpath) |
     assert(. == floor; ". == floor"; jpath)
   );
 
-  def isParameter(jpath): (
-    assert(isInteger; "isInteger"; jpath) |
+  def isParameter(assert; jpath): (
+    assert(isInteger(assert; jpath); "isInteger(assert; jpath)"; jpath) |
     assert(. >= 0; ". >= 0"; jpath)
   );
 
-  def isFileDescriptor(jpath): (
-    assert(isInteger; "isInteger"; jpath) |
+  def isFileDescriptor(assert; jpath): (
+    assert(isInteger(assert; jpath); "isInteger(assert; jpath)"; jpath) |
     assert(. > 0; ". > 0"; jpath)
   );
 
-  def isSpecial(jpath): (
+  def isSpecial(assert; jpath): (
     isFromEnum([
       "last",
       "FUNCNAME",
@@ -70,10 +70,10 @@ def isRoutine: (
       "ROUTINE",
       "at_parameters",
       "sep"
-    ]; jpath)
+    ]; assert; jpath)
   );
 
-  def isBinaryArithmeticOperator(jpath): (
+  def isBinaryArithmeticOperator(assert; jpath): (
     isFromEnum([
       "Addition",
       "Substraction",
@@ -86,39 +86,39 @@ def isRoutine: (
       "Ne",
       "Assignment",
       "Increment"
-    ]; jpath)
+    ]; assert; jpath)
   );
 
-  def isScope(jpath): (
+  def isScope(assert; jpath): (
     isFromEnum([
       "Local",
       "Global"
-    ]; jpath)
+    ]; assert; jpath)
   );
 
-  def isType(jpath): (
+  def isType(assert; jpath): (
     isFromEnum([
       "String",
       "Associative",
       "Indexed",
       "Reference"
-    ]; jpath)
+    ]; assert; jpath)
   );
 
-  def isUnaryLogicalOperator(jpath): (
+  def isUnaryLogicalOperator(assert; jpath): (
     isFromEnum([
       "Not"
-    ]; jpath)
+    ]; assert; jpath)
   );
 
-  def isBinaryLogicalOperator(jpath): (
+  def isBinaryLogicalOperator(assert; jpath): (
     isFromEnum([
       "And",
       "Or"
-    ]; jpath)
+    ]; assert; jpath)
   );
 
-  def isOption(jpath): (
+  def isOption(assert; jpath): (
     isFromEnum([
       "assoc_expand_once",
       "autocd",
@@ -199,190 +199,177 @@ def isRoutine: (
       "verbose",
       "vi",
       "xtrace"
-    ]; jpath)
+    ]; assert; jpath)
   );
 
-  def isInternalLiteral(jpath): (
+  def isInternalLiteral(assert; jpath): (
     assert(type == "string"; "type == \"string\""; jpath)
   );
 
-  def isKey(jpath): (
+  def isKey(assert; jpath): (
     assert(type == "string"; "type == \"string\""; jpath)
   );
 
-  def isLiteral(jpath): (
+  def isLiteral(assert; jpath): (
     assert(type == "string"; "type == \"string\""; jpath)
   );
 
-  def isPath(jpath): (
+  def isPath(assert; jpath): (
     assert(type == "string"; "type == \"string\""; jpath)
   );
 
-  def isRegex(jpath): (
+  def isRegex(assert; jpath): (
     assert(type == "string"; "type == \"string\""; jpath)
   );
 
-  def isDefaultStringExpansion(jpath): (
+  def isDefaultStringExpansion(assert; jpath): (
     assert(type == "object"; "type == \"object\""; jpath) |
     assert(length == 1; "length == 1"; jpath) |
     assert(has("default"); "has(\"default\")"; jpath) |
     assert(.default | type == "string"; "type == \"string\""; jpath + ".default")
   );
 
-  def isAlternateStringExpansion(jpath): (
+  def isAlternateStringExpansion(assert; jpath): (
     assert(type == "object"; "type == \"object\""; jpath) |
     assert(length == 1; "length == 1"; jpath) |
     assert(has("alternate"); "has(\"alternate\")"; jpath) |
     assert(.alternate | type == "string"; "type == \"string\""; jpath + ".alternate")
   );
 
-  def isPromptStringExpansion(jpath): (
+  def isPromptStringExpansion(assert; jpath): (
     assert(type == "object"; "type == \"object\""; jpath) |
     assert(length == 1; "length == 1"; jpath) |
     assert(has("prompt"); "has(\"prompt\")"; jpath) |
-    (.prompt | isEmpty(jpath + ".prompt"))
+    (.prompt | isEmpty(assert; jpath + ".prompt"))
   );
 
-  def isRemoveStringExpansion(jpath): (
+  def isRemoveStringExpansion(assert; jpath): (
     assert(type == "object"; "type == \"object\""; jpath) |
     assert(length == 3; "length == 3"; jpath) |
     assert(has("short"); "has(\"short\")"; jpath) |
-    assert(.short | type == "boolean"; ".short | type == \"boolean\""; jpath) |
+    assert(.short | type == "boolean"; "type == \"boolean\""; jpath + ".short") |
     assert(has("from_start"); "has(\"from_start\")"; jpath) |
-    assert(.from_start | type == "boolean"; ".from_start | type == \"boolean\""; jpath) |
+    assert(.from_start | type == "boolean"; "type == \"boolean\""; jpath + ".from_start") |
     assert(has("pattern"); "has(\"pattern\")"; jpath) |
-    (.pattern | isRegex(jpath + ".pattern"))
+    (.pattern | isRegex(assert; jpath + ".pattern"))
   );
 
-  def is_RemoveStringExpansion(jpath): (
+  def is_RemoveStringExpansion(assert; jpath): (
     assert(type == "object"; "type == \"object\""; jpath) |
     assert(length == 1; "length == 1"; jpath) |
     assert(has("remove"); "has(\"remove\")"; jpath) |
-    (.remove | isRemoveStringExpansion(jpath + ".remove"))
+    (.remove | isRemoveStringExpansion(assert; jpath + ".remove"))
   );
 
-  def isReplaceStringExpansion(jpath): (
+  def isReplaceStringExpansion(assert; jpath): (
     assert(type == "object"; "type == \"object\""; jpath) |
     assert(has("global"); "has(\"global\")"; jpath) |
-    assert(.global | type == "boolean"; ".global | type == \"boolean\""; jpath) |
+    assert(.global | type == "boolean"; "type == \"boolean\""; jpath + ".global") |
     assert(has("match"); "has(\"match\")"; jpath) |
-    (.match | isRegex(jpath)) |
+    (.match | isRegex(assert; jpath)) |
     if (length == 3) then (
       assert(has("with"); "has(\"with\")"; jpath) |
-      assert(.with | type == "string"; ".with | type == \"string\""; jpath)
-    ) end |
-    assert(length == 2; "length == 2"; jpath)
+      assert(.with | type == "string"; "type == \"string\""; jpath + ".with")
+    ) else (
+      assert(length == 2; "length == 2"; jpath)
+    ) end
   );
 
-  def is_ReplaceStringExpansion: (
-    (type == "object") and
-    (length == 1) and
-    (has("replace")) and
-    (.replace | isReplaceStringExpansion)
+  def is_ReplaceStringExpansion(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("replace"); "has(\"replace\")"; jpath) |
+    (.replace | isReplaceStringExpansion(assert; jpath + ".replace"))
   );
 
-  def isStringExpansion: (
-    isDefaultStringExpansion or
-    isAlternateStringExpansion or
-    isPromptStringExpansion or
-    is_RemoveStringExpansion or
-    is_ReplaceStringExpansion
+  def isStringExpansion(assert; jpath): (
+    assert(isDefaultStringExpansion(AND; jpath) or
+      isAlternateStringExpansion(AND; jpath) or
+      isPromptStringExpansion(AND; jpath) or
+      is_RemoveStringExpansion(AND; jpath) or
+      is_ReplaceStringExpansion(AND; jpath))
   );
 
-  def isArrayReference: (
-    isInteger or
-    isKey
+  def isArrayReference(assert; jpath): (
+    assert(isInteger(AND; jpath) or
+      isKey(AND; jpath))
   );
 
-  def isArrayIdentifier: (
-    (type == "object") and
-    (length == 2) and
-    (has("name")) and
-    (.name | isIdentifier) and
-    (has("reference")) and
-    (.reference | isArrayReference)
+  def isArrayIdentifier(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 2; "length == 2"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    assert(has("reference"); "has(\"reference\")"; jpath) |
+    (.name | isIdentifier(assert; jpath + ".name")) |
+    (.reference | isArrayReference(assert; jpath + ".reference"))
   );
 
-  def isArrayExpansion: (
-    (type == "object") and
-    (has("reference")) and
-    (.reference | isArrayReference) and
-    (has("offset")) and
-    (.offset | isInteger) and
-    (
-      (
-        (length == 3) and
-        (has("length")) and
-        (.length | isInteger)
-      ) or (
-        (length == 2)
-      )
+  def isArrayExpansion(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(has("reference"); "has(\"reference\")"; jpath) |
+    assert(has("offset"); "has(\"offset\")"; jpath) |
+    (.reference | isArrayReference(assert; jpath + ".reference")) |
+    (.offset | isInteger(assert; jpath + ".offset")) |
+    if (length == 3) then (
+      assert(has("length"); "has(\"length\")"; jpath) |
+      (.length | isInteger(assert; jpath + ".length"))
+    ) else (
+      assert(length == 2; "length == 2"; jpath)
+    ) end
+  );
+
+  def isDereferencedVariable(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isIdentifier(assert; jpath + ".name")) |
+    if (length == 3) then (
+      assert(has("array_expansion"); "has(\"array_expansion\")"; jpath) |
+      assert(has("string_expansion"); "has(\"string_expansion\")"; jpath) |
+      (.array_expansion | isArrayExpansion(assert; jpath + ".array_expansion")) |
+      (.string_expansion | isStringExpansion(assert; jpath + ".string_expansion"))
+    ) elif (length == 2) then (
+      if (has("array_expansion")) then (
+        (.array_expansion | isArrayExpansion(assert; jpath + ".array_expansion"))
+      ) else (
+        assert(has("string_expansion"); "has(\"string_expansion\")"; jpath) |
+        (.string_expansion | isStringExpansion(assert; jpath + ".string_expansion"))
+      ) end
+    ) else (
+      assert(length == 1; "length == 1"; jpath) |
     )
   );
 
-  def isDereferencedVariable: (
-    (type == "object") and
-    (has("name")) and
-    (.name | isIdentifier) and
-    (
-      (
-        (length == 3) and
-        (has("array_expansion")) and
-        (.array_expansion | isArrayExpansion) and
-        (has("string_expansion")) and
-        (.string_expansion | isStringExpansion)
-      ) or (
-        (length == 2) and
-        (has("array_expansion")) and
-        (.array_expansion | isArrayExpansion)
-      ) or (
-        (length == 2) and
-        (has("string_expansion")) and
-        (.string_expansion | isStringExpansion)
-      ) or (
-        (length == 1)
-      )
+  def isDereferencedSpecial(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(has("special"); "has(\"special\")"; jpath) |
+    (.special | isSpecial(assert; jpath + ".special")) |
+    if (length == 3) then (
+      assert(has("array_expansion"); "has(\"array_expansion\")"; jpath) |
+      assert(has("string_expansion"); "has(\"string_expansion\")"; jpath) |
+      (.array_expansion | isArrayExpansion(assert; jpath + ".array_expansion")) |
+      (.string_expansion | isStringExpansion(assert; jpath + ".string_expansion"))
+    ) elif (length == 2) then (
+      if (has("array_expansion")) then (
+        (.array_expansion | isArrayExpansion(assert; jpath + ".array_expansion"))
+      ) else (
+        assert(has("string_expansion"); "has(\"string_expansion\")"; jpath) |
+        (.string_expansion | isStringExpansion(assert; jpath + ".string_expansion"))
+      ) end
+    ) else (
+      assert(length == 1; "length == 1"; jpath) |
     )
   );
 
-  def isDereferencedSpecial: (
-    (type == "object") and
-    (has("special")) and
-    (.special | isSpecial) and
-    (
-      (
-        (length == 3) and
-        (has("array_expansion")) and
-        (.array_expansion | isArrayExpansion) and
-        (has("string_expansion")) and
-        (.string_expansion | isStringExpansion)
-      ) or (
-        (length == 2) and
-        (has("array_expansion")) and
-        (.array_expansion | isArrayExpansion)
-      ) or (
-        (length == 2) and
-        (has("string_expansion")) and
-        (.string_expansion | isStringExpansion)
-      ) or (
-        (length == 1)
-      )
-    )
-  );
-
-  def isDereferencedParameter: (
-    (type == "object") and
-    (has("parameter")) and
-    (.parameter | isParameter) and
-    (
-      (
-        (length == 2) and
-        (has("expansion")) and
-        (.expansion | isStringExpansion)
-      ) or (
-        (length == 1)
-      )
-    )
+  def isDereferencedParameter(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(has("parameter"); "has(\"parameter\")"; jpath) |
+    (.parameter | isParameter(assert; jpath + ".parameter")) and
+    if (length == 2) then (
+      assert(has("expansion"); "has(\"expansion\")"; jpath) |
+      (.expansion | isStringExpansion(assert; jpath + ".expansion"))
+    ) else (
+      assert(length == 1; "length == 1"; jpath)
+    ) end
   );
 
   def isDereferenced: (
@@ -1172,7 +1159,7 @@ def isRoutine: (
     (.skip | isSanitized)
   );
 
-  def isGroup(jpath): (
+  def isGroup(assert; jpath): (
     def isCall: (
       (type == "object") and
       (has("command")) and
@@ -1464,12 +1451,12 @@ def isRoutine: (
     assert(length == 2; "length == 2"; jpath) |
     assert(has("redirections"); "has(\"redirections\")"; jpath) |
     assert(has("commands"); "has("commands")"; jpath) |
-    (.redirections | isArray(isRedirection; jpath + ".redirections")) and
-    (.commands | isNonEmptyArray(isCommand; jpath + ".commands"))
+    (.redirections | isArray(isRedirection; assert; jpath + ".redirections")) and
+    (.commands | isNonEmptyArray(isCommand; assert; jpath + ".commands"))
   );
 
-  assert(type == "object"; "type == \"object\""; ".") |
-  assert(length == 1; "length == 1"; ".") |
-  assert(has("routine"); "has(\"routine\")"; ".") |
-  (.routine | isGroup(".routine"))
+  ASSERT(type == "object"; "type == \"object\""; ".") |
+  ASSERT(length == 1; "length == 1"; ".") |
+  ASSERT(has("routine"); "has(\"routine\")"; ".") |
+  (.routine | isGroup(ASSERT; ".routine"))
 );
