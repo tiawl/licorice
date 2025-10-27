@@ -13,7 +13,7 @@ def isRoutine: (
   def isArray(function; assert; jpath): (
     if (function | type != "boolean") then unreachable("isArray") end |
     assert(type == "array"; "type == \"array\""; jpath) |
-    (to_entries | map(.value | function(jpath + "[" + (.key | tostring) + "]")) | all)
+    (to_entries | map(.value | function(assert; jpath + "[" + (.key | tostring) + "]")))
   );
 
   def isNonEmptyArray(function; assert; jpath): (
@@ -287,12 +287,12 @@ def isRoutine: (
       isAlternateStringExpansion(AND; jpath) or
       isPromptStringExpansion(AND; jpath) or
       is_RemoveStringExpansion(AND; jpath) or
-      is_ReplaceStringExpansion(AND; jpath))
+      is_ReplaceStringExpansion(AND; jpath); "isDefaultStringExpansion(AND; jpath) or isAlternateStringExpansion(AND; jpath) or isPromptStringExpansion(AND; jpath) or is_RemoveStringExpansion(AND; jpath) or is_ReplaceStringExpansion(AND; jpath)"; jpath)
   );
 
   def isArrayReference(assert; jpath): (
     assert(isInteger(AND; jpath) or
-      isKey(AND; jpath))
+      isKey(AND; jpath); "isInteger(AND; jpath) or isKey(AND; jpath)"; jpath)
   );
 
   def isArrayIdentifier(assert; jpath): (
@@ -363,7 +363,7 @@ def isRoutine: (
   def isDereferencedParameter(assert; jpath): (
     assert(type == "object"; "type == \"object\""; jpath) |
     assert(has("parameter"); "has(\"parameter\")"; jpath) |
-    (.parameter | isParameter(assert; jpath + ".parameter")) and
+    (.parameter | isParameter(assert; jpath + ".parameter")) |
     if (length == 2) then (
       assert(has("expansion"); "has(\"expansion\")"; jpath) |
       (.expansion | isStringExpansion(assert; jpath + ".expansion"))
@@ -372,573 +372,573 @@ def isRoutine: (
     ) end
   );
 
-  def isDereferenced: (
-    isDereferencedVariable or
-    isDereferencedSpecial or
-    isDereferencedParameter
+  def isDereferenced(assert; jpath): (
+    assert(isDereferencedVariable(AND; jpath) or
+      isDereferencedSpecial(AND; jpath) or
+      isDereferencedParameter(AND; jpath); "isDereferencedVariable(AND; jpath) or isDereferencedSpecial(AND; jpath) or isDereferencedParameter(AND; jpath)"; jpath)
   );
-
-  def isSanitized: (
-    isLiteral or
-    isChar or
-    isDereferenced or
-    isPath or
-    isInternalLiteral
+
+  def isSanitized(assert; jpath): (
+    assert(isLiteral(AND; jpath) or
+      isChar(AND; jpath) or
+      isDereferenced(AND; jpath) or
+      isPath(AND; jpath) or
+      isInternalLiteral(AND; jpath); "isLiteral(AND; jpath) or isChar(AND; jpath) or isDereferenced(AND; jpath) or isPath(AND; jpath) or isInternalLiteral(AND; jpath)"; jpath)
   );
-
-  def isInput: (
-    isSanitized
-  );
-
-  def isFile: (
-    isPath or
-    isFileDescriptor or
-    isDereferenced
-  );
-
-  def isOutput: (
-    (type == "object") and
-    (length == 3) and
-    (has("left")) and
-    (.left | isFileDescriptor) and
-    (has("appending")) and
-    (.appending | type == "boolean") and
-    (has("right")) and
-    (.right | isFile)
-  );
-
-  def isRedirection: (
-    isInput or
-    isOutput
-  );
-
-  def isImageBuilderPrune: (
-    isEmpty
-  );
-
-  def isImageTagDefined: (
-    (type == "object") and
-    (length == 2) and
-    (has("image")) and
-    (.image | isSanitized) and
-    (has("tag")) and
-    (.tag | isSanitized)
-  );
-
-  def isImage: (
-    (type == "object") and
-    (length == 2) and
-    (has("image")) and
-    (.image | isSanitized) and
-    (has("tag")) and
-    (.tag | isSanitized)
-  );
-
-  def isImageTagCreate: (
-    (type == "object") and
-    (length == 2) and
-    (has("from")) and
-    (.from | isImage) and
-    (has("to")) and
-    (.to | isImage)
-  );
-
-  def isBuildArg: (
-    (type == "object") and
-    (length == 2) and
-    (has("name")) and
-    (.name | isIdentifier) and
-    (has("value")) and
-    (.value | isSanitized)
-  );
-
-  def isContext: (
-    (type == "object") and
-    (length == 2) and
-    (has("path")) and
-    (.path | isSanitized) and
-    (has("args")) and
-    (.args | isArray(isBuildArg))
-  );
-
-  def isImageTagCompute: (
-    (type == "object") and
-    (length == 1) and
-    (has("input")) and
-    (.input | isNonEmptyArray(isContext))
-  );
-
-  def isImageBuild: (
-    (type == "object") and
-    (length == 3) and
-    (has("image")) and
-    (.image | isSanitized) and
-    (has("tag")) and
-    (.tag | isSanitized) and
-    (has("context")) and
-    (.context | isContext)
-  );
-
-  def isImageMerge: (
-    (type == "object") and
-    (length == 4) and
-    (has("image")) and
-    (.image | isSanitized) and
-    (has("tag")) and
-    (.tag | isSanitized) and
-    (has("base")) and
-    (.base | isSanitized) and
-    (has("chain")) and
-    (.chain | isNonEmptyArray(isContext))
-  );
-
-  def isImagePrune: (
-    (type == "object") and
-    (length == 1) and
-    (has("pattern")) and
-    (.pattern | isRegex)
-  );
-
-  def isImagePull: (
-    (type == "object") and
-    (length == 4) and
-    (has("registry")) and
-    (.registry | isSanitized) and
-    (has("library")) and
-    (.library | isSanitized) and
-    (has("image")) and
-    (.image | isSanitized) and
-    (has("tag")) and
-    (.tag | isSanitized)
-  );
-
-  def isImageRemove: (
-    (type == "object") and
-    (length == 2) and
-    (has("image")) and
-    (.image | isSanitized) and
-    (has("tag")) and
-    (.tag | isSanitized)
-  );
-
-  def isContainerResourceCopy: (
-    (type == "object") and
-    (length == 3) and
-    (has("name")) and
-    (.name | isSanitized) and
-    (has("source")) and
-    (.source | isSanitized) and
-    (has("target")) and
-    (.target | isSanitized)
-  );
-
-  def isContainerStatusGet: (
-    (type == "object") and
-    (length == 1) and
-    (has("name")) and
-    (.name | isSanitized)
-  );
-
-  def isContainerStatusCreated: (
-    (type == "object") and
-    (length == 1) and
-    (has("name")) and
-    (.name | isSanitized)
-  );
-
-  def isContainerStatusRunning: (
-    (type == "object") and
-    (length == 1) and
-    (has("name")) and
-    (.name | isSanitized)
-  );
-
-  def isContainerStatusHealthy: (
-    (type == "object") and
-    (length == 1) and
-    (has("name")) and
-    (.name | isSanitized)
-  );
-
-  def isVolume: (
-    (type == "object") and
-    (length == 2) and
-    (has("source")) and
-    (.source | isSanitized) and
-    (has("target")) and
-    (.target | isSanitized)
-  );
-
-  def isContainerCreate: (
-    (type == "object") and
-    (length == 4) and
-    (has("name")) and
-    (.name | isSanitized) and
-    (has("image")) and
-    (.image | isSanitized) and
-    (has("hostname")) and
-    (.hostname | isSanitized) and
-    (has("volumes")) and
-    (.volumes | isArray(isVolume))
-  );
-
-  def isContainerExec: (
-    (type == "object") and
-    (length == 4) and
-    (has("name")) and
-    (.name | isSanitized) and
-    (has("detached")) and
-    (.detached | isSanitized) and
-    (has("user")) and
-    (.user | isSanitized) and
-    (has("command")) and
-    (.command | isNonEmptyArray(isSanitized))
-  );
-
-  def isContainerStart: (
-    (type == "object") and
-    (length == 1) and
-    (has("name")) and
-    (.name | isSanitized)
-  );
-
-  def isContainerStop: (
-    (type == "object") and
-    (length == 1) and
-    (has("name")) and
-    (.name | isSanitized)
-  );
-
-  def isNetworkIpGet: (
-    (type == "object") and
-    (length == 2) and
-    (has("container")) and
-    (.container | isSanitized) and
-    (has("network")) and
-    (.network | isSanitized)
-  );
-
-  def isNetworkCreate: (
-    (type == "object") and
-    (length == 2) and
-    (has("name")) and
-    (.name | isSanitized) and
-    (has("isolated")) and
-    (.isolated | isSanitized)
-  );
-
-  def isNetworkCreated: (
-    (type == "object") and
-    (length == 1) and
-    (has("name")) and
-    (.name | isSanitized)
-  );
-
-  def isNetworkConnect: (
-    (type == "object") and
-    (length == 2) and
-    (has("container")) and
-    (.container | isSanitized) and
-    (has("network")) and
-    (.network | isSanitized)
-  );
-
-  def isNetworkDisconnect: (
-    (type == "object") and
-    (length == 2) and
-    (has("container")) and
-    (.container | isSanitized) and
-    (has("network")) and
-    (.network | isSanitized)
-  );
-
-  def isNetworkList: (
-    (type == "object") and
-    (length == 1) and
-    (has("pattern")) and
-    (.pattern | isRegex)
-  );
-
-  def isVolumeCreate: (
-    (type == "object") and
-    (length == 1) and
-    (has("name")) and
-    (.name | isSanitized)
-  );
-
-  def isVolumeCreated: (
-    (type == "object") and
-    (length == 1) and
-    (has("name")) and
-    (.name | isSanitized)
-  );
-
-  def isVolumeList: (
-    (type == "object") and
-    (length == 1) and
-    (has("pattern")) and
-    (.pattern | isRegex)
-  );
-
-  def isRoutineExec: (
-    (type == "object") and
-    (length == 2) and
-    (has("imported")) and
-    (.imported | type == "string") and
-    (has("args")) and
-    (.args | isArray(isSanitized))
-  );
-
-  def is_ImageBuilderPrune: (
-    (type == "object") and
-    (length == 1) and
-    (has("image.builder.prune")) and
-    (.image.builder.prune | isImageBuilderPrune)
-  );
-
-  def is_ImageTagDefined: (
-    (type == "object") and
-    (length == 1) and
-    (has("image.tag.defined")) and
-    (.image.tag.defined | isImageTagDefined)
-  );
-
-  def is_ImageTagCreate: (
-    (type == "object") and
-    (length == 1) and
-    (has("image.tag.create")) and
-    (.image.tag.create | isImageTagCreate)
+
+  def isInput(assert; jpath): (
+    isSanitized(assert; jpath)
+  );
+
+  def isFile(assert; jpath): (
+    assert(isPath(AND; jpath) or
+      isFileDescriptor(AND; jpath) or
+      isDereferenced(AND; jpath); "isPath(AND; jpath) or isFileDescriptor(AND; jpath) or isDereferenced(AND; jpath)"; jpath)
+  );
+
+  def isOutput(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 3; "length == 3"; jpath) |
+    assert(has("left"); "has(\"left\")"; jpath) |
+    (.left | isFileDescriptor(assert; jpath + ".left")) |
+    assert(has("appending"); "has(\"appending\")"; jpath) |
+    assert(.appending | type == "boolean"; "type == \"boolean\""; jpath + ".appending")
+    assert(has("right"); "has(\"right\")"; jpath) |
+    (.right | isFile(assert; jpath + ".right"))
+  );
+
+  def isRedirection(assert; jpath): (
+    assert(isInput(AND; jpath) or
+      isOutput(AND; jpath); "isInput(AND; jpath) or isOutput(AND; jpath)"; jpath)
+  );
+
+  def isImageBuilderPrune(assert; jpath): (
+    isEmpty(assert; jpath)
+  );
+
+  def isImageTagDefined(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 2; "length == 2"; jpath) |
+    assert(has("image"); "has(\"image\")"; jpath) |
+    (.image | isSanitized(assert; jpath + ".image")) |
+    assert(has("tag"); "has(\"tag\")"; jpath) |
+    (.tag | isSanitized(assert; jpath + ".tag"))
+  );
+
+  def isImage(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 2; "length == 2"; jpath) |
+    assert(has("image"); "has(\"image\")"; jpath) |
+    (.image | isSanitized(assert; jpath + ".image")) |
+    assert(has("tag"); "has(\"tag\")"; jpath) |
+    (.tag | isSanitized(assert; jpath + ".tag"))
+  );
+
+  def isImageTagCreate(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 2; "length == 2"; jpath) |
+    assert(has("from"); "has(\"from\")"; jpath) |
+    (.from | isImage(assert; jpath + ".from")) |
+    assert(has("to"); "has(\"to\")"; jpath) |
+    (.to | isImage(assert; jpath + ".to"))
+  );
+
+  def isBuildArg(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 2; "length == 2"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isIdentifier(assert; jpath + ".name")) |
+    assert(has("value"); "has(\"value\")"; jpath) |
+    (.value | isSanitized(assert; jpath + ".value"))
+  );
+
+  def isContext(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 2; "length == 2"; jpath) |
+    assert(has("path"); "has(\"path\")"; jpath) |
+    (.path | isSanitized(assert; jpath + ".path")) |
+    assert(has("args"); "has(\"args\")"; jpath) |
+    (.args | isArray(isBuildArg; assert; jpath + ".args"))
+  );
+
+  def isImageTagCompute(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("input"); "has(\"input\")"; jpath) |
+    (.input | isNonEmptyArray(isContext; assert; jpath + ".input"))
+  );
+
+  def isImageBuild(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 3; "length == 3"; jpath) |
+    assert(has("image"); "has(\"image\")"; jpath) |
+    (.image | isSanitized(assert; jpath + ".image")) |
+    assert(has("tag"); "has(\"tag\")"; jpath) |
+    (.tag | isSanitized(assert; jpath + ".tag")) |
+    assert(has("context"); "has(\"context\")"; jpath) |
+    (.context | isContext(assert; jpath + ".context"))
+  );
+
+  def isImageMerge(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 4; "length == 4"; jpath) |
+    assert(has("image"); "has(\"image\")"; jpath) |
+    (.image | isSanitized(assert; jpath + ".image")) |
+    assert(has("tag"); "has(\"tag\")"; jpath) |
+    (.tag | isSanitized(assert; jpath + ".tag")) |
+    assert(has("base"); "has(\"base\")"; jpath) |
+    (.base | isSanitized(assert; jpath + ".base")) |
+    assert(has("chain"); "has(\"chain\")"; jpath) |
+    (.chain | isNonEmptyArray(isContext; assert; jpath + ".chain"))
+  );
+
+  def isImagePrune(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("pattern"); "has(\"pattern\")"; jpath) |
+    (.pattern | isRegex(assert; jpath + ".pattern"))
+  );
+
+  def isImagePull(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 4; "length == 4"; jpath) |
+    assert(has("registry"); "has(\"registry\")"; jpath) |
+    (.registry | isSanitized(assert; jpath + ".registry")) |
+    assert(has("library"); "has(\"library\")"; jpath) |
+    (.library | isSanitized(assert; jpath + ".library")) |
+    assert(has("image"); "has(\"image\")"; jpath) |
+    (.image | isSanitized(assert; jpath + ".image")) |
+    assert(has("tag"); "has(\"tag\")"; jpath) |
+    (.tag | isSanitized(assert; jpath + ".tag"))
+  );
+
+  def isImageRemove(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 2; "length == 2"; jpath) |
+    assert(has("image"); "has(\"image\")"; jpath) |
+    (.image | isSanitized(assert; jpath + ".image")) |
+    assert(has("tag"); "has(\"tag\")"; jpath) |
+    (.tag | isSanitized(assert; jpath + ".tag"))
+  );
+
+  def isContainerResourceCopy(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 3; "length == 3"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isSanitized(assert; jpath + ".name")) |
+    assert(has("source"); "has(\"source\")"; jpath) |
+    (.source | isSanitized(assert; jpath + ".source")) |
+    assert(has("target"); "has(\"target\")"; jpath) |
+    (.target | isSanitized(assert; jpath + ".target"))
+  );
+
+  def isContainerStatusGet(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isSanitized(assert; jpath + ".name"))
+  );
+
+  def isContainerStatusCreated(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isSanitized(assert; jpath + ".name"))
+  );
+
+  def isContainerStatusRunning(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isSanitized(assert; jpath + ".name"))
+  );
+
+  def isContainerStatusHealthy(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isSanitized(assert; jpath + ".name"))
+  );
+
+  def isVolume(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 2; "length == 2"; jpath) |
+    assert(has("source"); "has(\"source\")"; jpath) |
+    (.source | isSanitized(assert; jpath + ".source")) |
+    assert(has("target"); "has(\"target\")"; jpath) |
+    (.target | isSanitized(assert; jpath + ".target"))
+  );
+
+  def isContainerCreate(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 4; "length == 4"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isSanitized(assert; jpath + ".name")) |
+    assert(has("image"); "has(\"image\")"; jpath) |
+    (.image | isSanitized(assert; jpath + ".image")) |
+    assert(has("hostname"); "has(\"hostname\")"; jpath) |
+    (.hostname | isSanitized(assert; jpath + ".hostname")) |
+    assert(has("volumes"); "has(\"volumes\")"; jpath) |
+    (.volumes | isArray(isVolume; assert; jpath + ".volumes"))
+  );
+
+  def isContainerExec(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 4; "length == 4"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isSanitized(assert; jpath + ".name")) |
+    assert(has("detached"); "has(\"detached\")"; jpath) |
+    (.detached | isSanitized(assert; jpath + ".detached")) |
+    assert(has("user"); "has(\"user\")"; jpath) |
+    (.user | isSanitized(assert; jpath + ".user")) |
+    assert(has("command"); "has(\"command\")"; jpath) |
+    (.command | isNonEmptyArray(isSanitized; assert; jpath + ".command"))
+  );
+
+  def isContainerStart(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isSanitized(assert; jpath + ".name"))
+  );
+
+  def isContainerStop(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isSanitized(assert; jpath + ".name"))
+  );
+
+  def isNetworkIpGet(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 2; "length == 2"; jpath) |
+    assert(has("container"); "has(\"container\")"; jpath) |
+    (.container | isSanitized(assert; jpath + ".container")) |
+    assert(has("network"); "has(\"network\")"; jpath) |
+    (.network | isSanitized(assert; jpath + ".network"))
+  );
+
+  def isNetworkCreate(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 2; "length == 2"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isSanitized(assert; jpath + ".name")) |
+    assert(has("isolated"); "has(\"isolated\")"; jpath) |
+    (.isolated | isSanitized(assert; jpath + ".isolated"))
+  );
+
+  def isNetworkCreated(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isSanitized(assert; jpath + ".name"))
+  );
+
+  def isNetworkConnect(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 2; "length == 2"; jpath) |
+    assert(has("container"); "has(\"container\")"; jpath) |
+    (.container | isSanitized(assert; jpath + ".container")) |
+    assert(has("network"); "has(\"network\")"; jpath) |
+    (.network | isSanitized(assert; jpath + ".network"))
+  );
+
+  def isNetworkDisconnect(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 2; "length == 2"; jpath) |
+    assert(has("container"); "has(\"container\")"; jpath) |
+    (.container | isSanitized(assert; jpath + ".container")) |
+    assert(has("network"); "has(\"network\")"; jpath) |
+    (.network | isSanitized(assert; jpath + ".network"))
+  );
+
+  def isNetworkList(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("pattern"); "has(\"pattern\")"; jpath) |
+    (.pattern | isRegex(assert; jpath + ".pattern"))
+  );
+
+  def isVolumeCreate(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isSanitized(assert; jpath + ".name"))
+  );
+
+  def isVolumeCreated(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("name"); "has(\"name\")"; jpath) |
+    (.name | isSanitized(assert; jpath + ".name"))
+  );
+
+  def isVolumeList(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("pattern"); "has(\"pattern\")"; jpath) |
+    (.pattern | isRegex(assert; jpath + ".pattern"))
+  );
+
+  def isRoutineExec(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 2; "length == 2"; jpath) |
+    assert(has("imported"); "has(\"imported\")"; jpath) |
+    assert(.imported | type == "string"; "type == \"string\""; jpath + ".imported") |
+    assert(has("args"); "has(\"args\")"; jpath) |
+    (.args | isArray(isSanitized; assert; jpath + ".args"))
+  );
+
+  def is_ImageBuilderPrune(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("image.builder.prune"); "has(\"image.builder.prune\")"; jpath) |
+    (.["image.builder.prune"] | isImageBuilderPrune(assert; jpath + ".[\"image.builder.prune\"]"))
+  );
+
+  def is_ImageTagDefined(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("image.tag.defined"); "has(\"image.tag.defined\")"; jpath) |
+    (.["image.tag.defined"] | isImageTagDefined(assert; jpath + ".[\"image.tag.defined\"]"))
+  );
+
+  def is_ImageTagCreate(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("image.tag.create"); "has(\"image.tag.create\")"; jpath) |
+    (.["image.tag.create"] | isImageTagCreate(assert; jpath + ".[\"image.tag.create\"]"))
   );
-
-  def is_ImageTagCompute: (
-    (type == "object") and
-    (length == 1) and
-    (has("image.tag.compute")) and
-    (.image.tag.compute | isImageTagCompute)
+
+  def is_ImageTagCompute(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("image.tag.compute"); "has(\"image.tag.compute\")"; jpath) |
+    (.["image.tag.compute"] | isImageTagCompute(assert; jpath + ".[\"image.tag.compute\"]"))
   );
 
-  def is_ImageBuild: (
-    (type == "object") and
-    (length == 1) and
-    (has("image.build")) and
-    (.image.build | isImageBuild)
+  def is_ImageBuild(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("image.build"); "has(\"image.build\")"; jpath) |
+    (.["image.build"] | isImageBuild(assert; jpath + ".[\"image.build\"]"))
   );
 
-  def is_ImageMerge: (
-    (type == "object") and
-    (length == 1) and
-    (has("image.merge")) and
-    (.image.merge | isImageMerge)
+  def is_ImageMerge(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("image.merge"); "has(\"image.merge\")"; jpath) |
+    (.["image.merge"] | isImageMerge(assert; jpath + ".[\"image.merge\"]"))
   );
 
-  def is_ImagePrune: (
-    (type == "object") and
-    (length == 1) and
-    (has("image.prune")) and
-    (.image.prune | isImagePrune)
+  def is_ImagePrune(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("image.prune"); "has(\"image.prune\")"; jpath) |
+    (.["image.prune"] | isImagePrune(assert; jpath + ".[\"image.prune\"]"))
   );
 
-  def is_ImagePull: (
-    (type == "object") and
-    (length == 1) and
-    (has("image.pull")) and
-    (.image.pull | isImagePull)
+  def is_ImagePull(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("image.pull"); "has(\"image.pull\")"; jpath) |
+    (.["image.pull"] | isImagePull(assert; jpath + ".[\"image.pull\"]"))
   );
 
-  def is_ImageRemove: (
-    (type == "object") and
-    (length == 1) and
-    (has("image.remove")) and
-    (.image.remove | isImageRemove)
+  def is_ImageRemove(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("image.remove"); "has(\"image.remove\")"; jpath) |
+    (.["image.remove"] | isImageRemove(assert; jpath + ".[\"image.remove\"]"))
   );
 
-  def is_ContainerResourceCopy: (
-    (type == "object") and
-    (length == 1) and
-    (has("container.resource.copy")) and
-    (.container.resource.copy | isContainerResourceCopy)
+  def is_ContainerResourceCopy(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("container.resource.copy"); "has(\"container.resource.copy\")"; jpath) |
+    (.["container.resource.copy"] | isContainerResourceCopy(assert; jpath + ".[\"container.resource.copy\"]"))
   );
 
-  def is_ContainerStatusGet: (
-    (type == "object") and
-    (length == 1) and
-    (has("container.status.get")) and
-    (.container.status.get | isContainerStatusGet)
+  def is_ContainerStatusGet(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("container.status.get"); "has(\"container.status.get\")"; jpath) |
+    (.["container.status.get"] | isContainerStatusGet(assert; jpath + ".[\"container.status.get\"]"))
   );
 
-  def is_ContainerStatusCreated: (
-    (type == "object") and
-    (length == 1) and
-    (has("container.status.created")) and
-    (.container.status.created | isContainerStatusCreated)
+  def is_ContainerStatusCreated(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("container.status.created"); "has(\"container.status.created\")"; jpath) |
+    (.["container.status.created"] | isContainerStatusCreated(assert; jpath + ".[\"container.status.created\"]"))
   );
 
-  def is_ContainerStatusRunning: (
-    (type == "object") and
-    (length == 1) and
-    (has("container.status.running")) and
-    (.container.status.running | isContainerStatusRunning)
+  def is_ContainerStatusRunning(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("container.status.running"); "has(\"container.status.running\")"; jpath) |
+    (.["container.status.running"] | isContainerStatusRunning(assert; jpath + ".[\"container.status.running\"]"))
   );
 
-  def is_ContainerStatusHealthy: (
-    (type == "object") and
-    (length == 1) and
-    (has("container.status.healthy")) and
-    (.container.status.healthy | isContainerStatusHealthy)
+  def is_ContainerStatusHealthy(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("container.status.healthy"); "has(\"container.status.healthy\")"; jpath) |
+    (.["container.status.healthy"] | isContainerStatusHealthy(assert; jpath + ".[\"container.status.healthy\"]"))
   );
 
-  def is_ContainerCreate: (
-    (type == "object") and
-    (length == 1) and
-    (has("container.create")) and
-    (.container.create | isContainerCreate)
+  def is_ContainerCreate(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("container.create"); "has(\"container.create\")"; jpath) |
+    (.["container.create"] | isContainerCreate(assert; jpath + ".[\"container.create\"]"))
   );
 
-  def is_ContainerExec: (
-    (type == "object") and
-    (length == 1) and
-    (has("container.exec")) and
-    (.container.exec | isContainerExec)
-  );
-
-  def is_ContainerStart: (
-    (type == "object") and
-    (length == 1) and
-    (has("container.start")) and
-    (.container.start | isContainerStart)
-  );
-
-  def is_ContainerStop: (
-    (type == "object") and
-    (length == 1) and
-    (has("container.stop")) and
-    (.container.stop | isContainerStop)
-  );
-
-  def is_NetworkIpGet: (
-    (type == "object") and
-    (length == 1) and
-    (has("network.ip.get")) and
-    (.network.ip.get | isNetworkIpGet)
-  );
-
-  def is_NetworkCreate: (
-    (type == "object") and
-    (length == 1) and
-    (has("network.create")) and
-    (.network.create | isNetworkCreate)
-  );
-
-  def is_NetworkCreated: (
-    (type == "object") and
-    (length == 1) and
-    (has("network.created")) and
-    (.network.created | isNetworkCreated)
-  );
-
-  def is_NetworkConnect: (
-    (type == "object") and
-    (length == 1) and
-    (has("network.connect")) and
-    (.network.connect | isNetworkConnect)
-  );
-
-  def is_NetworkDisconnect: (
-    (type == "object") and
-    (length == 1) and
-    (has("network.disconnect")) and
-    (.network.disconnect | isNetworkDisconnect)
-  );
-
-  def is_NetworkList: (
-    (type == "object") and
-    (length == 1) and
-    (has("network.list")) and
-    (.network.list | isNetworkList)
-  );
-
-  def is_VolumeCreate: (
-    (type == "object") and
-    (length == 1) and
-    (has("volume.create")) and
-    (.volume.create | isVolumeCreate)
-  );
-
-  def is_VolumeCreated: (
-    (type == "object") and
-    (length == 1) and
-    (has("volume.created")) and
-    (.volume.created | isVolumeCreated)
-  );
-
-  def is_VolumeList: (
-    (type == "object") and
-    (length == 1) and
-    (has("volume.list")) and
-    (.volume.list | isVolumeList)
-  );
-
-  def is_RoutineExec: (
-    (type == "object") and
-    (length == 1) and
-    (has("routine.exec")) and
-    (.routine.exec | isRoutineExec)
-  );
-
-  def is_Module: (
-    is_ImageBuilderPrune or
-    is_ImageTagDefined or
-    is_ImageTagCreate or
-    is_ImageTagCompute or
-    is_ImageBuild or
-    is_ImageMerge or
-    is_ImagePrune or
-    is_ImagePull or
-    is_ImageRemove or
-    is_ContainerResourceCopy or
-    is_ContainerStatusGet or
-    is_ContainerStatusCreated or
-    is_ContainerStatusRunning or
-    is_ContainerStatusHealthy or
-    is_ContainerCreate or
-    is_ContainerExec or
-    is_ContainerStart or
-    is_ContainerStop or
-    is_NetworkIpGet or
-    is_NetworkCreate or
-    is_NetworkCreated or
-    is_NetworkConnect or
-    is_NetworkDisconnect or
-    is_NetworkList or
-    is_VolumeCreate or
-    is_VolumeCreated or
-    is_VolumeList or
-    is_RoutineExec
-  );
-
-  def isArithmeticExpr: (
-    def isArithmeticOperand: (
-      isInteger or
-      isIdentifier or
-      isDereferenced or
-      isArithmeticExpr
+  def is_ContainerExec(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("container.exec"); "has(\"container.exec\")"; jpath) |
+    (.["container.exec"] | isContainerExec(assert; jpath + ".[\"container.exec\"]"))
+  );
+
+  def is_ContainerStart(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("container.start"); "has(\"container.start\")"; jpath) |
+    (.["container.start"] | isContainerStart(assert; jpath + ".[\"container.start\"]"))
+  );
+
+  def is_ContainerStop(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("container.stop"); "has(\"container.stop\")"; jpath) |
+    (.["container.stop"] | isContainerStop(assert; jpath + ".[\"container.stop\"]"))
+  );
+
+  def is_NetworkIpGet(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("network.ip.get"); "has(\"network.ip.get\")"; jpath) |
+    (.["network.ip.get"] | isNetworkIpGet(assert; jpath + ".[\"network.ip.get\"]"))
+  );
+
+  def is_NetworkCreate(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("network.create"); "has(\"network.create\")"; jpath) |
+    (.["network.create"] | isNetworkCreate(assert; jpath + ".[\"network.create\"]"))
+  );
+
+  def is_NetworkCreated(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("network.created"); "has(\"network.created\")"; jpath) |
+    (.["network.created"] | isNetworkCreated(assert; jpath + ".[\"network.created\"]"))
+  );
+
+  def is_NetworkConnect(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("network.connect"); "has(\"network.connect\")"; jpath) |
+    (.["network.connect"] | isNetworkConnect(assert; jpath + ".[\"network.connect\"]"))
+  );
+
+  def is_NetworkDisconnect(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("network.disconnect"); "has(\"network.disconnect\")"; jpath) |
+    (.["network.disconnect"] | isNetworkDisconnect(assert; jpath + ".[\"network.disconnect\"]"))
+  );
+
+  def is_NetworkList(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("network.list"); "has(\"network.list\")"; jpath) |
+    (.["network.list"] | isNetworkList(assert; jpath + ".[\"network.list\"]"))
+  );
+
+  def is_VolumeCreate(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("volume.create"); "has(\"volume.create\")"; jpath) |
+    (.["volume.create"] | isVolumeCreate(assert; jpath + ".[\"volume.create\"]"))
+  );
+
+  def is_VolumeCreated(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("volume.created"); "has(\"volume.created\")"; jpath) |
+    (.["volume.created"] | isVolumeCreated(assert; jpath + ".[\"volume.created\"]"))
+  );
+
+  def is_VolumeList(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("volume.list"); "has(\"volume.list\")"; jpath) |
+    (.["volume.list"] | isVolumeList(assert; jpath + ".[\"volume.list\"]"))
+  );
+
+  def is_RoutineExec(assert; jpath): (
+    assert(type == "object"; "type == \"object\""; jpath) |
+    assert(length == 1; "length == 1"; jpath) |
+    assert(has("routine.exec"); "has(\"routine.exec\")"; jpath) |
+    (.["routine.exec"] | isRoutineExec(assert; jpath + ".[\"routine.exec\"]"))
+  );
+
+  def is_Module(assert; jpath): (
+    assert(is_ImageBuilderPrune(AND; jpath) or
+      is_ImageTagDefined(AND; jpath) or
+      is_ImageTagCreate(AND; jpath) or
+      is_ImageTagCompute(AND; jpath) or
+      is_ImageBuild(AND; jpath) or
+      is_ImageMerge(AND; jpath) or
+      is_ImagePrune(AND; jpath) or
+      is_ImagePull(AND; jpath) or
+      is_ImageRemove(AND; jpath) or
+      is_ContainerResourceCopy(AND; jpath) or
+      is_ContainerStatusGet(AND; jpath) or
+      is_ContainerStatusCreated(AND; jpath) or
+      is_ContainerStatusRunning(AND; jpath) or
+      is_ContainerStatusHealthy(AND; jpath) or
+      is_ContainerCreate(AND; jpath) or
+      is_ContainerExec(AND; jpath) or
+      is_ContainerStart(AND; jpath) or
+      is_ContainerStop(AND; jpath) or
+      is_NetworkIpGet(AND; jpath) or
+      is_NetworkCreate(AND; jpath) or
+      is_NetworkCreated(AND; jpath) or
+      is_NetworkConnect(AND; jpath) or
+      is_NetworkDisconnect(AND; jpath) or
+      is_NetworkList(AND; jpath) or
+      is_VolumeCreate(AND; jpath) or
+      is_VolumeCreated(AND; jpath) or
+      is_VolumeList(AND; jpath) or
+      is_RoutineExec(AND; jpath); "is_ImageBuilderPrune(AND; jpath) or is_ImageTagDefined(AND; jpath) or is_ImageTagCreate(AND; jpath) or is_ImageTagCompute(AND; jpath) or is_ImageBuild(AND; jpath) or is_ImageMerge(AND; jpath) or is_ImagePrune(AND; jpath) or is_ImagePull(AND; jpath) or is_ImageRemove(AND; jpath) or is_ContainerResourceCopy(AND; jpath) or is_ContainerStatusGet(AND; jpath) or is_ContainerStatusCreated(AND; jpath) or is_ContainerStatusRunning(AND; jpath) or is_ContainerStatusHealthy(AND; jpath) or is_ContainerCreate(AND; jpath) or is_ContainerExec(AND; jpath) or is_ContainerStart(AND; jpath) or is_ContainerStop(AND; jpath) or is_NetworkIpGet(AND; jpath) or is_NetworkCreate(AND; jpath) or is_NetworkCreated(AND; jpath) or is_NetworkConnect(AND; jpath) or is_NetworkDisconnect(AND; jpath) or is_NetworkList(AND; jpath) or is_VolumeCreate(AND; jpath) or is_VolumeCreated(AND; jpath) or is_VolumeList(AND; jpath) or is_RoutineExec(AND; jpath)"; jpath)
+  );
+
+  def isArithmeticExpr(assert; jpath): (
+    def isArithmeticOperand(assert; jpath): (
+      assert(isInteger(AND; jpath) or
+        isIdentifier(AND; jpath) or
+        isDereferenced(AND; jpath) or
+        isArithmeticExpr(AND; jpath); "isInteger(AND; jpath) or isIdentifier(AND; jpath) or isDereferenced(AND; jpath) or isArithmeticExpr(AND; jpath)"; jpath)
     );
 
-    def isBinaryArithmeticExpr: (
-      (type == "object") and
-      (length == 3) and
-      (has("left")) and
-      (.left | isArithmeticOperand) and
-      (has("operator")) and
-      (.operator | isBinaryArithmeticOperator) and
-      (has("right")) and
-      (.right | isArithmeticOperand)
+    def isBinaryArithmeticExpr(assert; jpath): (
+      assert(type == "object"; "type == \"object\""; jpath) |
+      assert(length == 3; "length == 3"; jpath) |
+      assert(has("left"); "has(\"left\")"; jpath) |
+      (.left | isArithmeticOperand(assert; jpath + ".left")) |
+      assert(has("operator"); "has(\"operator\")"; jpath) |
+      (.operator | isBinaryArithmeticOperator(assert; jpath + ".operator")) |
+      assert(has("right"); "has(\"right\")"; jpath) |
+      (.right | isArithmeticOperand(assert; jpath + ".right"))
     );
 
-    isBinaryArithmeticExpr
+    isBinaryArithmeticExpr(assert; jpath)
   );
 
-  def isAssign: (
+  def isAssign(assert; jpath): (
     (type == "object") and
     (has("scope")) and
     (.scope | isScope) and
@@ -955,7 +955,7 @@ def isRoutine: (
     )
   );
 
-  def isColor: (
+  def isColor(assert; jpath): (
     (type == "object") and
     (length == 2) and
     (has("index")) and
@@ -964,7 +964,7 @@ def isRoutine: (
     (.variable | isSanitized)
   );
 
-  def isHarden: (
+  def isHarden(assert; jpath): (
     (type == "object") and
     (has("command")) and
     (.command | isSanitized) and
@@ -979,17 +979,17 @@ def isRoutine: (
     )
   );
 
-  def isJson: (
+  def isJson(assert; jpath): (
     isNonEmptyArray(isSanitized)
   );
 
-  def isMutable: (
+  def isMutable(assert; jpath): (
     isIdentifier or
     isArrayIdentifier or
     (. == "last")
   );
 
-  def isMutate: (
+  def isMutate(assert; jpath): (
     (type == "object") and
     (length == 3) and
     (has("name")) and
@@ -1007,15 +1007,15 @@ def isRoutine: (
     )
   );
 
-  def isOnOff: (
+  def isOnOff(assert; jpath): (
     isNonEmptyArray(isOption)
   );
 
-  def isParameters: (
+  def isParameters(assert; jpath): (
     isNonEmptyArray(isSanitized)
   );
 
-  def isPrint: (
+  def isPrint(assert; jpath): (
     (type == "object") and
     (has("format")) and
     (.format | type == "string") and
@@ -1032,127 +1032,127 @@ def isRoutine: (
     )
   );
 
-  def isReadonly: (
+  def isReadonly(assert; jpath): (
     isNonEmptyArray(isSanitized)
   );
 
-  def isReturn: (
+  def isReturn(assert; jpath): (
     isInteger
   );
 
-  def isSkip: (
+  def isSkip(assert; jpath): (
     isSanitized
   );
 
-  def is_ArithmeticExpr: (
+  def is_ArithmeticExpr(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("arithmetic")) and
     (.arithmetic | isArithmeticExpr)
   );
 
-  def is_Assign: (
+  def is_Assign(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("assign")) and
     (.assign | isAssign)
   );
 
-  def is_Capture: (
+  def is_Capture(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("capture")) and
     (.capture | type == "null")
   );
 
-  def is_Restore: (
+  def is_Restore(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("restore")) and
     (.restore | type == "null")
   );
 
-  def is_CaptureRestore: (
+  def is_CaptureRestore(assert; jpath): (
     is_Capture or
     is_Restore
   );
 
-  def is_Color: (
+  def is_Color(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("color")) and
     (.color | isColor)
   );
 
-  def is_Harden: (
+  def is_Harden(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("harden")) and
     (.harden | isHarden)
   );
 
-  def is_Json: (
+  def is_Json(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("json.encode")) and
-    (.json.encode | isJson)
+    (.["json.encode"] | isJson)
   );
 
-  def is_Mutate: (
+  def is_Mutate(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("mutate")) and
     (.mutate | isMutate)
   );
 
-  def is_On: (
+  def is_On(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("on")) and
     (.on | isOnOff)
   );
 
-  def is_Off: (
+  def is_Off(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("off")) and
     (.off | isOnOff)
   );
 
-  def is_OnOff: (
+  def is_OnOff(assert; jpath): (
     is_On or
     is_Off
   );
 
-  def is_Parameters: (
+  def is_Parameters(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("parameters")) and
     (.parameters | isParameters)
   );
 
-  def is_Print: (
+  def is_Print(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("print")) and
     (.print | isPrint)
   );
 
-  def is_Readonly: (
+  def is_Readonly(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("readonly")) and
     (.readonly | isReadonly)
   );
 
-  def is_Return: (
+  def is_Return(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("return")) and
     (.return | isInteger)
   );
 
-  def is_Skip: (
+  def is_Skip(assert; jpath): (
     (type == "object") and
     (length == 1) and
     (has("skip")) and
@@ -1160,7 +1160,7 @@ def isRoutine: (
   );
 
   def isGroup(assert; jpath): (
-    def isCall: (
+    def isCall(assert; jpath): (
       (type == "object") and
       (has("command")) and
       (.command | isSanitized) and
@@ -1177,43 +1177,43 @@ def isRoutine: (
       )
     );
 
-    def isSourceable: (
+    def isSourceable(assert; jpath): (
       isPrint or
       isCall
     );
 
-    def isSource: (
+    def isSource(assert; jpath): (
       isNonEmptyArray(isSanitized) or
       isNonEmptyArray(isSourceable)
     );
 
-    def is_Source: (
+    def is_Source(assert; jpath): (
       (type == "object") and
       (length == 1) and
       (has("source")) and
       (.source | isSource)
     );
 
-    def is_Call: (
+    def is_Call(assert; jpath): (
       (type == "object") and
       (length == 1) and
       (has("call")) and
       (.call | isCall)
     );
 
-    def isDefer: (
+    def isDefer(assert; jpath): (
       is_Module or
       is_Call
     );
 
-    def is_Defer: (
+    def is_Defer(assert; jpath): (
       (type == "object") and
       (length == 1) and
       (has("defer")) and
       (.defer | isDefer)
     );
 
-    def isInternalCall: (
+    def isInternalCall(assert; jpath): (
       (type == "object") and
       (length == 3) and
       (has("command")) and
@@ -1231,20 +1231,20 @@ def isRoutine: (
       )
     );
 
-    def is_InternalCall: (
+    def is_InternalCall(assert; jpath): (
       (type == "object") and
       (length == 1) and
       (has("call")) and
       (.call | isInternalCall)
     );
 
-    def isLogicalExpr: (
-      def isLogicalOperand: (
+    def isLogicalExpr(assert; jpath): (
+      def isLogicalOperand(assert; jpath): (
         isLogicalExpr or
         isGroup
       );
 
-      def isUnaryLogicalExpr: (
+      def isUnaryLogicalExpr(assert; jpath): (
         (type == "object") and
         (length == 2) and
         (has("operand")) and
@@ -1253,7 +1253,7 @@ def isRoutine: (
         (.operator | isBinaryLogicalOperator)
       );
 
-      def isBinaryLogicalExpr: (
+      def isBinaryLogicalExpr(assert; jpath): (
         (type == "object") and
         (length == 3) and
         (has("left")) and
@@ -1268,8 +1268,8 @@ def isRoutine: (
       isBinaryLogicalExpr
     );
 
-    def isIf: (
-      def isElse: (
+    def isIf(assert; jpath): (
+      def isElse(assert; jpath): (
         isIf or
         isGroup
       );
@@ -1284,7 +1284,7 @@ def isRoutine: (
       (.else | isArray(isElse))
     );
 
-    def isRange: (
+    def isRange(assert; jpath): (
       (type == "object") and
       (length == 4) and
       (has("initial")) and
@@ -1297,7 +1297,7 @@ def isRoutine: (
       (.do | isGroup)
     );
 
-    def isIterator: (
+    def isIterator(assert; jpath): (
       (type == "object") and
       (length == 3) and
       (has("for")) and
@@ -1308,7 +1308,7 @@ def isRoutine: (
       (.do | isGroup)
     );
 
-    def isConditional: (
+    def isConditional(assert; jpath): (
       (type == "object") and
       (length == 2) and
       (has("while")) and
@@ -1317,25 +1317,25 @@ def isRoutine: (
       (.do | isGroup)
     );
 
-    def isLoop: (
+    def isLoop(assert; jpath): (
       isRange or
       isIterator or
       isConditional
     );
 
-    def is_Loop: (
+    def is_Loop(assert; jpath): (
       (type == "object") and
       (length == 1) and
       (has("loop")) and
       (.loop | isLoop)
     );
 
-    def isSubshell: (
+    def isSubshell(assert; jpath): (
       isGroup or
       isArithmeticExpr
     );
 
-    def isRegister: (
+    def isRegister(assert; jpath): (
       (type == "object") and
       (length == 2) and
       (has("variable")) and
@@ -1344,15 +1344,15 @@ def isRoutine: (
       (.subshell | isSubshell)
     );
 
-    def is_Register: (
+    def is_Register(assert; jpath): (
       (type == "object") and
       (length == 1) and
       (has("register")) and
       (.register | isRegister)
     );
 
-    def isCommand: (
-      def isCoproc: (
+    def isCommand(assert; jpath): (
+      def isCoproc(assert; jpath): (
         (type == "object") and
         (length == 2) and
         (has("name")) and
@@ -1361,26 +1361,26 @@ def isRoutine: (
         (.commands | isNonEmptyArray(isCommand))
       );
 
-      def is_Coproc: (
+      def is_Coproc(assert; jpath): (
         (type == "object") and
         (length == 1) and
         (has("coproc")) and
         (.coproc | isCoproc)
       );
 
-      def isInternal: (
+      def isInternal(assert; jpath): (
         is_InternalCall or
         is_Coproc
       );
 
-      def is_Internal: (
+      def is_Internal(assert; jpath): (
         (type == "object") and
         (length == 1) and
         (has("internal")) and
         (.internal | isInternal)
       );
 
-      def isBranch: (
+      def isBranch(assert; jpath): (
         (type == "object") and
         (length == 2) and
         (has("pattern")) and
@@ -1389,7 +1389,7 @@ def isRoutine: (
         (.commands | isNonEmptyArray(isCommand))
       );
 
-      def isSwitch: (
+      def isSwitch(assert; jpath): (
         (type == "object") and
         (length == 2) and
         (has("evaluate")) and
@@ -1398,14 +1398,14 @@ def isRoutine: (
         (.branches | isNonEmptyArray(isBranch))
       );
 
-      def is_Switch: (
+      def is_Switch(assert; jpath): (
         (type == "object") and
         (length == 1) and
         (has("switch")) and
         (.switch | isSwitch)
       );
 
-      def isDefine: (
+      def isDefine(assert; jpath): (
         (type == "object") and
         (length == 2) and
         (has("name")) and
@@ -1414,7 +1414,7 @@ def isRoutine: (
         (.body | isGroup)
       );
 
-      def is_Define: (
+      def is_Define(assert; jpath): (
         (type == "object") and
         (length == 1) and
         (has("define")) and
