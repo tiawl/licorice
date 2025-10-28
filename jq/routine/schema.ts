@@ -591,7 +591,7 @@ type LogicalOperand = LogicalExpr
                     ;
 type UnaryLogicalExpr = {
   "operand": LogicalOperand;
-  "operator": BinaryLogicalOperator;
+  "operator": UnaryLogicalOperator;
 };
 type BinaryLogicalExpr = {
   "left": LogicalOperand;
