@@ -200,6 +200,7 @@ type Dereferenced = DereferencedVariable
                   | DereferencedParameter
                   | DereferencedSpecial
                   ;
+// TODO: rework Sanitized => it needs a way to know which of these types is used:
 type Sanitized = Literal
                | Char
                | Dereferenced

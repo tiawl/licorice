@@ -51,6 +51,7 @@ def capture_restore(level): (
 
 def define(level; mode; nested_register; user_defined): (
   def group(level; mode; multilined; indent_first; nested_register): (
+    # TODO: rework this function accordingly to schema.ts and types.jq
     def sanitize(mode; quoted): (
       def expansion(mode): (
         if (has("default")) then (

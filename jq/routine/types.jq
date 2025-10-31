@@ -368,6 +368,7 @@ def isRoutine: (
       isDereferencedParameter($DISPATCH.AND; jpath); "isDereferencedVariable($DISPATCH.AND; jpath) or isDereferencedSpecial($DISPATCH.AND; jpath) or isDereferencedParameter($DISPATCH.AND; jpath)"; jpath)
   );
 
+  # TODO: rework isSanitized => it needs a way to know which of these types is used:
   def isSanitized(dispatch; jpath): (
     assert(dispatch; isLiteral($DISPATCH.AND; jpath) or
       isChar($DISPATCH.AND; jpath) or
