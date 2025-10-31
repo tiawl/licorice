@@ -53,16 +53,29 @@ def debug_var(varname): (
   debug(varname + " = \(.)")
 );
 
-def ASSERT(conditional; message; jpath): (
+{
+  ASSERT: 0,
+  AND: 1
+} as $DISPATCH |
+
+def __assert(conditional; message; jpath): (
   if (conditional | not) then ("assertion failed: (" + message + ") must succeed for " + jpath | exit(2)) end
 );
 
-def AND(conditional; dummy1; dummy2): (
+def __and(conditional): (
   . and conditional
 );
 
 def unreachable(fn): (
   "reached unreachable code into " + fn + "()" | exit(3)
+);
+
+def assert(dispatch; conditionnal; message; jpath): (
+  if (dispatch == $DISPATCH.ASSERT) then (
+    __assert(conditionnal; message; jpath)
+  ) elif (dispatch == $DISPATCH.AND) then (
+    __and(conditionnal)
+  ) else unreachable("assert") end
 );
 
 def permission_denied(mode): (
