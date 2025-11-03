@@ -9,7 +9,7 @@ export -f setup
 # TODO: sanitize()
 
 @test 'codegen: harden' {
-  run gojq --raw-output --yaml-input "$(< jq/routine/common.jq)$(< jq/routine/types.jq)$(< jq/routine/codegen.jq) isRoutine | routine" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
+  run gojq --raw-output --yaml-input "$(< jq/routine/common.jq)$(< jq/routine/types.jq)$(< jq/routine/codegen.jq) isRoutine | Routine" --arg NAMESPACE_SEP '::' --arg EXE 'null' --arg BACKEND 'null' --arg FUNCTIONS 'null' <<EOF
 routine:
   commands:
   - harden:
@@ -17,7 +17,7 @@ routine:
       - literal: ssh
   - harden:
       command:
-      - var: harden_me
+      - varname: harden_me
   - harden:
       command:
       - literal: ssh-keygen

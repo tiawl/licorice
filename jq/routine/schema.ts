@@ -183,7 +183,7 @@ type StringExpansion = DefaultStringExpansion
                      | _ReplaceStringExpansion
                      ;
 type DereferencedVariable = {
-  "name": Identifier;
+  "varname": Identifier;
   "array_expansion"?: ArrayExpansion;
   "string_expansion"?: StringExpansion;
 };
@@ -200,13 +200,25 @@ type Dereferenced = DereferencedVariable
                   | DereferencedParameter
                   | DereferencedSpecial
                   ;
-// TODO: rework Sanitized => it needs a way to know which of these types is used:
-type Sanitized = Literal
-               | Char
-               | Dereferenced
-               | Path
-               | InternalLiteral
-               ;
+type _Literal = {
+  "literal": Literal;
+};
+type _Char = {
+  "char": Char;
+};
+type _Path = {
+  "path": Path;
+};
+type _InternalLiteral = {
+  "literal": InternalLiteral;
+};
+type SanitizedElement = _Literal
+                      | _Char
+                      | Dereferenced
+                      | _Path
+                      | _InternalLiteral
+                      ;
+type Sanitized = NonEmptyArray<SanitizedElement>;
 type Input = Sanitized;
 type File = Path
           | FileDescriptor
@@ -216,6 +228,12 @@ type Output = {
   "left": FileDescriptor;
   "appending": boolean;
   "right": File;
+};
+type _Input = {
+  "input": Input;
+};
+type _Output = {
+  "output": Output;
 };
 type Redirection = Input
                  | Output
@@ -686,7 +704,7 @@ type Command = _ArithmeticExpr
              | _Module
              ;
 type Group = {
-  "redirections": Redirection[];
+  "redirections"?: Redirection[] = [];
   "commands": NonEmptyArray<Command>;
 };
 type Define = {

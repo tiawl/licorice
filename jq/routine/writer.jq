@@ -100,7 +100,7 @@ def internals: (
         }
       }
     }
-  ] | map(internal_define) | join("")
+  ] | map(_Define_internal) | join("")
 );
 
 def root: (
@@ -125,7 +125,7 @@ def root: (
         ] + .group.commands
       )
     }
-  } | routine
+  } | Routine
 );
 
 def write: (

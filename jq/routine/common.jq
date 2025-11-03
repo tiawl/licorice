@@ -5,13 +5,13 @@
     user: "__"
   },
   fn: {
-    internal: ("routine" + $ARGS.named.NAMESPACE_SEP),
+    privileged: ("routine" + $ARGS.named.NAMESPACE_SEP),
     user: ("user" + $ARGS.named.NAMESPACE_SEP)
   },
   sep: $ARGS.named.NAMESPACE_SEP
 } as $NAMESPACE |
 {
-  internal: -1,
+  privileged: -1,
   quiet: 0,
   user: 1
 } as $MODE |
@@ -79,7 +79,7 @@ def assert(dispatch; conditionnal; message; jpath): (
 );
 
 def permission_denied(mode): (
-  if (mode != $MODE.internal) then (
-    "\"unsafe\" can only be used as internal user" | exit(1)
+  if (mode != $MODE.privileged) then (
+    "\"unsafe\" can only be used as privileged user" | exit(1)
   ) end
 );

@@ -313,8 +313,8 @@ def isRoutine: (
 
   def isDereferencedVariable(dispatch; jpath): (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; has("name"); "has(\"name\")"; jpath) |
-    (.name | isIdentifier(dispatch; jpath + ".name")) |
+    assert(dispatch; has("varname"); "has(\"varname\")"; jpath) |
+    (.varname | isIdentifier(dispatch; jpath + ".varname")) |
     assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
     if (length == 3) then (
       assert(dispatch; has("array_expansion"); "has(\"array_expansion\")"; jpath) |
@@ -368,13 +368,50 @@ def isRoutine: (
       isDereferencedParameter($DISPATCH.AND; jpath); "isDereferencedVariable($DISPATCH.AND; jpath) or isDereferencedSpecial($DISPATCH.AND; jpath) or isDereferencedParameter($DISPATCH.AND; jpath)"; jpath)
   );
 
-  # TODO: rework isSanitized => it needs a way to know which of these types is used:
-  def isSanitized(dispatch; jpath): (
-    assert(dispatch; isLiteral($DISPATCH.AND; jpath) or
-      isChar($DISPATCH.AND; jpath) or
+  def is_Literal(dispatch; jpath): (
+    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+    assert(dispatch; length == 1; "length == 1"; jpath) |
+    assert(dispatch; has("literal"); "has(\"literal\")"; jpath) |
+    (.literal | isReplaceStringExpansion(dispatch; jpath + ".literal"))
+  );
+
+  def is_Char(dispatch; jpath): (
+    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+    assert(dispatch; length == 1; "length == 1"; jpath) |
+    assert(dispatch; has("char"); "has(\"char\")"; jpath) |
+    (.char | isReplaceStringExpansion(dispatch; jpath + ".char"))
+  );
+
+  def is_Path(dispatch; jpath): (
+    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+    assert(dispatch; length == 1; "length == 1"; jpath) |
+    assert(dispatch; has("path"); "has(\"path\")"; jpath) |
+    (.["path"] | isReplaceStringExpansion(dispatch; jpath + ".path"))
+  );
+
+  def is_InternalLiteral(dispatch; jpath): (
+    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+    assert(dispatch; length == 1; "length == 1"; jpath) |
+    assert(dispatch; has("literal"); "has(\"literal\")"; jpath) |
+    (.literal | isReplaceStringExpansion(dispatch; jpath + ".literal"))
+  );
+
+  def isSanitizedElement(dispatch; jpath): (
+    assert(dispatch; is_Literal($DISPATCH.AND; jpath) or
+      is_Char($DISPATCH.AND; jpath) or
       isDereferenced($DISPATCH.AND; jpath) or
-      isPath($DISPATCH.AND; jpath) or
-      isInternalLiteral($DISPATCH.AND; jpath); "isLiteral($DISPATCH.AND; jpath) or isChar($DISPATCH.AND; jpath) or isDereferenced($DISPATCH.AND; jpath) or isPath($DISPATCH.AND; jpath) or isInternalLiteral($DISPATCH.AND; jpath)"; jpath)
+      is_Path($DISPATCH.AND; jpath) or
+      is_InternalLiteral($DISPATCH.AND; jpath); "is_Literal($DISPATCH.AND; jpath) or is_Char($DISPATCH.AND; jpath) or isDereferenced($DISPATCH.AND; jpath) or is_Path($DISPATCH.AND; jpath) or is_InternalLiteral($DISPATCH.AND; jpath)"; jpath)
+  );
+
+  def isNonEmptyArrayOfSanitizedElement(dispatch; jpath): (
+    assert(dispatch; type == "array"; "type == \"array\""; jpath) |
+    assert(dispatch; length > 0; "length > 0"; jpath) |
+    (to_entries | map(.value | isSanitizedElement(dispatch; jpath + "[" + (.key | tostring) + "]")))
+  );
+
+  def isSanitized(dispatch; jpath): (
+    assert(dispatch; isNonEmptyArrayOfSanitizedElement($DISPATCH.AND; jpath); "isNonEmptyArrayOfSanitizedElement($DISPATCH.AND; jpath)"; jpath)
   );
 
   def isArrayOfSanitized(dispatch; jpath): (
@@ -409,9 +446,23 @@ def isRoutine: (
     (.right | isFile(dispatch; jpath + ".right"))
   );
 
+  def is_Input(dispatch; jpath): (
+    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+    assert(dispatch; length == 1; "length == 1"; jpath) |
+    assert(dispatch; has("input"); "has(\"input\")"; jpath) |
+    (.["input"] | isInput(dispatch; jpath + ".input"))
+  );
+
+  def is_Output(dispatch; jpath): (
+    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+    assert(dispatch; length == 1; "length == 1"; jpath) |
+    assert(dispatch; has("output"); "has(\"output\")"; jpath) |
+    (.output | isOutput(dispatch; jpath + ".output"))
+  );
+
   def isRedirection(dispatch; jpath): (
-    assert(dispatch; isInput($DISPATCH.AND; jpath) or
-      isOutput($DISPATCH.AND; jpath); "isInput($DISPATCH.AND; jpath) or isOutput($DISPATCH.AND; jpath)"; jpath)
+    assert(dispatch; is_Input($DISPATCH.AND; jpath) or
+      is_Output($DISPATCH.AND; jpath); "is_Input($DISPATCH.AND; jpath) or is_Output($DISPATCH.AND; jpath)"; jpath)
   );
 
   def isArrayOfRedirection(dispatch; jpath): (
@@ -1467,11 +1518,13 @@ def isRoutine: (
     );
 
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; length == 2; "length == 2"; jpath) |
-    assert(dispatch; has("redirections"); "has(\"redirections\")"; jpath) |
     assert(dispatch; has("commands"); "has(\"commands\")"; jpath) |
-    (.redirections | isArrayOfRedirection(dispatch; jpath + ".redirections")) and
-    (.commands | isNonEmptyArrayOfCommand(dispatch; jpath + ".commands"))
+    (.commands | isNonEmptyArrayOfCommand(dispatch; jpath + ".commands")) |
+    assert(dispatch; length == 2 or length == 1; "length == 2 or length == 1"; jpath) |
+    if (length == 2) then (
+      assert(dispatch; has("redirections"); "has(\"redirections\")"; jpath) |
+      (.redirections | isArrayOfRedirection(dispatch; jpath + ".redirections"))
+    ) end
   );
 
   assert($DISPATCH.ASSERT; type == "object"; "type == \"object\""; ".") |
