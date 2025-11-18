@@ -139,62 +139,81 @@ enum Option {
   vi,
   xtrace
 };
-type ArrayReference = Integer
-                    | Key
-                    ;
+type _Integer = {
+  "int": Integer;
+};
+type _Key = {
+  "key": Key;
+};
+type Asterisk = Char.asterisk;
+type _Char_asterisk = {
+  "char": Asterisk;
+};
+type Atsign = Char.atsign;
+type _Char_atsign = {
+  "char": Atsign;
+};
+type Reference = _Integer
+               | _Key
+               | _Char_asterisk
+               | _Char_atsign
+               ;
 type ArrayIdentifier = {
   "name": Identifier;
-  "reference": ArrayReference;
+  "reference": Reference;
 };
-type ArrayExpansion = {
-  "reference": ArrayReference;
-  "offset": Integer;
-  "length"?: Integer;
-};
-type DefaultStringExpansion = {
+type DefaultExpansion = {
   "default": Sanitized;
 };
-type AlternateStringExpansion = {
+type AlternateExpansion = {
   "alternate": Sanitized;
 };
-type PromptStringExpansion = {
+type PromptExpansion = {
   "prompt": Empty;
 };
-type RemoveStringExpansion = {
+type RemoveExpansion = {
   "short": boolean;
   "from_start": boolean;
   "pattern": Regex;
 };
-type _RemoveStringExpansion = {
-  "remove": RemoveStringExpansion;
+type _RemoveExpansion = {
+  "remove": RemoveExpansion;
 };
-type ReplaceStringExpansion = {
+type ReplaceExpansion = {
   "global": boolean;
   "match": Regex;
   "with"?: string;
 };
-type _ReplaceStringExpansion = {
-  "replace": ReplaceStringExpansion;
+type _ReplaceExpansion = {
+  "replace": ReplaceExpansion;
 };
-type StringExpansion = DefaultStringExpansion
-                     | AlternateStringExpansion
-                     | PromptStringExpansion
-                     | _RemoveStringExpansion
-                     | _ReplaceStringExpansion
-                     ;
+type SubstringExpansion = {
+  "offset": Integer;
+  "length"?: Integer;
+};
+type _SubstringExpansion = {
+  "substring": SubstringExpansion;
+};
+type Expansion = DefaultExpansion
+               | AlternateExpansion
+               | PromptExpansion
+               | _RemoveExpansion
+               | _ReplaceExpansion
+               | _SubstringExpansion
+               ;
 type DereferencedVariable = {
   "varname": Identifier;
-  "array_expansion"?: ArrayExpansion;
-  "string_expansion"?: StringExpansion;
+  "reference"?: Reference;
+  "expansion"?: Expansion;
 };
 type DereferencedSpecial = {
   "special": Special;
-  "array_expansion"?: ArrayExpansion;
-  "string_expansion"?: StringExpansion;
+  "reference"?: Reference;
+  "expansion"?: Expansion;
 };
 type DereferencedParameter = {
   "parameter": Parameter;
-  "expansion"?: StringExpansion;
+  "expansion"?: Expansion;
 };
 type Dereferenced = DereferencedVariable
                   | DereferencedParameter

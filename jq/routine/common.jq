@@ -46,7 +46,7 @@ def exit(code): (
   "routine: " + . + "\n" | halt_error(code)
 );
 
-def debug_var(varname): (
+def debugVar(varname): (
   if (varname | type != $JSON.TYPE.STRING) then (
     "debug_empty takes only 1 arg" | exit(1)
   ) else . end |
@@ -78,7 +78,7 @@ def assert(dispatch; conditionnal; message; jpath): (
   ) else unreachable("assert") end
 );
 
-def permission_denied(mode): (
+def permissionDenied(mode): (
   if (mode != $MODE.privileged) then (
     "\"unsafe\" can only be used as privileged user" | exit(1)
   ) end

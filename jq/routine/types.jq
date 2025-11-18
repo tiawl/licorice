@@ -217,28 +217,28 @@ def isRoutine: (
     assert(dispatch; type == "string"; "type == \"string\""; jpath)
   );
 
-  def isDefaultStringExpansion(dispatch; jpath): (
+  def isDefaultExpansion(dispatch; jpath): (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
     assert(dispatch; length == 1; "length == 1"; jpath) |
     assert(dispatch; has("default"); "has(\"default\")"; jpath) |
     assert(dispatch; .default | type == "string"; "type == \"string\""; jpath + ".default")
   );
 
-  def isAlternateStringExpansion(dispatch; jpath): (
+  def isAlternateExpansion(dispatch; jpath): (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
     assert(dispatch; length == 1; "length == 1"; jpath) |
     assert(dispatch; has("alternate"); "has(\"alternate\")"; jpath) |
     assert(dispatch; .alternate | type == "string"; "type == \"string\""; jpath + ".alternate")
   );
 
-  def isPromptStringExpansion(dispatch; jpath): (
+  def isPromptExpansion(dispatch; jpath): (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
     assert(dispatch; length == 1; "length == 1"; jpath) |
     assert(dispatch; has("prompt"); "has(\"prompt\")"; jpath) |
     (.prompt | isEmpty(dispatch; jpath + ".prompt"))
   );
 
-  def isRemoveStringExpansion(dispatch; jpath): (
+  def isRemoveExpansion(dispatch; jpath): (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
     assert(dispatch; length == 3; "length == 3"; jpath) |
     assert(dispatch; has("short"); "has(\"short\")"; jpath) |
@@ -249,14 +249,14 @@ def isRoutine: (
     (.pattern | isRegex(dispatch; jpath + ".pattern"))
   );
 
-  def is_RemoveStringExpansion(dispatch; jpath): (
+  def is_RemoveExpansion(dispatch; jpath): (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
     assert(dispatch; length == 1; "length == 1"; jpath) |
     assert(dispatch; has("remove"); "has(\"remove\")"; jpath) |
-    (.remove | isRemoveStringExpansion(dispatch; jpath + ".remove"))
+    (.remove | isRemoveExpansion(dispatch; jpath + ".remove"))
   );
 
-  def isReplaceStringExpansion(dispatch; jpath): (
+  def isReplaceExpansion(dispatch; jpath): (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
     assert(dispatch; has("global"); "has(\"global\")"; jpath) |
     assert(dispatch; .global | type == "boolean"; "type == \"boolean\""; jpath + ".global") |
@@ -269,24 +269,81 @@ def isRoutine: (
     ) end
   );
 
-  def is_ReplaceStringExpansion(dispatch; jpath): (
+  def is_ReplaceExpansion(dispatch; jpath): (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
     assert(dispatch; length == 1; "length == 1"; jpath) |
     assert(dispatch; has("replace"); "has(\"replace\")"; jpath) |
-    (.replace | isReplaceStringExpansion(dispatch; jpath + ".replace"))
+    (.replace | isReplaceExpansion(dispatch; jpath + ".replace"))
   );
 
-  def isStringExpansion(dispatch; jpath): (
-    assert(dispatch; isDefaultStringExpansion($DISPATCH.AND; jpath) or
-      isAlternateStringExpansion($DISPATCH.AND; jpath) or
-      isPromptStringExpansion($DISPATCH.AND; jpath) or
-      is_RemoveStringExpansion($DISPATCH.AND; jpath) or
-      is_ReplaceStringExpansion($DISPATCH.AND; jpath); "isDefaultStringExpansion($DISPATCH.AND; jpath) or isAlternateStringExpansion($DISPATCH.AND; jpath) or isPromptStringExpansion($DISPATCH.AND; jpath) or is_RemoveStringExpansion($DISPATCH.AND; jpath) or is_ReplaceStringExpansion($DISPATCH.AND; jpath)"; jpath)
+  def isSubstringExpansion(dispatch; jpath): (
+    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+    assert(dispatch; has("offset"); "has(\"offset\")"; jpath) |
+    (.offset | isInteger(dispatch; jpath + ".offset")) |
+    assert(dispatch; length == 2 or length == 1; "length == 2 or length == 1"; jpath) |
+    if (length == 2) then (
+      assert(dispatch; has("length"); "has(\"length\")"; jpath) |
+      (.["length"] | isInteger(dispatch; jpath + ".length"))
+    ) end
   );
 
-  def isArrayReference(dispatch; jpath): (
-    assert(dispatch; isInteger($DISPATCH.AND; jpath) or
-      isKey($DISPATCH.AND; jpath); "isInteger($DISPATCH.AND; jpath) or isKey($DISPATCH.AND; jpath)"; jpath)
+  def is_SubstringExpansion(dispatch; jpath): (
+    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+    assert(dispatch; length == 1; "length == 1"; jpath) |
+    assert(dispatch; has("substring"); "has(\"substring\")"; jpath) |
+    (.substring | isSubstringExpansion(dispatch; jpath + ".substring"))
+  );
+
+  def isExpansion(dispatch; jpath): (
+    assert(dispatch; isDefaultExpansion($DISPATCH.AND; jpath) or
+      isAlternateExpansion($DISPATCH.AND; jpath) or
+      isPromptExpansion($DISPATCH.AND; jpath) or
+      is_RemoveExpansion($DISPATCH.AND; jpath) or
+      is_ReplaceExpansion($DISPATCH.AND; jpath) or
+      is_SubstringExpansion($DISPATCH.AND; jpath); "isDefaultExpansion($DISPATCH.AND; jpath) or isAlternateExpansion($DISPATCH.AND; jpath) or isPromptExpansion($DISPATCH.AND; jpath) or is_RemoveExpansion($DISPATCH.AND; jpath) or is_ReplaceExpansion($DISPATCH.AND; jpath) or is_SubstringExpansion($DISPATCH.AND; jpath)"; jpath)
+  );
+
+  def is_Integer(dispatch; jpath): (
+    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+    assert(dispatch; length == 1; "length == 1"; jpath) |
+    assert(dispatch; has("int"); "has(\"int\")"; jpath) |
+    (.int | isInteger(dispatch; jpath + ".int"))
+  );
+
+  def is_Key(dispatch; jpath): (
+    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+    assert(dispatch; length == 1; "length == 1"; jpath) |
+    assert(dispatch; has("key"); "has(\"key\")"; jpath) |
+    (.key | isKey(dispatch; jpath + ".key"))
+  );
+
+  def isAsterisk(dispatch; jpath): (
+    assert(dispatch; . == "asterisk"; ". == \"asterisk\""; jpath)
+  );
+
+  def is_Char_asterisk(dispatch; jpath): (
+    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+    assert(dispatch; length == 1; "length == 1"; jpath) |
+    assert(dispatch; has("char"); "has(\"char\")"; jpath) |
+    (.char | isAsterisk(dispatch; jpath + ".char"))
+  );
+
+  def isAtsign(dispatch; jpath): (
+    assert(dispatch; . == "atsign"; ". == \"atsign\""; jpath)
+  );
+
+  def is_Char_atsign(dispatch; jpath): (
+    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+    assert(dispatch; length == 1; "length == 1"; jpath) |
+    assert(dispatch; has("char"); "has(\"char\")"; jpath) |
+    (.char | isAtsign(dispatch; jpath + ".char"))
+  );
+
+  def isReference(dispatch; jpath): (
+    assert(dispatch; is_Integer($DISPATCH.AND; jpath) or
+      is_Key($DISPATCH.AND; jpath) or
+      is_Char_asterisk($DISPATCH.AND; jpath) or
+      is_Char_atsign($DISPATCH.AND; jpath); "is_Integer($DISPATCH.AND; jpath) or is_Key($DISPATCH.AND; jpath) or is_Char_asterisk($DISPATCH.AND; jpath) or is_Char_atsign($DISPATCH.AND; jpath)"; jpath)
   );
 
   def isArrayIdentifier(dispatch; jpath): (
@@ -295,20 +352,7 @@ def isRoutine: (
     assert(dispatch; has("name"); "has(\"name\")"; jpath) |
     (.name | isIdentifier(dispatch; jpath + ".name")) |
     assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
-    (.reference | isArrayReference(dispatch; jpath + ".reference"))
-  );
-
-  def isArrayExpansion(dispatch; jpath): (
-    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
-    (.reference | isArrayReference(dispatch; jpath + ".reference")) |
-    assert(dispatch; has("offset"); "has(\"offset\")"; jpath) |
-    (.offset | isInteger(dispatch; jpath + ".offset")) |
-    assert(dispatch; length == 3 or length == 2; "length == 3 or length == 2"; jpath) |
-    if (length == 3) then (
-      assert(dispatch; has("length"); "has(\"length\")"; jpath) |
-      (.["length"] | isInteger(dispatch; jpath + ".length"))
-    ) end
+    (.reference | isReference(dispatch; jpath + ".reference"))
   );
 
   def isDereferencedVariable(dispatch; jpath): (
@@ -317,16 +361,16 @@ def isRoutine: (
     (.varname | isIdentifier(dispatch; jpath + ".varname")) |
     assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
     if (length == 3) then (
-      assert(dispatch; has("array_expansion"); "has(\"array_expansion\")"; jpath) |
-      (.array_expansion | isArrayExpansion(dispatch; jpath + ".array_expansion")) |
-      assert(dispatch; has("string_expansion"); "has(\"string_expansion\")"; jpath) |
-      (.string_expansion | isStringExpansion(dispatch; jpath + ".string_expansion"))
+      assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+      (.reference | isReference(dispatch; jpath + ".reference")) |
+      assert(dispatch; has("expansion"); "has(\"expansion\")"; jpath) |
+      (.expansion | isExpansion(dispatch; jpath + ".expansion"))
     ) elif (length == 2) then (
-      assert(dispatch; has("array_expansion") or has("string_expansion"); "has(\"array_expansion\") or has(\"string_expansion\")"; jpath) |
-      if (has("array_expansion")) then (
-        (.array_expansion | isArrayExpansion(dispatch; jpath + ".array_expansion"))
+      assert(dispatch; has("reference") or has("expansion"); "has(\"reference\") or has(\"expansion\")"; jpath) |
+      if (has("reference")) then (
+        (.reference | isReference(dispatch; jpath + ".reference"))
       ) else (
-        (.string_expansion | isStringExpansion(dispatch; jpath + ".string_expansion"))
+        (.expansion | isExpansion(dispatch; jpath + ".expansion"))
       ) end
     ) end
   );
@@ -337,16 +381,16 @@ def isRoutine: (
     (.special | isSpecial(dispatch; jpath + ".special")) |
     assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
     if (length == 3) then (
-      assert(dispatch; has("array_expansion"); "has(\"array_expansion\")"; jpath) |
-      (.array_expansion | isArrayExpansion(dispatch; jpath + ".array_expansion")) |
-      assert(dispatch; has("string_expansion"); "has(\"string_expansion\")"; jpath) |
-      (.string_expansion | isStringExpansion(dispatch; jpath + ".string_expansion"))
+      assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+      (.reference | isReference(dispatch; jpath + ".reference")) |
+      assert(dispatch; has("expansion"); "has(\"expansion\")"; jpath) |
+      (.expansion | isExpansion(dispatch; jpath + ".expansion"))
     ) elif (length == 2) then (
-      assert(dispatch; has("array_expansion") or has("string_expansion"); "has(\"array_expansion\") or has(\"string_expansion\")"; jpath) |
-      if (has("array_expansion")) then (
-        (.array_expansion | isArrayExpansion(dispatch; jpath + ".array_expansion"))
+      assert(dispatch; has("reference") or has("expansion"); "has(\"reference\") or has(\"expansion\")"; jpath) |
+      if (has("reference")) then (
+        (.reference | isReference(dispatch; jpath + ".reference"))
       ) else (
-        (.string_expansion | isStringExpansion(dispatch; jpath + ".string_expansion"))
+        (.expansion | isExpansion(dispatch; jpath + ".expansion"))
       ) end
     ) end
   );
@@ -358,7 +402,7 @@ def isRoutine: (
     assert(dispatch; length == 2 or length == 1; "length == 2 or length == 1"; jpath) |
     if (length == 2) then (
       assert(dispatch; has("expansion"); "has(\"expansion\")"; jpath) |
-      (.expansion | isStringExpansion(dispatch; jpath + ".expansion"))
+      (.expansion | isExpansion(dispatch; jpath + ".expansion"))
     ) end
   );
 
@@ -372,28 +416,28 @@ def isRoutine: (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
     assert(dispatch; length == 1; "length == 1"; jpath) |
     assert(dispatch; has("literal"); "has(\"literal\")"; jpath) |
-    (.literal | isReplaceStringExpansion(dispatch; jpath + ".literal"))
+    (.literal | isLiteral(dispatch; jpath + ".literal"))
   );
 
   def is_Char(dispatch; jpath): (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
     assert(dispatch; length == 1; "length == 1"; jpath) |
     assert(dispatch; has("char"); "has(\"char\")"; jpath) |
-    (.char | isReplaceStringExpansion(dispatch; jpath + ".char"))
+    (.char | isChar(dispatch; jpath + ".char"))
   );
 
   def is_Path(dispatch; jpath): (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
     assert(dispatch; length == 1; "length == 1"; jpath) |
     assert(dispatch; has("path"); "has(\"path\")"; jpath) |
-    (.["path"] | isReplaceStringExpansion(dispatch; jpath + ".path"))
+    (.["path"] | isPath(dispatch; jpath + ".path"))
   );
 
   def is_InternalLiteral(dispatch; jpath): (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
     assert(dispatch; length == 1; "length == 1"; jpath) |
     assert(dispatch; has("literal"); "has(\"literal\")"; jpath) |
-    (.literal | isReplaceStringExpansion(dispatch; jpath + ".literal"))
+    (.literal | isInternalLiteral(dispatch; jpath + ".literal"))
   );
 
   def isSanitizedElement(dispatch; jpath): (
