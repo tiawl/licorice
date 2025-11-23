@@ -3,4 +3,4 @@
 source "${BASH_SOURCE[0]%/*}/utils.sh"
 source "${BASH_SOURCE[0]%/*}/path.sh"
 source "${BASH_SOURCE[0]%/*}/request.sh"
-source "${BASH_SOURCE[0]%/*}/json.sh"
+source "${BASH_SOURCE[0]%/*}/json/index.sh"

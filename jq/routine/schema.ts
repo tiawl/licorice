@@ -9,7 +9,6 @@ type NonEmptyArray<T> = T[] & { __brand: 'NonEmptyArray' };
 type Parameter = number & { __brand: 'NonNegativeInteger' };
 type NoSpace = string & { __brand: 'NoSpaceString' };
 type Path = string;
-type Regex = string;
 type Empty = {};
 enum Char {
   asterisk,
@@ -158,63 +157,135 @@ type Reference = _Integer
                | _Char_asterisk
                | _Char_atsign
                ;
-type ArrayIdentifier = {
-  "name": Identifier;
-  "reference": Reference;
+type Newline = Char.newline;
+type _Char_newline = {
+  "char": Newline;
 };
-type DefaultExpansion = {
-  "default": Sanitized;
-};
-type AlternateExpansion = {
-  "alternate": Sanitized;
-};
-type PromptExpansion = {
-  "prompt": Empty;
-};
+type RegexElement = _Literal
+                  | Dereferenced
+                  | _Char_asterisk
+                  | _Char_newline
+                  ;
+type Regex = NonEmptyArray<RegexElement>;
 type RemoveExpansion = {
   "short": boolean;
   "from_start": boolean;
   "pattern": Regex;
-};
-type _RemoveExpansion = {
-  "remove": RemoveExpansion;
 };
 type ReplaceExpansion = {
   "global": boolean;
   "match": Regex;
   "with"?: string;
 };
-type _ReplaceExpansion = {
-  "replace": ReplaceExpansion;
-};
 type SubstringExpansion = {
   "offset": Integer;
   "length"?: Integer;
 };
-type _SubstringExpansion = {
-  "substring": SubstringExpansion;
-};
-type Expansion = DefaultExpansion
-               | AlternateExpansion
-               | PromptExpansion
-               | _RemoveExpansion
-               | _ReplaceExpansion
-               | _SubstringExpansion
-               ;
-type DereferencedVariable = {
+type DereferencedVariableDefaultExpanded = {
   "varname": Identifier;
   "reference"?: Reference;
-  "expansion"?: Expansion;
+  "expansion.default"?: Sanitized;
 };
-type DereferencedSpecial = {
+type DereferencedVariableAlternateExpanded = {
+  "varname": Identifier;
+  "reference"?: Reference;
+  "expansion.alternate"?: Sanitized;
+};
+type DereferencedVariablePromptExpanded = {
+  "varname": Identifier;
+  "reference"?: Reference;
+  "expansion.prompt"?: Empty;
+};
+type DereferencedVariableRemoveExpanded = {
+  "varname": Identifier;
+  "reference"?: Reference;
+  "expansion.remove"?: RemoveExpansion;
+};
+type DereferencedVariableReplaceExpanded = {
+  "varname": Identifier;
+  "reference"?: Reference;
+  "expansion.replace"?: ReplaceExpansion;
+};
+type DereferencedVariableSubstringExpanded = {
+  "varname": Identifier;
+  "reference"?: Reference;
+  "expansion.substring"?: SubstringExpansion;
+};
+type DereferencedSpecialDefaultExpanded = {
   "special": Special;
   "reference"?: Reference;
-  "expansion"?: Expansion;
+  "expansion.default"?: Sanitized;
 };
-type DereferencedParameter = {
+type DereferencedSpecialAlternateExpanded = {
+  "special": Special;
+  "reference"?: Reference;
+  "expansion.alternate"?: Sanitized;
+};
+type DereferencedSpecialPromptExpanded = {
+  "special": Special;
+  "reference"?: Reference;
+  "expansion.prompt"?: Empty;
+};
+type DereferencedSpecialRemoveExpanded = {
+  "special": Special;
+  "reference"?: Reference;
+  "expansion.remove"?: RemoveExpansion;
+};
+type DereferencedSpecialReplaceExpanded = {
+  "special": Special;
+  "reference"?: Reference;
+  "expansion.replace"?: ReplaceExpansion;
+};
+type DereferencedSpecialSubstringExpanded = {
+  "special": Special;
+  "reference"?: Reference;
+  "expansion.substring"?: SubstringExpansion;
+};
+type DereferencedParameterDefaultExpanded = {
   "parameter": Parameter;
-  "expansion"?: Expansion;
+  "expansion.default"?: Sanitized;
 };
+type DereferencedParameterAlternateExpanded = {
+  "parameter": Parameter;
+  "expansion.alternate"?: Sanitized;
+};
+type DereferencedParameterPromptExpanded = {
+  "parameter": Parameter;
+  "expansion.prompt"?: Empty;
+};
+type DereferencedParameterRemoveExpanded = {
+  "parameter": Parameter;
+  "expansion.remove"?: RemoveExpansion;
+};
+type DereferencedParameterReplaceExpanded = {
+  "parameter": Parameter;
+  "expansion.replace"?: ReplaceExpansion;
+};
+type DereferencedParameterSubstringExpanded = {
+  "parameter": Parameter;
+  "expansion.substring"?: SubstringExpansion;
+};
+type DereferencedVariable = DereferencedVariableDefaultExpanded
+                          | DereferencedVariableAlternateExpanded
+                          | DereferencedVariablePromptExpanded
+                          | DereferencedVariableRemoveExpanded
+                          | DereferencedVariableReplaceExpanded
+                          | DereferencedVariableSubstringExpanded
+                          ;
+type DereferencedSpecial = DereferencedSpecialDefaultExpanded
+                         | DereferencedSpecialAlternateExpanded
+                         | DereferencedSpecialPromptExpanded
+                         | DereferencedSpecialRemoveExpanded
+                         | DereferencedSpecialReplaceExpanded
+                         | DereferencedSpecialSubstringExpanded
+                         ;
+type DereferencedParameter = DereferencedParameterDefaultExpanded
+                           | DereferencedParameterAlternateExpanded
+                           | DereferencedParameterPromptExpanded
+                           | DereferencedParameterRemoveExpanded
+                           | DereferencedParameterReplaceExpanded
+                           | DereferencedParameterSubstringExpanded
+                           ;
 type Dereferenced = DereferencedVariable
                   | DereferencedParameter
                   | DereferencedSpecial
@@ -517,8 +588,15 @@ type Harden = {
   "as"?: Sanitized;
 };
 type Json = NonEmptyArray<Sanitized>;
+type MutableReference = _Integer
+                      | _Key
+                      ;
+type MutableArrayIdentifier = {
+  "name": Identifier;
+  "reference": MutableReference;
+};
 type Mutable = Identifier
-             | ArrayIdentifier
+             | MutableArrayIdentifier
              | Special.last
              ;
 type Mutate = {

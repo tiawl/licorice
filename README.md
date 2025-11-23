@@ -1,4 +1,4 @@
-# licorice
+# kuzco
 
 A container engine with several backends
 

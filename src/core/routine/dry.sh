@@ -1,14 +1,16 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
-  local rainbow filepath json inv import visited
+  local rainbow filepath old_ifs import visited
   local -A raw_import raw_visited
+  old_ifs="${IFS}"
   rainbow=( '21' '27' '33' '39' '45' '51' '50' '49' '48' '47' '46' '82' '118' '154' '190' '226' '220' '214' '208' '202' '196' '197' '198' '199' '200' '201' '165' '129' '93' '57' )
 
   shuffle rainbow
-  readonly rainbow
+  readonly rainbow old_ifs
 
   filepath="$(path::normalized "${1}")"
+  print '{"inventory": {}}' | json::parse 'inventory'
 
   while is not var "raw_visited[${filepath}]"
   do
@@ -17,8 +19,25 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       error 'Can not find %s' "${filepath}"
     fi
 
-    # TODO: refactore and gather slurpfiles
-    json="$(json::from::yaml '.' "${filepath}")"
+    json::from::yaml '.' "${filepath}" | json::parse 'file'
+    if json::object::has 'file' '."inventory"'
+    then
+      IFS=$'\n'
+      set -f
+      # TODO: manage spaces into keys JSONKEYS must be using newline as sep
+      if not unique ${JSONKEYS_file['."inventory"']} ${JSONKEYS_inventory['."inventory"']}
+      then
+        set +f
+        IFS="${old_ifs}"
+        error 'Conflicting inventories'
+      fi
+      set +f
+      IFS="${old_ifs}"
+      json::object::new 'file_inventory'
+      json::object::set 'file_inventory' '."inventory"' 'TODO'
+      json::object::merge 'inventory' 'file_inventory'
+      json::free 'file_inventory'
+    fi
     inv="$(json::program --slurpfile ROUTINE_JSON <(print '%s' "${json}") --slurpfile ROUTINE_INV <(print '%s' "${inv:-"{\"inventory\": {}}"}") "${jq[routine/common]}"'
       (if ($ROUTINE_JSON | type == "array") then $ROUTINE_JSON[0] else $ROUTINE_JSON end) as $ROUTINE_JSON |
       (if ($ROUTINE_INV | type == "array") then $ROUTINE_INV[0] else $ROUTINE_INV end) as $ROUTINE_INV |

@@ -18,7 +18,7 @@ compile () {
   local -a help split
   local -A sep path namespace version
 
-  exe='licorice'
+  exe='kuzco'
   sep[namespace]='::'
   sep[image]='/'
   sep[tag]=':'
@@ -77,6 +77,7 @@ compile () {
 
 $(exec -c bash --noprofile --norc -c "
     source \"${SDIR}/src/index.sh\"
+    declare -f
     declare -A namespace
     namespace=(${namespace[@]@K})
     for key in core docker podman containerd
@@ -96,7 +97,6 @@ $(exec -c bash --noprofile --norc -c "
       done
       off globstar
     done
-    declare -f
   ")
 
 ${namespace[core]}version () {
@@ -154,7 +154,7 @@ ${namespace[core]}help () {
 }
 
 ${namespace[core]}init () {
-  global -A sed jq buf sep version namespace path
+  global -A awk sed jq buf sep version namespace path
 
   sep=(${sep[@]@K})
   namespace=(${namespace[@]@K})
@@ -163,20 +163,22 @@ ${namespace[core]}init () {
 
   readonly sep
 
+  harden awk
   harden base64
-  #harden bc
+  #harden bc ?
   harden cat
   harden curl
   harden env
-  harden gojq
-  harden json_xs
-  #harden mktemp
+  harden gojq # TODO: remove it
+  harden json_xs # TODO: remove it
+  #harden mktemp ?
   harden protoc
+  harden rg || harden egrep
   harden sed
   harden sha256sum
-  #harden shuf
+  #harden shuf ?
   harden tar
-  #harden tee
+  #harden tee ?
 
   global backend exe
   exe='${exe}'
@@ -201,7 +203,7 @@ ${namespace[core]}init () {
 
   global -a fns
 $(on globstar
-  for dir in sed jq
+  for dir in awk sed jq
   do
     for entry in "${SDIR}/${dir}"/**/*
     do
@@ -223,7 +225,7 @@ $(on globstar
   done)
 
   fns=( $(exec -c bash --noprofile --norc -c "source ${SDIR}/src/index.sh; compgen -A function") \$(compgen -A function -X "!(\${namespace[core]}*|\${namespace["\${backend}"]}*)") )
-  readonly sed jq buf fns
+  readonly awk sed jq buf fns
 }
 
 ${exe} () {

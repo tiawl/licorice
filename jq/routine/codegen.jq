@@ -46,20 +46,65 @@ def OptionalReference: (
 def Sanitized(ARGS): (
   def SanitizedElement(ARGS): (
     def Dereferenced(ARGS): (
-      def Expansion(ARGS): (
+      def DefaultExpansion(ARGS): (
+        ":-" + (.["expansion.default"] | Sanitized({
+          "mode": ARGS.mode,
+          "quoted": true
+        }))
+      );
+
+      def AlternateExpansion(ARGS): (
+        ":+" + (.["expansion.alternate"] | Sanitized({
+          "mode": ARGS.mode,
+          "quoted": true
+        }))
+      );
+
+      def PromptExpansion: ("@P");
+
+      def RemoveExpansion: (
+        (
+          if (.from_start) then "#" else "%" end
+        ) as $char |
+        $char + (if (.short) then $char else "" end) + .pattern | Regex(ARGS)
+        # TODO
+        "short": boolean;
+        "from_start": boolean;
+        "pattern": Regex;
+      );
+
+      def ReplaceExpansion: (
         # TODO
         .
+        "global": boolean;
+        "match": Regex;
+        "with"?: string;
+      );
+
+      def SubstringExpansion: (
+        # TODO
+        .
+        "offset": Integer;
+        "length"?: Integer;
       );
 
       def OptionalExpansion(ARGS): (
-        if (has("expansion")) then Expansion(ARGS) else "" end
+        if (has("expansion.default")) then DefaultExpansion(ARGS)
+        elif (has("expansion.alternate")) then AlternateExpansion(ARGS)
+        elif (has("expansion.prompt")) then PromptExpansion
+        elif (has("expansion.remove")) then RemoveExpansion
+        elif (has("expansion.replace")) then ReplaceExpansion
+        elif (has("expansion.substring")) then SubstringExpansion
+        else "" end
       );
 
       def DereferencedVariable(ARGS): (
         (
-          if (quoted) then "\"" else "" end
-        ) + "${" + .varname + OptionalReference + OptionalExpansion + "}" + (
-          if (quoted) then "\"" else "" end
+          if (ARGS.quoted) then "\"" else "" end
+        ) + "${" + (
+          if (ARGS.mode != $MODE.privileged) then $NAMESPACE.var.user else "" end
+        ) + .varname + OptionalReference + OptionalExpansion(ARGS) + "}" + (
+          if (ARGS.quoted) then "\"" else "" end
         )
       );
 

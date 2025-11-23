@@ -34,6 +34,10 @@ is () {
   esac
 }
 
+unique () {
+  printf '%s\n' "${@}" | awk 'a[$0]++{exit 1}'
+}
+
 has () {
   case "${1}" in
   ( 'not' ) not has "${@:2}" ;;
@@ -55,6 +59,12 @@ str () {
 error () {
   print -- "${1}"$'\n' "${@:2}" >&2
   return 1
+}
+
+# TODO: use more of this
+unreachable () {
+  print -- 'Reached unreachable code into %s(): %s\n' "${1}" "${2}" >&2
+  return 2
 }
 
 global () {

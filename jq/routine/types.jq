@@ -213,96 +213,6 @@ def isRoutine: (
     assert(dispatch; type == "string"; "type == \"string\""; jpath)
   );
 
-  def isRegex(dispatch; jpath): (
-    assert(dispatch; type == "string"; "type == \"string\""; jpath)
-  );
-
-  def isDefaultExpansion(dispatch; jpath): (
-    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; length == 1; "length == 1"; jpath) |
-    assert(dispatch; has("default"); "has(\"default\")"; jpath) |
-    assert(dispatch; .default | type == "string"; "type == \"string\""; jpath + ".default")
-  );
-
-  def isAlternateExpansion(dispatch; jpath): (
-    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; length == 1; "length == 1"; jpath) |
-    assert(dispatch; has("alternate"); "has(\"alternate\")"; jpath) |
-    assert(dispatch; .alternate | type == "string"; "type == \"string\""; jpath + ".alternate")
-  );
-
-  def isPromptExpansion(dispatch; jpath): (
-    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; length == 1; "length == 1"; jpath) |
-    assert(dispatch; has("prompt"); "has(\"prompt\")"; jpath) |
-    (.prompt | isEmpty(dispatch; jpath + ".prompt"))
-  );
-
-  def isRemoveExpansion(dispatch; jpath): (
-    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; length == 3; "length == 3"; jpath) |
-    assert(dispatch; has("short"); "has(\"short\")"; jpath) |
-    assert(dispatch; .short | type == "boolean"; "type == \"boolean\""; jpath + ".short") |
-    assert(dispatch; has("from_start"); "has(\"from_start\")"; jpath) |
-    assert(dispatch; .from_start | type == "boolean"; "type == \"boolean\""; jpath + ".from_start") |
-    assert(dispatch; has("pattern"); "has(\"pattern\")"; jpath) |
-    (.pattern | isRegex(dispatch; jpath + ".pattern"))
-  );
-
-  def is_RemoveExpansion(dispatch; jpath): (
-    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; length == 1; "length == 1"; jpath) |
-    assert(dispatch; has("remove"); "has(\"remove\")"; jpath) |
-    (.remove | isRemoveExpansion(dispatch; jpath + ".remove"))
-  );
-
-  def isReplaceExpansion(dispatch; jpath): (
-    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; has("global"); "has(\"global\")"; jpath) |
-    assert(dispatch; .global | type == "boolean"; "type == \"boolean\""; jpath + ".global") |
-    assert(dispatch; has("match"); "has(\"match\")"; jpath) |
-    (.["match"] | isRegex(dispatch; jpath)) |
-    assert(dispatch; length == 3 or length == 2; "length == 3 or length == 2"; jpath) |
-    if (length == 3) then (
-      assert(dispatch; has("with"); "has(\"with\")"; jpath) |
-      assert(dispatch; .with | type == "string"; "type == \"string\""; jpath + ".with")
-    ) end
-  );
-
-  def is_ReplaceExpansion(dispatch; jpath): (
-    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; length == 1; "length == 1"; jpath) |
-    assert(dispatch; has("replace"); "has(\"replace\")"; jpath) |
-    (.replace | isReplaceExpansion(dispatch; jpath + ".replace"))
-  );
-
-  def isSubstringExpansion(dispatch; jpath): (
-    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; has("offset"); "has(\"offset\")"; jpath) |
-    (.offset | isInteger(dispatch; jpath + ".offset")) |
-    assert(dispatch; length == 2 or length == 1; "length == 2 or length == 1"; jpath) |
-    if (length == 2) then (
-      assert(dispatch; has("length"); "has(\"length\")"; jpath) |
-      (.["length"] | isInteger(dispatch; jpath + ".length"))
-    ) end
-  );
-
-  def is_SubstringExpansion(dispatch; jpath): (
-    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; length == 1; "length == 1"; jpath) |
-    assert(dispatch; has("substring"); "has(\"substring\")"; jpath) |
-    (.substring | isSubstringExpansion(dispatch; jpath + ".substring"))
-  );
-
-  def isExpansion(dispatch; jpath): (
-    assert(dispatch; isDefaultExpansion($DISPATCH.AND; jpath) or
-      isAlternateExpansion($DISPATCH.AND; jpath) or
-      isPromptExpansion($DISPATCH.AND; jpath) or
-      is_RemoveExpansion($DISPATCH.AND; jpath) or
-      is_ReplaceExpansion($DISPATCH.AND; jpath) or
-      is_SubstringExpansion($DISPATCH.AND; jpath); "isDefaultExpansion($DISPATCH.AND; jpath) or isAlternateExpansion($DISPATCH.AND; jpath) or isPromptExpansion($DISPATCH.AND; jpath) or is_RemoveExpansion($DISPATCH.AND; jpath) or is_ReplaceExpansion($DISPATCH.AND; jpath) or is_SubstringExpansion($DISPATCH.AND; jpath)"; jpath)
-  );
-
   def is_Integer(dispatch; jpath): (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
     assert(dispatch; length == 1; "length == 1"; jpath) |
@@ -339,77 +249,15 @@ def isRoutine: (
     (.char | isAtsign(dispatch; jpath + ".char"))
   );
 
-  def isReference(dispatch; jpath): (
-    assert(dispatch; is_Integer($DISPATCH.AND; jpath) or
-      is_Key($DISPATCH.AND; jpath) or
-      is_Char_asterisk($DISPATCH.AND; jpath) or
-      is_Char_atsign($DISPATCH.AND; jpath); "is_Integer($DISPATCH.AND; jpath) or is_Key($DISPATCH.AND; jpath) or is_Char_asterisk($DISPATCH.AND; jpath) or is_Char_atsign($DISPATCH.AND; jpath)"; jpath)
+  def isNewline(dispatch; jpath): (
+    assert(dispatch; . == "newline"; ". == \"newline\""; jpath)
   );
 
-  def isArrayIdentifier(dispatch; jpath): (
+  def is_Char_newline(dispatch; jpath): (
     assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; length == 2; "length == 2"; jpath) |
-    assert(dispatch; has("name"); "has(\"name\")"; jpath) |
-    (.name | isIdentifier(dispatch; jpath + ".name")) |
-    assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
-    (.reference | isReference(dispatch; jpath + ".reference"))
-  );
-
-  def isDereferencedVariable(dispatch; jpath): (
-    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; has("varname"); "has(\"varname\")"; jpath) |
-    (.varname | isIdentifier(dispatch; jpath + ".varname")) |
-    assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
-    if (length == 3) then (
-      assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
-      (.reference | isReference(dispatch; jpath + ".reference")) |
-      assert(dispatch; has("expansion"); "has(\"expansion\")"; jpath) |
-      (.expansion | isExpansion(dispatch; jpath + ".expansion"))
-    ) elif (length == 2) then (
-      assert(dispatch; has("reference") or has("expansion"); "has(\"reference\") or has(\"expansion\")"; jpath) |
-      if (has("reference")) then (
-        (.reference | isReference(dispatch; jpath + ".reference"))
-      ) else (
-        (.expansion | isExpansion(dispatch; jpath + ".expansion"))
-      ) end
-    ) end
-  );
-
-  def isDereferencedSpecial(dispatch; jpath): (
-    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; has("special"); "has(\"special\")"; jpath) |
-    (.special | isSpecial(dispatch; jpath + ".special")) |
-    assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
-    if (length == 3) then (
-      assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
-      (.reference | isReference(dispatch; jpath + ".reference")) |
-      assert(dispatch; has("expansion"); "has(\"expansion\")"; jpath) |
-      (.expansion | isExpansion(dispatch; jpath + ".expansion"))
-    ) elif (length == 2) then (
-      assert(dispatch; has("reference") or has("expansion"); "has(\"reference\") or has(\"expansion\")"; jpath) |
-      if (has("reference")) then (
-        (.reference | isReference(dispatch; jpath + ".reference"))
-      ) else (
-        (.expansion | isExpansion(dispatch; jpath + ".expansion"))
-      ) end
-    ) end
-  );
-
-  def isDereferencedParameter(dispatch; jpath): (
-    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
-    assert(dispatch; has("parameter"); "has(\"parameter\")"; jpath) |
-    (.parameter | isParameter(dispatch; jpath + ".parameter")) |
-    assert(dispatch; length == 2 or length == 1; "length == 2 or length == 1"; jpath) |
-    if (length == 2) then (
-      assert(dispatch; has("expansion"); "has(\"expansion\")"; jpath) |
-      (.expansion | isExpansion(dispatch; jpath + ".expansion"))
-    ) end
-  );
-
-  def isDereferenced(dispatch; jpath): (
-    assert(dispatch; isDereferencedVariable($DISPATCH.AND; jpath) or
-      isDereferencedSpecial($DISPATCH.AND; jpath) or
-      isDereferencedParameter($DISPATCH.AND; jpath); "isDereferencedVariable($DISPATCH.AND; jpath) or isDereferencedSpecial($DISPATCH.AND; jpath) or isDereferencedParameter($DISPATCH.AND; jpath)"; jpath)
+    assert(dispatch; length == 1; "length == 1"; jpath) |
+    assert(dispatch; has("char"); "has(\"char\")"; jpath) |
+    (.char | isNewline(dispatch; jpath + ".char"))
   );
 
   def is_Literal(dispatch; jpath): (
@@ -424,6 +272,404 @@ def isRoutine: (
     assert(dispatch; length == 1; "length == 1"; jpath) |
     assert(dispatch; has("char"); "has(\"char\")"; jpath) |
     (.char | isChar(dispatch; jpath + ".char"))
+  );
+
+  def isDereferenced(dispatch; jpath): (
+    def isRegexElement(dispatch; jpath): (
+      assert(dispatch; is_Literal($DISPATCH.AND; jpath) or
+        isDereferenced($DISPATCH.AND; jpath) or
+        is_Char_asterisk($DISPATCH.AND; jpath) or
+        is_Char_newline($DISPATCH.AND; jpath); "is_Literal($DISPATCH.AND; jpath) or isDereferenced($DISPATCH.AND; jpath) or is_Char_asterisk($DISPATCH.AND; jpath) or is_Char_newline($DISPATCH.AND; jpath)"; jpath)
+    );
+
+    def isNonEmptyArrayOfRegexElement(dispatch; jpath): (
+      assert(dispatch; type == "array"; "type == \"array\""; jpath) |
+      assert(dispatch; length > 0; "length > 0"; jpath) |
+      (to_entries | map(.value | isRegexElement(dispatch; jpath + "[" + (.key | tostring) + "]")))
+    );
+
+    def isRegex(dispatch; jpath): (
+      assert(dispatch; isNonEmptyArrayOfRegexElement($DISPATCH.AND; jpath); "isNonEmptyArrayOfRegexElement($DISPATCH.AND; jpath)"; jpath)
+    );
+
+    def isRemoveExpansion(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; length == 3; "length == 3"; jpath) |
+      assert(dispatch; has("short"); "has(\"short\")"; jpath) |
+      assert(dispatch; .short | type == "boolean"; "type == \"boolean\""; jpath + ".short") |
+      assert(dispatch; has("from_start"); "has(\"from_start\")"; jpath) |
+      assert(dispatch; .from_start | type == "boolean"; "type == \"boolean\""; jpath + ".from_start") |
+      assert(dispatch; has("pattern"); "has(\"pattern\")"; jpath) |
+      (.pattern | isRegex(dispatch; jpath + ".pattern"))
+    );
+
+    def isReplaceExpansion(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("global"); "has(\"global\")"; jpath) |
+      assert(dispatch; .global | type == "boolean"; "type == \"boolean\""; jpath + ".global") |
+      assert(dispatch; has("match"); "has(\"match\")"; jpath) |
+      (.["match"] | isRegex(dispatch; jpath)) |
+      assert(dispatch; length == 3 or length == 2; "length == 3 or length == 2"; jpath) |
+      if (length == 3) then (
+        assert(dispatch; has("with"); "has(\"with\")"; jpath) |
+        assert(dispatch; .with | type == "string"; "type == \"string\""; jpath + ".with")
+      ) end
+    );
+
+    def isSubstringExpansion(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("offset"); "has(\"offset\")"; jpath) |
+      (.offset | isInteger(dispatch; jpath + ".offset")) |
+      assert(dispatch; length == 2 or length == 1; "length == 2 or length == 1"; jpath) |
+      if (length == 2) then (
+        assert(dispatch; has("length"); "has(\"length\")"; jpath) |
+        (.["length"] | isInteger(dispatch; jpath + ".length"))
+      ) end
+    );
+
+    def isReference(dispatch; jpath): (
+      assert(dispatch; is_Integer($DISPATCH.AND; jpath) or
+        is_Key($DISPATCH.AND; jpath) or
+        is_Char_asterisk($DISPATCH.AND; jpath) or
+        is_Char_atsign($DISPATCH.AND; jpath); "is_Integer($DISPATCH.AND; jpath) or is_Key($DISPATCH.AND; jpath) or is_Char_asterisk($DISPATCH.AND; jpath) or is_Char_atsign($DISPATCH.AND; jpath)"; jpath)
+    );
+
+    def isDereferencedVariableDefaultExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("varname"); "has(\"varname\")"; jpath) |
+      (.varname | isIdentifier(dispatch; jpath + ".varname")) |
+      assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
+      if (length == 3) then (
+        assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+        (.reference | isReference(dispatch; jpath + ".reference")) |
+        assert(dispatch; has("expansion.default"); "has(\"expansion.default\")"; jpath) |
+        (.["expansion.default"] | isSanitized(dispatch; jpath + ".[\"expansion.default\"]"))
+      ) elif (length == 2) then (
+        assert(dispatch; has("reference") or has("expansion.default"); "has(\"reference\") or has(\"expansion.default\")"; jpath) |
+        if (has("reference")) then (
+          (.reference | isReference(dispatch; jpath + ".reference"))
+        ) else (
+          (.["expansion.default"] | isSanitized(dispatch; jpath + ".[\"expansion.default\"]"))
+        ) end
+      ) end
+    );
+
+    def isDereferencedVariableAlternateExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("varname"); "has(\"varname\")"; jpath) |
+      (.varname | isIdentifier(dispatch; jpath + ".varname")) |
+      assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
+      if (length == 3) then (
+        assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+        (.reference | isReference(dispatch; jpath + ".reference")) |
+        assert(dispatch; has("expansion.alternate"); "has(\"expansion.alternate\")"; jpath) |
+        (.["expansion.alternate"] | isSanitized(dispatch; jpath + ".[\"expansion.alternate\"]"))
+      ) elif (length == 2) then (
+        assert(dispatch; has("reference") or has("expansion.alternate"); "has(\"reference\") or has(\"expansion.alternate\")"; jpath) |
+        if (has("reference")) then (
+          (.reference | isReference(dispatch; jpath + ".reference"))
+        ) else (
+          (.["expansion.alternate"] | isSanitized(dispatch; jpath + ".[\"expansion.alternate\"]"))
+        ) end
+      ) end
+    );
+
+    def isDereferencedVariablePromptExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("varname"); "has(\"varname\")"; jpath) |
+      (.varname | isIdentifier(dispatch; jpath + ".varname")) |
+      assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
+      if (length == 3) then (
+        assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+        (.reference | isReference(dispatch; jpath + ".reference")) |
+        assert(dispatch; has("expansion.prompt"); "has(\"expansion.prompt\")"; jpath) |
+        (.["expansion.prompt"] | isEmpty(dispatch; jpath + ".[\"expansion.prompt\"]"))
+      ) elif (length == 2) then (
+        assert(dispatch; has("reference") or has("expansion.prompt"); "has(\"reference\") or has(\"expansion.prompt\")"; jpath) |
+        if (has("reference")) then (
+          (.reference | isReference(dispatch; jpath + ".reference"))
+        ) else (
+          (.["expansion.prompt"] | isEmpty(dispatch; jpath + ".[\"expansion.prompt\"]"))
+        ) end
+      ) end
+    );
+
+    def isDereferencedVariableRemoveExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("varname"); "has(\"varname\")"; jpath) |
+      (.varname | isIdentifier(dispatch; jpath + ".varname")) |
+      assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
+      if (length == 3) then (
+        assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+        (.reference | isReference(dispatch; jpath + ".reference")) |
+        assert(dispatch; has("expansion.remove"); "has(\"expansion.remove\")"; jpath) |
+        (.["expansion.remove"] | isRemoveExpansion(dispatch; jpath + ".[\"expansion.remove\"]"))
+      ) elif (length == 2) then (
+        assert(dispatch; has("reference") or has("expansion.remove"); "has(\"reference\") or has(\"expansion.remove\")"; jpath) |
+        if (has("reference")) then (
+          (.reference | isReference(dispatch; jpath + ".reference"))
+        ) else (
+          (.["expansion.remove"] | isRemoveExpansion(dispatch; jpath + ".[\"expansion.remove\"]"))
+        ) end
+      ) end
+    );
+
+    def isDereferencedVariableReplaceExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("varname"); "has(\"varname\")"; jpath) |
+      (.varname | isIdentifier(dispatch; jpath + ".varname")) |
+      assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
+      if (length == 3) then (
+        assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+        (.reference | isReference(dispatch; jpath + ".reference")) |
+        assert(dispatch; has("expansion.replace"); "has(\"expansion.replace\")"; jpath) |
+        (.["expansion.replace"] | isReplaceExpansion(dispatch; jpath + ".[\"expansion.replace\"]"))
+      ) elif (length == 2) then (
+        assert(dispatch; has("reference") or has("expansion.replace"); "has(\"reference\") or has(\"expansion.replace\")"; jpath) |
+        if (has("reference")) then (
+          (.reference | isReference(dispatch; jpath + ".reference"))
+        ) else (
+          (.["expansion.replace"] | isReplaceExpansion(dispatch; jpath + ".[\"expansion.replace\"]"))
+        ) end
+      ) end
+    );
+
+    def isDereferencedVariableSubstringExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("varname"); "has(\"varname\")"; jpath) |
+      (.varname | isIdentifier(dispatch; jpath + ".varname")) |
+      assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
+      if (length == 3) then (
+        assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+        (.reference | isReference(dispatch; jpath + ".reference")) |
+        assert(dispatch; has("expansion.substring"); "has(\"expansion.substring\")"; jpath) |
+        (.["expansion.substring"] | isSubstringExpansion(dispatch; jpath + ".[\"expansion.substring\"]"))
+      ) elif (length == 2) then (
+        assert(dispatch; has("reference") or has("expansion.substring"); "has(\"reference\") or has(\"expansion.substring\")"; jpath) |
+        if (has("reference")) then (
+          (.reference | isReference(dispatch; jpath + ".reference"))
+        ) else (
+          (.["expansion.substring"] | isSubstringExpansion(dispatch; jpath + ".[\"expansion.substring\"]"))
+        ) end
+      ) end
+    );
+
+    def isDereferencedSpecialDefaultExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("special"); "has(\"special\")"; jpath) |
+      (.special | isSpecial(dispatch; jpath + ".special")) |
+      assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
+      if (length == 3) then (
+        assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+        (.reference | isReference(dispatch; jpath + ".reference")) |
+        assert(dispatch; has("expansion.default"); "has(\"expansion.default\")"; jpath) |
+        (.["expansion.default"] | isSanitized(dispatch; jpath + ".[\"expansion.default\"]"))
+      ) elif (length == 2) then (
+        assert(dispatch; has("reference") or has("expansion.default"); "has(\"reference\") or has(\"expansion.default\")"; jpath) |
+        if (has("reference")) then (
+          (.reference | isReference(dispatch; jpath + ".reference"))
+        ) else (
+          (.["expansion.default"] | isSanitized(dispatch; jpath + ".[\"expansion.default\"]"))
+        ) end
+      ) end
+    );
+
+    def isDereferencedSpecialAlternateExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("special"); "has(\"special\")"; jpath) |
+      (.special | isSpecial(dispatch; jpath + ".special")) |
+      assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
+      if (length == 3) then (
+        assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+        (.reference | isReference(dispatch; jpath + ".reference")) |
+        assert(dispatch; has("expansion.alternate"); "has(\"expansion.alternate\")"; jpath) |
+        (.["expansion.alternate"] | isSanitized(dispatch; jpath + ".[\"expansion.alternate\"]"))
+      ) elif (length == 2) then (
+        assert(dispatch; has("reference") or has("expansion.alternate"); "has(\"reference\") or has(\"expansion.alternate\")"; jpath) |
+        if (has("reference")) then (
+          (.reference | isReference(dispatch; jpath + ".reference"))
+        ) else (
+          (.["expansion.alternate"] | isSanitized(dispatch; jpath + ".[\"expansion.alternate\"]"))
+        ) end
+      ) end
+    );
+
+    def isDereferencedSpecialPromptExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("special"); "has(\"special\")"; jpath) |
+      (.special | isSpecial(dispatch; jpath + ".special")) |
+      assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
+      if (length == 3) then (
+        assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+        (.reference | isReference(dispatch; jpath + ".reference")) |
+        assert(dispatch; has("expansion.prompt"); "has(\"expansion.prompt\")"; jpath) |
+        (.["expansion.prompt"] | isEmpty(dispatch; jpath + ".[\"expansion.prompt\"]"))
+      ) elif (length == 2) then (
+        assert(dispatch; has("reference") or has("expansion.prompt"); "has(\"reference\") or has(\"expansion.prompt\")"; jpath) |
+        if (has("reference")) then (
+          (.reference | isReference(dispatch; jpath + ".reference"))
+        ) else (
+          (.["expansion.prompt"] | isEmpty(dispatch; jpath + ".[\"expansion.prompt\"]"))
+        ) end
+      ) end
+    );
+
+    def isDereferencedSpecialRemoveExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("special"); "has(\"special\")"; jpath) |
+      (.special | isSpecial(dispatch; jpath + ".special")) |
+      assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
+      if (length == 3) then (
+        assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+        (.reference | isReference(dispatch; jpath + ".reference")) |
+        assert(dispatch; has("expansion.remove"); "has(\"expansion.remove\")"; jpath) |
+        (.["expansion.remove"] | isRemoveExpansion(dispatch; jpath + ".[\"expansion.remove\"]"))
+      ) elif (length == 2) then (
+        assert(dispatch; has("reference") or has("expansion.remove"); "has(\"reference\") or has(\"expansion.remove\")"; jpath) |
+        if (has("reference")) then (
+          (.reference | isReference(dispatch; jpath + ".reference"))
+        ) else (
+          (.["expansion.remove"] | isRemoveExpansion(dispatch; jpath + ".[\"expansion.remove\"]"))
+        ) end
+      ) end
+    );
+
+    def isDereferencedSpecialReplaceExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("special"); "has(\"special\")"; jpath) |
+      (.special | isSpecial(dispatch; jpath + ".special")) |
+      assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
+      if (length == 3) then (
+        assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+        (.reference | isReference(dispatch; jpath + ".reference")) |
+        assert(dispatch; has("expansion.replace"); "has(\"expansion.replace\")"; jpath) |
+        (.["expansion.replace"] | isReplaceExpansion(dispatch; jpath + ".[\"expansion.replace\"]"))
+      ) elif (length == 2) then (
+        assert(dispatch; has("reference") or has("expansion.replace"); "has(\"reference\") or has(\"expansion.replace\")"; jpath) |
+        if (has("reference")) then (
+          (.reference | isReference(dispatch; jpath + ".reference"))
+        ) else (
+          (.["expansion.replace"] | isReplaceExpansion(dispatch; jpath + ".[\"expansion.replace\"]"))
+        ) end
+      ) end
+    );
+
+    def isDereferencedSpecialSubstringExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("special"); "has(\"special\")"; jpath) |
+      (.special | isSpecial(dispatch; jpath + ".special")) |
+      assert(dispatch; length == 3 or length == 2 or length == 1; "length == 3 or length == 2 or length == 1"; jpath) |
+      if (length == 3) then (
+        assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+        (.reference | isReference(dispatch; jpath + ".reference")) |
+        assert(dispatch; has("expansion.substring"); "has(\"expansion.substring\")"; jpath) |
+        (.["expansion.substring"] | isSubstringExpansion(dispatch; jpath + ".[\"expansion.substring\"]"))
+      ) elif (length == 2) then (
+        assert(dispatch; has("reference") or has("expansion.substring"); "has(\"reference\") or has(\"expansion.substring\")"; jpath) |
+        if (has("reference")) then (
+          (.reference | isReference(dispatch; jpath + ".reference"))
+        ) else (
+          (.["expansion.substring"] | isSubstringExpansion(dispatch; jpath + ".[\"expansion.substring\"]"))
+        ) end
+      ) end
+    );
+
+    def isDereferencedParameterDefaultExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("parameter"); "has(\"parameter\")"; jpath) |
+      (.parameter | isParameter(dispatch; jpath + ".parameter")) |
+      assert(dispatch; length == 2 or length == 1; "length == 2 or length == 1"; jpath) |
+      if (length == 2) then (
+        assert(dispatch; has("expansion.default"); "has(\"expansion.default\")"; jpath) |
+        (.["expansion.default"] | isSanitized(dispatch; jpath + ".[\"expansion.default\"]"))
+      ) end
+    );
+
+    def isDereferencedParameterAlternateExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("parameter"); "has(\"parameter\")"; jpath) |
+      (.parameter | isParameter(dispatch; jpath + ".parameter")) |
+      assert(dispatch; length == 2 or length == 1; "length == 2 or length == 1"; jpath) |
+      if (length == 2) then (
+        assert(dispatch; has("expansion.alternate"); "has(\"expansion.alternate\")"; jpath) |
+        (.["expansion.alternate"] | isSanitized(dispatch; jpath + ".[\"expansion.alternate\"]"))
+      ) end
+    );
+
+    def isDereferencedParameterPromptExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("parameter"); "has(\"parameter\")"; jpath) |
+      (.parameter | isParameter(dispatch; jpath + ".parameter")) |
+      assert(dispatch; length == 2 or length == 1; "length == 2 or length == 1"; jpath) |
+      if (length == 2) then (
+        assert(dispatch; has("expansion.prompt"); "has(\"expansion.prompt\")"; jpath) |
+        (.["expansion.prompt"] | isEmpty(dispatch; jpath + ".[\"expansion.prompt\"]"))
+      ) end
+    );
+
+    def isDereferencedParameterRemoveExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("parameter"); "has(\"parameter\")"; jpath) |
+      (.parameter | isParameter(dispatch; jpath + ".parameter")) |
+      assert(dispatch; length == 2 or length == 1; "length == 2 or length == 1"; jpath) |
+      if (length == 2) then (
+        assert(dispatch; has("expansion.remove"); "has(\"expansion.remove\")"; jpath) |
+        (.["expansion.remove"] | isRemoveExpansion(dispatch; jpath + ".[\"expansion.remove\"]"))
+      ) end
+    );
+
+    def isDereferencedParameterReplaceExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("parameter"); "has(\"parameter\")"; jpath) |
+      (.parameter | isParameter(dispatch; jpath + ".parameter")) |
+      assert(dispatch; length == 2 or length == 1; "length == 2 or length == 1"; jpath) |
+      if (length == 2) then (
+        assert(dispatch; has("expansion.replace"); "has(\"expansion.replace\")"; jpath) |
+        (.["expansion.replace"] | isReplaceExpansion(dispatch; jpath + ".[\"expansion.replace\"]"))
+      ) end
+    );
+
+    def isDereferencedParameterSubstringExpanded(dispatch; jpath): (
+      assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+      assert(dispatch; has("parameter"); "has(\"parameter\")"; jpath) |
+      (.parameter | isParameter(dispatch; jpath + ".parameter")) |
+      assert(dispatch; length == 2 or length == 1; "length == 2 or length == 1"; jpath) |
+      if (length == 2) then (
+        assert(dispatch; has("expansion.substring"); "has(\"expansion.substring\")"; jpath) |
+        (.["expansion.substring"] | isSubstringExpansion(dispatch; jpath + ".[\"expansion.substring\"]"))
+      ) end
+    );
+
+    def isDereferencedVariable(dispatch; jpath): (
+      assert(dispatch; isDereferencedVariableDefaultExpanded($DISPATCH.AND; jpath) or
+        isDereferencedVariableAlternateExpanded($DISPATCH.AND; jpath) or
+        isDereferencedVariablePromptExpanded($DISPATCH.AND; jpath) or
+        isDereferencedVariableRemoveExpanded($DISPATCH.AND; jpath) or
+        isDereferencedVariableReplaceExpanded($DISPATCH.AND; jpath) or
+        isDereferencedVariableSubstringExpanded($DISPATCH.AND; jpath); "isDereferencedVariableDefaultExpanded($DISPATCH.AND; jpath) or isDereferencedVariableAlternateExpanded($DISPATCH.AND; jpath) or isDereferencedVariablePromptExpanded($DISPATCH.AND; jpath) or isDereferencedVariableRemoveExpanded($DISPATCH.AND; jpath) or isDereferencedVariableReplaceExpanded($DISPATCH.AND; jpath) or isDereferencedVariableSubstringExpanded($DISPATCH.AND; jpath)"; jpath)
+    );
+
+    def isDereferencedSpecial(dispatch; jpath): (
+      assert(dispatch; isDereferencedSpecialDefaultExpanded($DISPATCH.AND; jpath) or
+        isDereferencedSpecialAlternateExpanded($DISPATCH.AND; jpath) or
+        isDereferencedSpecialPromptExpanded($DISPATCH.AND; jpath) or
+        isDereferencedSpecialRemoveExpanded($DISPATCH.AND; jpath) or
+        isDereferencedSpecialReplaceExpanded($DISPATCH.AND; jpath) or
+        isDereferencedSpecialSubstringExpanded($DISPATCH.AND; jpath); "isDereferencedSpecialDefaultExpanded($DISPATCH.AND; jpath) or isDereferencedSpecialAlternateExpanded($DISPATCH.AND; jpath) or isDereferencedSpecialPromptExpanded($DISPATCH.AND; jpath) or isDereferencedSpecialRemoveExpanded($DISPATCH.AND; jpath) or isDereferencedSpecialReplaceExpanded($DISPATCH.AND; jpath) or isDereferencedSpecialSubstringExpanded($DISPATCH.AND; jpath)"; jpath)
+    );
+
+    def isDereferencedParameter(dispatch; jpath): (
+      assert(dispatch; isDereferencedParameterDefaultExpanded($DISPATCH.AND; jpath) or
+        isDereferencedParameterAlternateExpanded($DISPATCH.AND; jpath) or
+        isDereferencedParameterPromptExpanded($DISPATCH.AND; jpath) or
+        isDereferencedParameterRemoveExpanded($DISPATCH.AND; jpath) or
+        isDereferencedParameterReplaceExpanded($DISPATCH.AND; jpath) or
+        isDereferencedParameterSubstringExpanded($DISPATCH.AND; jpath); "isDereferencedParameterDefaultExpanded($DISPATCH.AND; jpath) or isDereferencedParameterAlternateExpanded($DISPATCH.AND; jpath) or isDereferencedParameterPromptExpanded($DISPATCH.AND; jpath) or isDereferencedParameterRemoveExpanded($DISPATCH.AND; jpath) or isDereferencedParameterReplaceExpanded($DISPATCH.AND; jpath) or isDereferencedParameterSubstringExpanded($DISPATCH.AND; jpath)"; jpath)
+    );
+
+    assert(dispatch; isDereferencedVariable($DISPATCH.AND; jpath) or
+      isDereferencedSpecial($DISPATCH.AND; jpath) or
+      isDereferencedParameter($DISPATCH.AND; jpath); "isDereferencedVariable($DISPATCH.AND; jpath) or isDereferencedSpecial($DISPATCH.AND; jpath) or isDereferencedParameter($DISPATCH.AND; jpath)"; jpath)
   );
 
   def is_Path(dispatch; jpath): (
@@ -1093,10 +1339,24 @@ def isRoutine: (
     isNonEmptyArrayOfSanitized(dispatch; jpath)
   );
 
+  def isMutableReference(dispatch; jpath): (
+    assert(dispatch; is_Integer($DISPATCH.AND; jpath) or
+      is_Key($DISPATCH.AND; jpath); "is_Integer($DISPATCH.AND; jpath) or is_Key($DISPATCH.AND; jpath)"; jpath)
+  );
+
+  def isMutableArrayIdentifier(dispatch; jpath): (
+    assert(dispatch; type == "object"; "type == \"object\""; jpath) |
+    assert(dispatch; length == 2; "length == 2"; jpath) |
+    assert(dispatch; has("name"); "has(\"name\")"; jpath) |
+    (.name | isIdentifier(dispatch; jpath + ".name")) |
+    assert(dispatch; has("reference"); "has(\"reference\")"; jpath) |
+    (.reference | isMutableReference(dispatch; jpath + ".reference"))
+  );
+
   def isMutable(dispatch; jpath): (
     assert(dispatch; isIdentifier($DISPATCH.AND; jpath) or
-      isArrayIdentifier($DISPATCH.AND; jpath) or (
-      isSpecial($DISPATCH.AND; jpath) and (. == "last")); "isIdentifier($DISPATCH.AND; jpath) or isArrayIdentifier($DISPATCH.AND; jpath) or (isSpecial($DISPATCH.AND; jpath) and (. == \"last\"))"; jpath)
+      isMutableArrayIdentifier($DISPATCH.AND; jpath) or (
+      isSpecial($DISPATCH.AND; jpath) and (. == "last")); "isIdentifier($DISPATCH.AND; jpath) or isMutableArrayIdentifier($DISPATCH.AND; jpath) or (isSpecial($DISPATCH.AND; jpath) and (. == \"last\"))"; jpath)
   );
 
   def isMutate(dispatch; jpath): (
