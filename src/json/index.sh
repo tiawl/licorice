@@ -38,19 +38,19 @@ json::from::protobuf () {
 
 json::kind::assert () {
   local -n ref
-  ref="JSONTYPE_${1}"
-  if str not eq "${ref[.]}" "${2}"
+  ref="JSONKIND_${1}"
+  if str not eq "${ref["${2}"]}" "${3}"
   then
-    unreachable "${3}" "This function can only be used with JSON ${2}s but ${1} is a JSON ${ref[.]}"
+    unreachable "${4}" "This function can only be used with JSON ${3}s but ${1}[${2}] is a JSON ${ref["${2}"]}"
   fi
 }
 
 json::new () {
-  declare -g -A "JSONGET_${1}" "JSONTYPE_${1}"
+  declare -g -A "JSONGET_${1}" "JSONKIND_${1}"
 }
 
 json::free () {
-  unset "JSONGET_${1}" "JSONTYPE_${1}"
+  unset "JSONGET_${1}" "JSONKIND_${1}" "JSONKEYS_${1}"
 }
 
 json::parse () {
@@ -59,13 +59,13 @@ json::parse () {
     unreachable "${FUNCNAME[0]}" 'lastpipe must be used to define new variables into current environment from JSON parsing'
   fi
 
-  # TODO: JSONKEYS_
   json::free "${1:-stdin}"
   json::new "${1:-stdin}"
-  json::tokenize | awk -v "JSONGET=JSONGET_${1:-stdin}" -v "JSONTYPE=JSONTYPE_${1:-stdin}" -f ./awk/json/parse.awk
+  json::tokenize | awk -v "JSONGET=JSONGET_${1:-stdin}" -v "JSONKIND=JSONKIND_${1:-stdin}" -v "JSONKEYS=JSONKEYS_${1:-stdin}" -f ./awk/json/parse.awk
   #source /proc/self/fd/0 <<< "
   #  $(json::tokenize | awk -v "JSONGET=JSONGET_${1:-stdin}" \
-  #                         -v "JSONTYPE=JSONTYPE_${1:-stdin}" \
+  #                         -v "JSONKIND=JSONKIND_${1:-stdin}" \
+  #                         -v "JSONKEYS=JSONKEYS_${1:-stdin}" \
   #                         "${awk[json/parse]}")"
 }
 

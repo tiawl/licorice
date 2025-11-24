@@ -1,13 +1,87 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
-  local rainbow filepath old_ifs import visited
+  merge_inventories () {
+    local old_ifs
+    old_ifs="${IFS}"
+    readonly old_ifs
+
+    json::from::yaml '.' "${1}" | json::parse 'file'
+    if json::object::has 'file' '."inventory"'
+    then
+      IFS=$'\n'
+      set -f
+      if not unique ${JSONKEYS_file['."inventory"']} ${JSONKEYS_inventory['."inventory"']}
+      then
+        set +f
+        IFS="${old_ifs}"
+        error 'Conflict: inventories must contain keys not already used by an other inventory'
+      fi
+      set +f
+      IFS="${old_ifs}"
+      json::object::merge 'inventory' '."inventory"' 'file' '."inventory"'
+    fi
+  }
+
+  resolve_inventory_recursively () {
+    local egrep
+    local -a resolved
+
+    if is func rg
+    then
+      egrep='rg'
+    else
+      egrep='egrep'
+    fi
+
+    while :
+    do
+      set -f
+      # 1) This loop fully relies on lastpipe and pipefail shell options.
+      # 2) The goal of this loop is to resolve inventory recursively. Into
+      #    'inventory' object, while there are keys that ends with
+      #    '."inventory"', the loop:
+      #    a) replaces these keys with the content of inventory variables
+      #    b) sends error if a cycle is detected
+      if print '%s\n' "${!JSONKIND_inventory[@]}" | ${egrep} '.\."inventory"$' \
+        | awk "{
+                 key = substr(\$0, 1, length(\$0) - 12)
+                 # '\n' is used as separator between key and inventory varname because it needs to be escaped in JSON strings
+                 print \"resolved+=(\$'\" key \"\n'\042\${JSONGET_inventory['\" \$0 \"']}\042)\n\" \
+                       \"json::object::set 'inventory' '\" key \"' 'inventory' \042.\134\042inventory\134\042.\134\042\${JSONGET_inventory['\" \$0 \"']}\134\042\042\"
+               }" \
+        | source /proc/self/fd/0
+      then
+        set +f
+        if not unique "${resolved[@]}"
+        then
+          error 'Inventory cycle detected'
+        fi
+        continue
+      fi
+      set +f
+      break
+    done
+  }
+
+  resolve_inventory_into_file () {
+    json::object::delete 'file' '."inventory"'
+    # TODO:
+    # B) For 'import' and 'routine' keys into file object:
+    #   1) while there are JSONKEYS_file with '."inventory"':
+    #     a) get inventory variable name with JSONGET_file
+    #     b) delete path containing '."inventory"' into file object
+    #     c) merge inventory variable into file object
+
+    # TODO: When this function is done: remove jq/routine/replacer.jq
+  }
+
+  local rainbow filepath import visited
   local -A raw_import raw_visited
-  old_ifs="${IFS}"
   rainbow=( '21' '27' '33' '39' '45' '51' '50' '49' '48' '47' '46' '82' '118' '154' '190' '226' '220' '214' '208' '202' '196' '197' '198' '199' '200' '201' '165' '129' '93' '57' )
 
   shuffle rainbow
-  readonly rainbow old_ifs
+  readonly rainbow
 
   filepath="$(path::normalized "${1}")"
   print '{"inventory": {}}' | json::parse 'inventory'
@@ -19,43 +93,11 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       error 'Can not find %s' "${filepath}"
     fi
 
-    json::from::yaml '.' "${filepath}" | json::parse 'file'
-    if json::object::has 'file' '."inventory"'
-    then
-      IFS=$'\n'
-      set -f
-      # TODO: manage spaces into keys JSONKEYS must be using newline as sep
-      if not unique ${JSONKEYS_file['."inventory"']} ${JSONKEYS_inventory['."inventory"']}
-      then
-        set +f
-        IFS="${old_ifs}"
-        error 'Conflicting inventories'
-      fi
-      set +f
-      IFS="${old_ifs}"
-      json::object::new 'file_inventory'
-      json::object::set 'file_inventory' '."inventory"' 'TODO'
-      json::object::merge 'inventory' 'file_inventory'
-      json::free 'file_inventory'
-    fi
-    inv="$(json::program --slurpfile ROUTINE_JSON <(print '%s' "${json}") --slurpfile ROUTINE_INV <(print '%s' "${inv:-"{\"inventory\": {}}"}") "${jq[routine/common]}"'
-      (if ($ROUTINE_JSON | type == "array") then $ROUTINE_JSON[0] else $ROUTINE_JSON end) as $ROUTINE_JSON |
-      (if ($ROUTINE_INV | type == "array") then $ROUTINE_INV[0] else $ROUTINE_INV end) as $ROUTINE_INV |
-      $ROUTINE_JSON |
-      if (has("inventory")) then (
-        if (.inventory | keys | any(IN($ROUTINE_INV.inventory | keys[]))) then (
-          "Conflicting inventories" | exit
-        ) else (
-          {inventory} * $ROUTINE_INV
-        ) end
-      ) else (
-        $ROUTINE_INV
-      ) end
-    ')"
-    json="$(json::program --slurpfile ROUTINE_JSON <(print '%s' "${json}") --slurpfile ROUTINE_INV <(print '%s' "${inv}") '
-      (if ($ROUTINE_JSON | type == "array") then $ROUTINE_JSON[0] else $ROUTINE_JSON end) as $ROUTINE_JSON |
-      (if ($ROUTINE_INV | type == "array") then $ROUTINE_INV[0] else $ROUTINE_INV end) as $ROUTINE_INV |
-      $ROUTINE_JSON * $ROUTINE_INV | '"${jq[routine/common]}${jq[routine/replacer]}")"
+    merge_inventories "${filepath}"
+    resolve_inventory_recursively
+    resolve_inventory_into_file
+
+    # TODO: remove jq code here
 
     source /proc/self/fd/0 <<< "$(json::program --slurpfile ROUTINE_JSON <(print '%s' "${json}") --slurpfile ROUTINE_IMPORT <(print '{"import": %s}' "${import:-"{}"}") --arg ROOT "$(path::dir "${filepath}")/" "${jq[routine/common]}"'
       (if ($ROUTINE_JSON | type == "array") then $ROUTINE_JSON[0] else $ROUTINE_JSON end) as $ROUTINE_JSON |
@@ -83,6 +125,8 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
   done
 
   readonly inv import
+
+  # TODO: check routine JSON schema here
 
   json::filter "${jq[routine/common]}${jq[routine/types]}${jq[routine/codegen]}${jq[routine/writer]}" --arg NAMESPACE_SEP "${sep[namespace]}" --arg EXE "${exe}" --arg BACKEND "${backend}" --rawfile FUNCTIONS <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \
     <<< "$(json::from::yaml --arg ROOT "$(path::normalized "$(path::dir "${1}")")/" --slurpfile ROUTINE_INV <(print '%s' "${inv}") --slurpfile ROUTINE_IMPORT <(print '{"import": %s}' "${import}") '
