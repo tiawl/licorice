@@ -1,6 +1,7 @@
 #! /usr/bin/env bash
 
 # TODO: avoid for/while loops in compiled script
+# TODO: replace eval with source /proc/self/fd/0 or add comments
 
 shebangless () {
   sed '/^#\s*!/{:loop;N;s/.*\n$//;t loop;s/^\n\+//}' "${@}"
@@ -167,20 +168,20 @@ ${namespace[core]}init () {
 
   harden awk
   harden base64
-  #harden bc ?
   harden cat
   harden curl
   harden env
   harden gojq # TODO: remove it
-  harden json_xs # TODO: remove it
-  #harden mktemp ?
   harden protoc
   harden rg || harden egrep
   harden sed
   harden sha256sum
-  #harden shuf ?
   harden tar
-  #harden tee ?
+
+  # harden bc ?
+  # harden mktemp ?
+  # harden shuf ?
+  # harden tee ?
 
   global backend exe
   exe='${exe}'

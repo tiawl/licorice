@@ -72,30 +72,6 @@ json::parse () {
 
 # TODO: rework everything below this comment:
 
-json::encode () {
-  local -n ref
-  while gt "${#}" '0'
-  do
-    ref="${1}"
-    if is associative "${!ref}"
-    then
-      json::program '($ARGS.positional | [.[:$n], .[$n:]] | transpose | map(last as $last | {(first): (if (($last | type == "number") or (($last | type == "string") and ($last | test("^[0-9]+$")))) then ($last | tostring) else (try ($last | fromjson) catch $last) end)}) | add) // {}' --argjson n "${#ref[@]}" --args -- "${!ref[@]}" "${ref[@]}"
-    elif is indexed "${!ref}"
-    then
-      json::program '$ARGS.positional | map(. as $item | try (fromjson) catch $item)' --args -- "${ref[@]}"
-    else
-      error 'Only usable with indexed and associative array'
-    fi
-    shift
-  done
-  unset -n ref
-}
-
-# TODO: remove json_xs
-json::stringify () {
-  json_xs -f string -t json
-}
-
 json::filter () {
   gojq --raw-output "${@}"
 }

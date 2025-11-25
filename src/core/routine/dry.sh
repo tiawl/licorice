@@ -47,7 +47,8 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
         | awk "{
                  key = substr(\$0, 1, length(\$0) - 12)
                  # '\n' is used as separator between key and inventory varname because it needs to be escaped in JSON strings
-                 print \"resolved+=(\$'\" key \"\n'\042\${JSONGET_inventory['\" \$0 \"']}\042)\n\" \
+                 print \"json::kind::assert 'inventory' '\" \$0 \"' 'string' \042\${FUNCNAME[0]}\042\" \
+                       \"resolved+=(\$'\" key \"\n'\042\${JSONGET_inventory['\" \$0 \"']}\042)\n\" \
                        \"json::object::set 'inventory' '\" key \"' 'inventory' \042.\134\042inventory\134\042.\134\042\${JSONGET_inventory['\" \$0 \"']}\134\042\042\"
                }" \
         | source /proc/self/fd/0
@@ -65,15 +66,38 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
   }
 
   resolve_inventory_into_file () {
-    json::object::delete 'file' '."inventory"'
-    # TODO:
-    # B) For 'import' and 'routine' keys into file object:
-    #   1) while there are JSONKEYS_file with '."inventory"':
-    #     a) get inventory variable name with JSONGET_file
-    #     b) delete path containing '."inventory"' into file object
-    #     c) merge inventory variable into file object
+    local egrep
 
-    # TODO: When this function is done: remove jq/routine/replacer.jq
+    if is func rg
+    then
+      egrep='rg'
+    else
+      egrep='egrep'
+    fi
+
+    json::object::delete 'file' '."inventory"'
+
+    while :
+    do
+      set -f
+      # 1) This loop fully relies on lastpipe and pipefail shell options.
+      # 2) The goal of this loop is to resolve inventory into 'file' object,
+      #    while there are keys that ends with '."inventory"', the loop
+      #    replaces these keys with the content of inventory variables
+      if print '%s\n' "${!JSONKIND_file[@]}" | ${egrep} '.\."inventory"$' \
+        | awk "{
+                 key = substr(\$0, 1, length(\$0) - 12)
+                 print \"json::kind::assert 'file' '\" \$0 \"' 'string' \042\${FUNCNAME[0]}\042\" \
+                       \"json::object::set 'file' '\" key \"' 'inventory' \042.\134\042inventory\134\042.\134\042\${JSONGET_file['\" \$0 \"']}\134\042\042\"
+               }" \
+        | source /proc/self/fd/0
+      then
+        set +f
+        continue
+      fi
+      set +f
+      break
+    done
   }
 
   local rainbow filepath import visited
@@ -85,6 +109,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
 
   filepath="$(path::normalized "${1}")"
   print '{"inventory": {}}' | json::parse 'inventory'
+  print '{"import": {}}' | json::parse 'import'
 
   while is not var "raw_visited[${filepath}]"
   do
@@ -112,7 +137,23 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
         ) end
       ) else (
         $ROUTINE_IMPORT
-      ) end | ([.import | to_entries[] | select(.value == null) | .key | "if is not var \"raw_import[" + . + "]\"; then raw_import[" + . + "]=\"$(json::from::yaml \".group |= walk(if type == \\\"object\\\" then with_entries(if .key == \\\"imported\\\" then .value |= \\\"$(path::normalized \"$(path::dir " + . + ")\")/\\\" + (. | sub(\\\"^[.]/\\\"; \\\"\\\")) else . end) else . end)\" " + . + ")\"; fi"] | join(";"))
+      ) end | ([
+        .import | to_entries[] | select(.value == null) | .key |
+          "if is not var \"raw_import[" + . + "]\";
+           then
+             raw_import[" + . + "]=\"$(
+               json::from::yaml \".group |= walk(
+                 if type == \\\"object\\\" then
+                   with_entries(
+                     if .key == \\\"imported\\\" then
+                       .value |= \\\"$(path::normalized \"$(path::dir " + . + ")\")/\\\" + (. | sub(\\\"^[.]/\\\"; \\\"\\\"))
+                     else . end
+                   )
+                 else . end
+               )\" " + . + "
+             )\";
+           fi"
+      ] | join(";"))
     ')"
     import="$(json::encode raw_import)"
 

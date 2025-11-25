@@ -37,8 +37,17 @@ json::object::has () {
   str not empty "${ref["${2}"]}"
 }
 
+json::object::has::assert () {
+  if not json::object::has "${1}" "${2}"
+  then
+    unreachable "${3}" "The JSON object '${1}' must have this key '${2}'"
+  fi
+}
+
 json::object::delete () {
   json::kind::assert "${1}" '.' 'object' "${FUNCNAME[0]}"
+  json::object::has::assert "${1}" "${2}" "${FUNCNAME[0]}"
+
   local old_ifs
   old_ifs="${IFS}"
   readonly old_ifs
@@ -78,6 +87,8 @@ json::object::delete () {
 json::object::merge () {
   json::kind::assert "${1}" "${2}" 'object' "${FUNCNAME[0]}"
   json::kind::assert "${3}" "${4}" 'object' "${FUNCNAME[0]}"
+  json::object::has::assert "${1}" "${2}" "${FUNCNAME[0]}"
+  json::object::has::assert "${3}" "${4}" "${FUNCNAME[0]}"
 
   local -n getref kindref keysref
   getref="JSONGET_${3}"
@@ -112,7 +123,11 @@ json::object::merge () {
 }
 
 json::object::set () {
-  json::kind::assert "${1}" "." 'object' "${FUNCNAME[0]}"
+  json::kind::assert "${1}" '.' 'object' "${FUNCNAME[0]}"
+  json::kind::assert "${3}" '.' 'object' "${FUNCNAME[0]}"
+  json::object::has::assert "${1}" "${2}" "${FUNCNAME[0]}"
+  json::object::has::assert "${3}" "${4}" "${FUNCNAME[0]}"
+
   json::object::delete "${1}" "${2}"
 
   source /proc/self/fd/0 <<< "$(
