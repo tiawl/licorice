@@ -1,5 +1,7 @@
 #! /usr/bin/env bash
 
+# TODO: avoid for/while loops in compiled script
+
 shebangless () {
   sed '/^#\s*!/{:loop;N;s/.*\n$//;t loop;s/^\n\+//}' "${@}"
 }
@@ -18,7 +20,7 @@ compile () {
   local -a help split
   local -A sep path namespace version
 
-  exe='kuzco'
+  exe='navy'
   sep[namespace]='::'
   sep[image]='/'
   sep[tag]=':'
@@ -201,7 +203,6 @@ ${namespace[core]}init () {
 
   # TODO: manage DOCKERD_HOST, BUILDKITD_HOST, CONTAINERD_HOST env vars
 
-  global -a fns
 $(on globstar
   for dir in awk sed jq
   do
@@ -224,8 +225,7 @@ $(on globstar
     fi
   done)
 
-  fns=( $(exec -c bash --noprofile --norc -c "source ${SDIR}/src/index.sh; compgen -A function") \$(compgen -A function -X "!(\${namespace[core]}*|\${namespace["\${backend}"]}*)") )
-  readonly awk sed jq buf fns
+  readonly awk sed jq buf
 }
 
 ${exe} () {
