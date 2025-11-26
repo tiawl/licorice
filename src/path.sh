@@ -26,7 +26,6 @@ path::normalized () {
   then
     env -C "${1}" pwd
   else
-    print -- '%s/%s\n' "$(env -C "$(path::dir "${1}")" pwd)" "$(path::base "${1}")"
+    print -- '%s/%s\n' "$(path::normalized "$(path::dir "${1}")")" "$(path::base "${1}")"
   fi
 }
-

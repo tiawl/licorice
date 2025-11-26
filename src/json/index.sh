@@ -4,7 +4,7 @@ source "${BASH_SOURCE[0]%/*}/print.sh"
 source "${BASH_SOURCE[0]%/*}/object.sh"
 
 json::tokenize () {
-  local escape char string number keyword space egrep
+  local escape char string number keyword space
 
   escape='(\\[^u[:cntrl:]]|\\u[0-9a-fA-F]{4})'
   char='[^[:cntrl:]"\\]'
@@ -13,22 +13,11 @@ json::tokenize () {
   keyword='null|false|true'
   space='[[:space:]]+'
 
-  if is func rg
-  then
-    egrep='rg'
-  else
-    egrep='egrep'
-  fi
-
   if is file "${1:-}"
   then
-    set -f
-    ${egrep} -a -o --color=never "${string}"'|'"${number}"'|'"${keyword}"'|'"${space}"'|.' "${1}" | ${egrep} -v '^'"${space}"'$'
-    set +f
+    match -a -o "${string}"'|'"${number}"'|'"${keyword}"'|'"${space}"'|.' "${1}" | match -v '^'"${space}"'$'
   else
-    set -f
-    ${egrep} -a -o --color=never "${string}"'|'"${number}"'|'"${keyword}"'|'"${space}"'|.' | ${egrep} -v '^'"${space}"'$'
-    set +f
+    match -a -o "${string}"'|'"${number}"'|'"${keyword}"'|'"${space}"'|.' | match -v '^'"${space}"'$'
   fi
 }
 

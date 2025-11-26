@@ -9,6 +9,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     json::from::yaml '.' "${1}" | json::parse 'file'
     if json::object::has 'file' '."inventory"'
     then
+      json::kind::assert 'file' '."inventory"' 'object' "${FUNCNAME[1]}.${FUNCNAME[0]}"
       IFS=$'\n'
       set -f
       if not unique ${JSONKEYS_file['."inventory"']} ${JSONKEYS_inventory['."inventory"']}
@@ -24,80 +25,99 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
   }
 
   resolve_inventory_recursively () {
-    local egrep
     local -a resolved
-
-    if is func rg
-    then
-      egrep='rg'
-    else
-      egrep='egrep'
-    fi
 
     while :
     do
-      set -f
       # 1) This loop fully relies on lastpipe and pipefail shell options.
       # 2) The goal of this loop is to resolve inventory recursively. Into
       #    'inventory' object, while there are keys that ends with
       #    '."inventory"', the loop:
       #    a) replaces these keys with the content of inventory variables
       #    b) sends error if a cycle is detected
-      if print '%s\n' "${!JSONKIND_inventory[@]}" | ${egrep} '.\."inventory"$' \
-        | awk "{
-                 key = substr(\$0, 1, length(\$0) - 12)
-                 # '\n' is used as separator between key and inventory varname because it needs to be escaped in JSON strings
-                 print \"json::kind::assert 'inventory' '\" \$0 \"' 'string' \042\${FUNCNAME[0]}\042\" \
-                       \"resolved+=(\$'\" key \"\n'\042\${JSONGET_inventory['\" \$0 \"']}\042)\n\" \
-                       \"json::object::set 'inventory' '\" key \"' 'inventory' \042.\134\042inventory\134\042.\134\042\${JSONGET_inventory['\" \$0 \"']}\134\042\042\"
-               }" \
+      if print '%s\n' "${!JSONKIND_inventory[@]}" | match '.\."inventory"$' \
+        | awk "${awk[quoting]}"'
+               {
+                 key = substr($0, 1, length($0) - 12)
+                 # new line is used as separator between key and inventory varname because it needs to be escaped in JSON strings
+                 print "json::kind::assert " q("inventory") " " q($0) " " q("string") " " dq("${FUNCNAME[0]}") "\n" \
+                       "resolved+=($" q(key "\n") dq("${JSONGET_inventory[" a($0) "]}") ")\n" \
+                       "json::object::set " q("inventory") " " q(key) " " q("inventory") " " dq("." edq("inventory") "." edq("${JSONGET_inventory[" q($0) "]}"))
+               }' \
         | source /proc/self/fd/0
       then
-        set +f
         if not unique "${resolved[@]}"
         then
           error 'Inventory cycle detected'
         fi
         continue
       fi
-      set +f
       break
     done
   }
 
   resolve_inventory_into_file () {
-    local egrep
-
-    if is func rg
-    then
-      egrep='rg'
-    else
-      egrep='egrep'
-    fi
-
     json::object::delete 'file' '."inventory"'
 
     while :
     do
-      set -f
       # 1) This loop fully relies on lastpipe and pipefail shell options.
       # 2) The goal of this loop is to resolve inventory into 'file' object,
       #    while there are keys that ends with '."inventory"', the loop
       #    replaces these keys with the content of inventory variables
-      if print '%s\n' "${!JSONKIND_file[@]}" | ${egrep} '.\."inventory"$' \
-        | awk "{
-                 key = substr(\$0, 1, length(\$0) - 12)
-                 print \"json::kind::assert 'file' '\" \$0 \"' 'string' \042\${FUNCNAME[0]}\042\" \
-                       \"json::object::set 'file' '\" key \"' 'inventory' \042.\134\042inventory\134\042.\134\042\${JSONGET_file['\" \$0 \"']}\134\042\042\"
-               }" \
+      if print '%s\n' "${!JSONKIND_file[@]}" | match '.\."inventory"$' \
+        | awk "${awk[quoting]}"'
+               {
+                 key = substr($0, 1, length($0) - 12)
+                 print "json::kind::assert " q("file") " " q($0) " " q("string") " " dq("${FUNCNAME[0]}") "\n" \
+                       "json::object::set " q("file") " " q(key) " " q("inventory") dq("." edq("inventory") "." edq("${JSONGET_file[" q($0) "]}"))"
+               }' \
         | source /proc/self/fd/0
       then
-        set +f
         continue
       fi
-      set +f
       break
     done
+  }
+
+  parse_import () {
+    local root
+    root="$(path::dir "${1}")"
+
+    # 1. Si le fichier contient la clé "import":
+    #   1. Dans les imports du fichier, supprimer/ignorer les doublons de fichiers importés
+    #   2. Rajouter le chemin absolu dans le nom des fichiers importés
+    #   3. Si dans les imports du fichier + les imports déjà resolus, il y a doublon: error
+    #   4. merger les imports du fichier + les imports déjà résolus
+    # 2. On traverse les imports déjà résolus:
+    #   1. On selectionne les imports qui viennent d'être mergés
+    #   2. On parse et conserve leur contenu tout en remplaçant la valeur des clés "imported" par le chemin absolu des fichiers auquels elles correspondent
+    if json::object::has 'file' '."import"'
+    then
+      json::kind::assert 'file' '."import"' 'object' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+      set -f
+      if not unique ${JSONVALUES_file['."import"']}
+      then
+        set +f
+        error 'Duplicated imported file into: %s' "${1}"
+      fi
+      set +f
+
+      awk -v "LENGTH=${JSONLENGTH_file['."import"']}" -v "ROOT=${root}" "${awk[quoting]}"'
+           BEGIN {
+             i = 0
+             out = ""
+             while (i < LENGTH) {
+               out = out "JSONVALUES_file[" q("." dq("import[" i "]")) "]=" q(ROOT "/") dq("${JSONVALUES_file[" q("." edq("import") "[" i "]") "]}")
+               i++
+             }
+             print out
+           }' \
+         | source /proc/self/fd/0
+
+      # TODO: JSONVALUES
+      # TODO: JSONLENGTH
+    fi
   }
 
   local rainbow filepath import visited
@@ -121,6 +141,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     merge_inventories "${filepath}"
     resolve_inventory_recursively
     resolve_inventory_into_file
+    parse_import "${filepath}"
 
     # TODO: remove jq code here
 
