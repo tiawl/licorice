@@ -98,14 +98,7 @@ json::object::merge () {
     print "%s\nJSONKIND_${1}\nJSONKIND_${3}\n" "${!kindref[@]}"
     print "%s\nJSONKEYS_${1}\nJSONKEYS_${3}\n" "${!keysref[@]}"
   } | match::noseparator -A 2 "^${regex}" \
-    | awk -v "ROOT_LEFT=${2}" -v "ROOT_RIGHT=${4}" \
-        "${awk[quoting]}"'{
-            PATH_RIGHT = $0
-            getline JSON_LEFT
-            getline JSON_RIGHT
-            PATH_LEFT = ROOT_LEFT substr(PATH_RIGHT, length(ROOT_RIGHT) + 1)
-            print JSON_LEFT "[" q(PATH_LEFT) "]=" dq("${" JSON_RIGHT "[" q(PATH_RIGHT) "]}")
-         }' \
+    | awk -v "ROOT_LEFT=${2}" -v "ROOT_RIGHT=${4}" "${awk[quoting]}${awk[json/object/merge-right-in-left]}" \
     | source /proc/self/fd/0
 }
 
@@ -134,13 +127,6 @@ json::object::set () {
       print "%s\nJSONKEYS_${1}\nJSONKEYS_${3}\n" "${!keysref[@]}"
     fi
   } | match::noseparator -A 2 "^${regex}" \
-    | awk -v "ROOT_LEFT=${2}" -v "ROOT_RIGHT=${4}" \
-        "${awk[quoting]}"'{
-            PATH_RIGHT = $0
-            getline JSON_LEFT
-            getline JSON_RIGHT
-            PATH_LEFT = ROOT_LEFT substr(PATH_RIGHT, length(ROOT_RIGHT) + 1)
-            print JSON_LEFT "[" q(PATH_LEFT) "]=" dq("${" JSON_RIGHT "[" q(PATH_RIGHT) "]}")
-         }' \
+    | awk -v "ROOT_LEFT=${2}" -v "ROOT_RIGHT=${4}" "${awk[quoting]}${awk[json/object/merge-right-in-left]}" \
     | source /proc/self/fd/0
 }

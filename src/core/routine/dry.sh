@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
-  merge_inventories () {
+  inventory::merge () {
     local old_ifs
     old_ifs="${IFS}"
     readonly old_ifs
@@ -10,6 +10,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     if json::object::has 'file' '."inventory"'
     then
       json::kind::assert 'file' '."inventory"' 'object' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+
       IFS=$'\n'
       set -f
       if not unique ${JSONKEYS_file['."inventory"']} ${JSONKEYS_inventory['."inventory"']}
@@ -20,11 +21,12 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       fi
       set +f
       IFS="${old_ifs}"
+
       json::object::merge 'inventory' '."inventory"' 'file' '."inventory"'
     fi
   }
 
-  resolve_inventory_recursively () {
+  inventory::resolve::recursively () {
     local -a resolved
 
     while :
@@ -36,14 +38,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       #    a) replaces these keys with the content of inventory variables
       #    b) sends error if a cycle is detected
       if print '%s\n' "${!JSONKIND_inventory[@]}" | match '.\."inventory"$' \
-        | awk "${awk[quoting]}"'
-               {
-                 key = substr($0, 1, length($0) - 12)
-                 # new line is used as separator between key and inventory varname because it needs to be escaped in JSON strings
-                 print "json::kind::assert " q("inventory") " " q($0) " " q("string") " " dq("${FUNCNAME[0]}") "\n" \
-                       "resolved+=($" q(key "\n") dq("${JSONGET_inventory[" a($0) "]}") ")\n" \
-                       "json::object::set " q("inventory") " " q(key) " " q("inventory") " " dq("." edq("inventory") "." edq("${JSONGET_inventory[" q($0) "]}"))
-               }' \
+        | awk "${awk[quoting]}${awk[routine/inventory/resolve/recursively]}" \
         | source /proc/self/fd/0
       then
         if not unique "${resolved[@]}"
@@ -56,7 +51,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     done
   }
 
-  resolve_inventory_into_file () {
+  inventory::resolve::file () {
     json::object::delete 'file' '."inventory"'
 
     while :
@@ -66,12 +61,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       #    while there are keys that ends with '."inventory"', the loop
       #    replaces these keys with the content of inventory variables
       if print '%s\n' "${!JSONKIND_file[@]}" | match '.\."inventory"$' \
-        | awk "${awk[quoting]}"'
-               {
-                 key = substr($0, 1, length($0) - 12)
-                 print "json::kind::assert " q("file") " " q($0) " " q("string") " " dq("${FUNCNAME[0]}") "\n" \
-                       "json::object::set " q("file") " " q(key) " " q("inventory") dq("." edq("inventory") "." edq("${JSONGET_file[" q($0) "]}"))"
-               }' \
+        | awk "${awk[quoting]}${awk[routine/import/resolve/file]}" \
         | source /proc/self/fd/0
       then
         continue
@@ -80,21 +70,14 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     done
   }
 
-  parse_import () {
-    local root
-    root="$(path::dir "${1}")"
-
-    # 1. Si le fichier contient la clé "import":
-    #   1. Dans les imports du fichier, supprimer/ignorer les doublons de fichiers importés
-    #   2. Rajouter le chemin absolu dans le nom des fichiers importés
-    #   3. Si dans les imports du fichier + les imports déjà resolus, il y a doublon: error
-    #   4. merger les imports du fichier + les imports déjà résolus
-    # 2. On traverse les imports déjà résolus:
-    #   1. On selectionne les imports qui viennent d'être mergés
-    #   2. On parse et conserve leur contenu tout en remplaçant la valeur des clés "imported" par le chemin absolu des fichiers auquels elles correspondent
+  import::merge () {
     if json::object::has 'file' '."import"'
     then
-      json::kind::assert 'file' '."import"' 'object' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+      json::kind::assert 'file' '."import"' 'array' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+
+      local root
+      root="$(path::dir "${1}")"
+
       set -f
       if not unique ${JSONVALUES_file['."import"']}
       then
@@ -103,21 +86,31 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       fi
       set +f
 
-      awk -v "LENGTH=${JSONLENGTH_file['."import"']}" -v "ROOT=${root}" "${awk[quoting]}"'
-           BEGIN {
-             i = 0
-             out = ""
-             while (i < LENGTH) {
-               out = out "JSONVALUES_file[" q("." dq("import[" i "]")) "]=" q(ROOT "/") dq("${JSONVALUES_file[" q("." edq("import") "[" i "]") "]}")
-               i++
-             }
-             print out
-           }' \
+      awk -v "LENGTH=${JSONLENGTH_file['."import"']}" -v "ROOT=${root}" "${awk[quoting]}${awk[routine/import/map-array-to-object]}" \
          | source /proc/self/fd/0
+
+      IFS=$'\n'
+      set -f
+      if not unique ${JSONKEYS_file['."import"']} ${JSONKEYS_import['."import"']}
+      then
+        set +f
+        IFS="${old_ifs}"
+        error 'Conflict: import arrays must not contain files already used by an other import arrays'
+      fi
+      set +f
+      IFS="${old_ifs}"
+
+      json::object::merge 'import' '."import"' 'file' '."import"'
 
       # TODO: JSONVALUES
       # TODO: JSONLENGTH
     fi
+  }
+
+  TODO () {
+    # 2. On traverse les imports déjà résolus:
+    #   1. On selectionne les imports qui viennent d'être mergés
+    #   2. On parse et conserve leur contenu tout en remplaçant la valeur des clés "imported" par le chemin absolu des fichiers auquels elles correspondent
   }
 
   local rainbow filepath import visited
@@ -138,10 +131,10 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       error 'Can not find %s' "${filepath}"
     fi
 
-    merge_inventories "${filepath}"
-    resolve_inventory_recursively
-    resolve_inventory_into_file
-    parse_import "${filepath}"
+    inventory::merge "${filepath}"
+    inventory::resolve::recursively
+    inventory::resolve::file
+    import::merge "${filepath}"
 
     # TODO: remove jq code here
 
