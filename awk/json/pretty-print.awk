@@ -2,7 +2,6 @@
 
 {
   OFFSET = 0
-  delete COLOR
   COLOR["NULL"] = "\033[0;90m"
   COLOR["BOOLEAN"] = "\033[0;35m"
   COLOR["NUMBER"] = "\033[0;35m"
