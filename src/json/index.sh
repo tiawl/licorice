@@ -34,12 +34,21 @@ json::kind::assert () {
   fi
 }
 
+json::kind::error () {
+  local -n ref
+  ref="JSONKIND_${1}"
+  if str not eq "${ref["${2}"]}" "${3}"
+  then
+    error "The ${4} function can only be used with JSON ${3}s but ${1}[${2}] is a JSON ${ref["${2}"]}"
+  fi
+}
+
 json::new () {
-  declare -g -A 'JSON'{GET,KIND,KEYS,VALUES,LENGTH}"_${1}"
+  declare -g -A 'JSON'{GET,KIND,KEYS,VALUES,LENGTH,PARENT}"_${1}"
 }
 
 json::free () {
-  unset 'JSON'{GET,KIND,KEYS,VALUES,LENGTH}"_${1}"
+  unset 'JSON'{GET,KIND,KEYS,VALUES,LENGTH,PARENT}"_${1}"
 }
 
 json::parse () {
@@ -50,7 +59,7 @@ json::parse () {
 
   json::free "${1:-stdin}"
   json::new "${1:-stdin}"
-  json::tokenize | awk -v "JSONGET=JSONGET_${1:-stdin}" -v "JSONKIND=JSONKIND_${1:-stdin}" -v "JSONKEYS=JSONKEYS_${1:-stdin}" -v "JSONVALUES=JSONVALUES_${1:-stdin}" -v "JSONLENGTH=JSONLENGTH_${1:-stdin}" -f ./awk/json/parse.awk
+  json::tokenize | awk -v "JSONGET=JSONGET_${1:-stdin}" -v "JSONKIND=JSONKIND_${1:-stdin}" -v "JSONKEYS=JSONKEYS_${1:-stdin}" -v "JSONVALUES=JSONVALUES_${1:-stdin}" -v "JSONLENGTH=JSONLENGTH_${1:-stdin}" -v "JSONPARENT=JSONPARENT_${1:-stdin}" -f ./awk/json/parse.awk
   # TODO: remove above and uncomment below:
   #source /proc/self/fd/0 <<< "
   #  $(json::tokenize | awk -v "JSONGET=JSONGET_${1:-stdin}" \
@@ -58,6 +67,7 @@ json::parse () {
   #                         -v "JSONKEYS=JSONKEYS_${1:-stdin}" \
   #                         -v "JSONVALUES=JSONVALUES_${1:-stdin}" \
   #                         -v "JSONLENGTH=JSONLENGTH_${1:-stdin}" \
+  #                         -v "JSONPARENT=JSONPARENT_${1:-stdin}" \
   #                         "${awk[json/parse]}")"
 }
 

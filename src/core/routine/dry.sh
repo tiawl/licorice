@@ -9,7 +9,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     json::from::yaml '.' "${1}" | json::parse 'file'
     if json::object::has 'file' '."inventory"'
     then
-      json::kind::assert 'file' '."inventory"' 'object' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+      json::kind::error 'file' '."inventory"' 'object' "${FUNCNAME[1]}.${FUNCNAME[0]}"
 
       IFS=$'\n'
       set -f
@@ -73,13 +73,12 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
   import::merge () {
     if json::object::has 'file' '."import"'
     then
-      json::kind::assert 'file' '."import"' 'array' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+      json::kind::error 'file' '."import"' 'array' "${FUNCNAME[1]}.${FUNCNAME[0]}"
 
       local root i
       for (( i = 0; i < JSONLENGTH_file['."import"']; i++ ))
       do
-        json::kind::assert 'file' ".\"import\"<${i}>" 'string' "${FUNCNAME[1]}.${FUNCNAME[0]}"
-        json::kind::assert 'file' ".\"import\"<-$(( i + 1 ))>" 'string' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+        json::kind::error 'file' ".\"import\"<${i}>" 'string' "${FUNCNAME[1]}.${FUNCNAME[0]}"
       done
 
       root="$(path::dir "${1}")"
@@ -116,32 +115,6 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     # 2. On traverse les imports déjà résolus:
     #   1. On selectionne les imports qui viennent d'être mergés
     #   2. On parse et conserve leur contenu tout en remplaçant la valeur des clés "imported" par le chemin absolu des fichiers auquels elles correspondent
-  }
-
-  local rainbow filepath visited
-  rainbow=( '21' '27' '33' '39' '45' '51' '50' '49' '48' '47' '46' '82' '118' '154' '190' '226' '220' '214' '208' '202' '196' '197' '198' '199' '200' '201' '165' '129' '93' '57' )
-  shuffle rainbow
-  readonly rainbow
-
-  filepath="$(path::normalized "${1}")"
-  print '{"inventory": {}}' | json::parse 'inventory'
-  print '{"import": {}}' | json::parse 'import'
-
-  while str not empty "${filepath}" && is not var "visited[${filepath}]"
-  do
-    if is not file "${filepath}"
-    then
-      error 'Can not find %s' "${filepath}"
-    fi
-
-    inventory::merge "${filepath}"
-    inventory::resolve::recursively
-    inventory::resolve::file
-    import::merge "${filepath}"
-    import::resolve
-
-    # TODO: remove jq code here
-
     source /proc/self/fd/0 <<< "$(json::program --slurpfile ROUTINE_JSON <(print '%s' "${json}") --slurpfile ROUTINE_IMPORT <(print '{"import": %s}' "${import:-"{}"}") --arg ROOT "$(path::dir "${filepath}")/" "${jq[routine/common]}"'
       (if ($ROUTINE_JSON | type == "array") then $ROUTINE_JSON[0] else $ROUTINE_JSON end) as $ROUTINE_JSON |
       (if ($ROUTINE_IMPORT | type == "array") then $ROUTINE_IMPORT[0] else $ROUTINE_IMPORT end) as $ROUTINE_IMPORT |
@@ -173,6 +146,29 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
            fi"
       ] | join(";"))
     ')"
+  }
+
+  local rainbow filepath visited
+  rainbow=( '21' '27' '33' '39' '45' '51' '50' '49' '48' '47' '46' '82' '118' '154' '190' '226' '220' '214' '208' '202' '196' '197' '198' '199' '200' '201' '165' '129' '93' '57' )
+  shuffle rainbow
+  readonly rainbow
+
+  filepath="$(path::normalized "${1}")"
+  print '{"inventory": {}}' | json::parse 'inventory'
+  print '{"import": {}}' | json::parse 'import'
+
+  while str not empty "${filepath}" && is not var "visited[${filepath}]"
+  do
+    if is not file "${filepath}"
+    then
+      error 'Can not find %s' "${filepath}"
+    fi
+
+    inventory::merge "${filepath}"
+    inventory::resolve::recursively
+    inventory::resolve::file
+    import::merge "${filepath}"
+    import::resolve
 
     visited["${filepath}"]='true'
 
@@ -181,18 +177,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       set -f
       IFS=$'\n'
       printf '%s\n' ${JSONKEYS_import['."import"']} "${!visited[@]}" \
-        | awk '
-            {
-              arr[$1]++
-            }
-            END {
-              for (i in arr) {
-                if (arr[i]==1) {
-                  print i
-                  exit
-                }
-              }
-            }'
+        | awk '{arr[$1]++} END {for (i in arr) {if (arr[i]==1) {print i; exit}}}'
     )"
   done
 
@@ -213,6 +198,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
           ) else . end
         )' "${1}")"
 
+  # TODO: resolve imported files into main here
   # TODO: check routine JSON schema here
 
   json::filter "${jq[routine/common]}${jq[routine/types]}${jq[routine/codegen]}${jq[routine/writer]}" --arg NAMESPACE_SEP "${sep[namespace]}" --arg EXE "${exe}" --arg BACKEND "${backend}" --rawfile FUNCTIONS <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \

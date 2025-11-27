@@ -21,10 +21,12 @@ json::object::__::fix_regex () {
 }
 
 json::object::has () {
-  json::kind::assert "${1}" '.' 'object' "${FUNCNAME[0]}"
-  local -n ref
-  ref="JSONKIND_${1}"
-  str not empty "${ref["${2}"]}"
+  local -n parentref kindref
+  parentref="JSONPARENT_${1}"
+
+  json::kind::assert "${1}" "${parentref["${2}"]}" 'object' "${FUNCNAME[0]}"
+  kindref="JSONKIND_${1}"
+  str not empty "${kindref["${2}"]}"
 }
 
 json::object::has::assert () {
@@ -35,7 +37,10 @@ json::object::has::assert () {
 }
 
 json::object::delete () {
-  json::kind::assert "${1}" '.' 'object' "${FUNCNAME[0]}"
+  local -n parentref
+  parentref="JSONPARENT_${1}"
+
+  json::kind::assert "${1}" "${parentref["${2}"]}" 'object' "${FUNCNAME[0]}"
   json::object::has::assert "${1}" "${2}" "${FUNCNAME[0]}"
 
   local old_ifs
@@ -58,12 +63,14 @@ json::object::delete () {
             -v "JSONKEYS=JSONKEYS_${1}" \
             -v "JSONVALUES=JSONVALUES_${1}" \
             -v "JSONLENGTH=JSONLENGTH_${1}" \
+            -v "JSONPARENT=JSONPARENT_${1}" \
             "${awk[quoting]}"'{
                 print JSONGET "[" q($0) "]\n" \
                       JSONKIND "[" q($0) "]\n" \
                       JSONKEYS "[" q($0) "]\n \
                       JSONVALUES "[" q($0) "]\n \
-                      JSONLENGTH "[" q($0) "]"
+                      JSONLENGTH "[" q($0) "]\n \
+                      JSONPARENT "[" q($0) "]"
              }'
   )
   set +f
@@ -76,12 +83,13 @@ json::object::merge () {
   json::object::has::assert "${1}" "${2}" "${FUNCNAME[0]}"
   json::object::has::assert "${3}" "${4}" "${FUNCNAME[0]}"
 
-  local -n getref kindref keysref valref lenref
+  local -n getref kindref keysref valref lenref parentref
   getref="JSONGET_${3}"
   kindref="JSONKIND_${3}"
   keysref="JSONKEYS_${3}"
   valref="JSONVALUES_${3}"
   lenref="JSONLENGTH_${3}"
+  parentref="JSONPARENT_${3}"
 
   local regex
   regex="${4}"
@@ -93,20 +101,23 @@ json::object::merge () {
     print "%s\nJSONKEYS_${1}\nJSONKEYS_${3}\n" "${!keysref[@]}"
     print "%s\nJSONVALUES_${1}\nJSONVALUES_${3}\n" "${!valref[@]}"
     print "%s\nJSONLENGTH_${1}\nJSONLENGTH_${3}\n" "${!lenref[@]}"
+    print "%s\nJSONPARENT_${1}\nJSONPARENT_${3}\n" "${!parentref[@]}"
   } | match::noseparator -A 2 "^${regex}" \
     | awk -v "ROOT_LEFT=${2}" -v "ROOT_RIGHT=${4}" "${awk[quoting]}${awk[json/object/merge-right-in-left]}" \
     | source /proc/self/fd/0
 }
 
 json::object::set () {
-  json::kind::assert "${1}" '.' 'object' "${FUNCNAME[0]}"
-  json::kind::assert "${3}" '.' 'object' "${FUNCNAME[0]}"
+  local -n getref kindref keysref valref lenref parentref
+  parentref="JSONPARENT_${3}"
+
+  json::kind::assert "${1}" "${2}" 'object' "${FUNCNAME[0]}"
+  json::kind::assert "${3}" "${parentref["${4}"]}" 'object' "${FUNCNAME[0]}"
   json::object::has::assert "${1}" "${2}" "${FUNCNAME[0]}"
   json::object::has::assert "${3}" "${4}" "${FUNCNAME[0]}"
 
   json::object::delete "${1}" "${2}"
 
-  local -n getref kindref keysref valref lenref
   getref="JSONGET_${3}"
   kindref="JSONKIND_${3}"
   keysref="JSONKEYS_${3}"
@@ -125,11 +136,13 @@ json::object::set () {
       print "%s\nJSONLENGTH_${1}\nJSONLENGTH_${3}\n" "${!lenref[@]}" ;;
     ( 'array' )
       print "%s\nJSONVALUES_${1}\nJSONVALUES_${3}\n" "${!valref[@]}"
-      print "%s\nJSONLENGTH_${1}\nJSONLENGTH_${3}\n" "${!lenref[@]}" ;;
+      print "%s\nJSONLENGTH_${1}\nJSONLENGTH_${3}\n" "${!lenref[@]}"
+      print "%s\nJSONPARENT_${1}\nJSONPARENT_${3}\n" "${!parentref[@]}" ;;
     ( 'object' )
       print "%s\nJSONKEYS_${1}\nJSONKEYS_${3}\n" "${!keysref[@]}"
       print "%s\nJSONVALUES_${1}\nJSONVALUES_${3}\n" "${!valref[@]}"
-      print "%s\nJSONLENGTH_${1}\nJSONLENGTH_${3}\n" "${!lenref[@]}" ;;
+      print "%s\nJSONLENGTH_${1}\nJSONLENGTH_${3}\n" "${!lenref[@]}"
+      print "%s\nJSONPARENT_${1}\nJSONPARENT_${3}\n" "${!parentref[@]}" ;;
     ( * ) : ;;
     esac
   } | match::noseparator -A 2 "^${regex}" \

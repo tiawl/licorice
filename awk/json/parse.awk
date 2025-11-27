@@ -39,6 +39,10 @@ function json_length(n) {
   print JSONLENGTH "['" PATH "']='" n "'"
 }
 
+function json_parent() {
+  print JSONPARENT "['" PATH "']='" PARENT[PATH] "'"
+}
+
 function set_path(child) {
   if (PATH == ".") PATH = PATH child
   else PATH = PATH "." child
@@ -58,6 +62,7 @@ function json_object(token,
     parent = PATH
     set_path(token)
     PARENT[PATH] = parent
+    json_parent()
     token = next_token()
     if (token != ":") unexpected(":", token)
     token = next_token()
@@ -83,6 +88,7 @@ function json_array(token,
     parent = PATH
     PATH = PATH "<" i ">"
     PARENT[PATH] = parent
+    json_parent()
     json_value(token)
     PATH = parent
     i++
