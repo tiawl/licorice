@@ -75,7 +75,14 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     then
       json::kind::assert 'file' '."import"' 'array' "${FUNCNAME[1]}.${FUNCNAME[0]}"
 
-      local root i
+      local i
+      for (( i = 0; i < JSONLENGTH_file['."import"']; i++ ))
+      do
+        json::kind::assert 'file' ".\"import\"<${i}>" 'string' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+        json::kind::assert 'file' ".\"import\"<-$(( i + 1 ))>" 'string' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+      done
+
+      local root
       root="$(path::dir "${1}")"
 
       set -f
@@ -101,9 +108,6 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       IFS="${old_ifs}"
 
       json::object::merge 'import' '."import"' 'file' '."import"'
-
-      # TODO: JSONVALUES
-      # TODO: JSONLENGTH
     fi
   }
 

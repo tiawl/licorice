@@ -35,11 +35,11 @@ json::kind::assert () {
 }
 
 json::new () {
-  declare -g -A "JSONGET_${1}" "JSONKIND_${1}"
+  declare -g -A 'JSON'{GET,KIND,KEYS,VALUES,LENGTH}"_${1}"
 }
 
 json::free () {
-  unset "JSONGET_${1}" "JSONKIND_${1}" "JSONKEYS_${1}"
+  unset 'JSON'{GET,KIND,KEYS,VALUES,LENGTH}"_${1}"
 }
 
 json::parse () {
@@ -50,12 +50,14 @@ json::parse () {
 
   json::free "${1:-stdin}"
   json::new "${1:-stdin}"
-  json::tokenize | awk -v "JSONGET=JSONGET_${1:-stdin}" -v "JSONKIND=JSONKIND_${1:-stdin}" -v "JSONKEYS=JSONKEYS_${1:-stdin}" -f ./awk/json/parse.awk
+  json::tokenize | awk -v "JSONGET=JSONGET_${1:-stdin}" -v "JSONKIND=JSONKIND_${1:-stdin}" -v "JSONKEYS=JSONKEYS_${1:-stdin}" -v "JSONVALUES=JSONVALUES_${1:-stdin}" -v "JSONLENGTH=JSONLENGTH_${1:-stdin}" -f ./awk/json/parse.awk
   # TODO: remove above and uncomment below:
   #source /proc/self/fd/0 <<< "
   #  $(json::tokenize | awk -v "JSONGET=JSONGET_${1:-stdin}" \
   #                         -v "JSONKIND=JSONKIND_${1:-stdin}" \
   #                         -v "JSONKEYS=JSONKEYS_${1:-stdin}" \
+  #                         -v "JSONVALUES=JSONVALUES_${1:-stdin}" \
+  #                         -v "JSONLENGTH=JSONLENGTH_${1:-stdin}" \
   #                         "${awk[json/parse]}")"
 }
 

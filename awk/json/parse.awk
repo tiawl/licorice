@@ -1,10 +1,8 @@
 #! /usr/bin/env --split-string awk -f
 
 {
-  delete KEYS
   I = 0
-  PATH = ""
-  NPATH = ""
+  PATH = "."
   JSON_STRING = "^(\"[^\"\\\000-\037]*((\\[^u\000-\037]|\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F])[^\"\\\000-\037]*)*\")$"
   JSON_NUMBER = "^-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?$"
   JSON_ALLOWED_ESCAPED_CHARS = "\\[\"\\\/bfnrt]|\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]"
@@ -30,65 +28,81 @@ function json_value(token) {
 }
 
 function json_keys() {
-  print JSONKEYS "['" (PATH != "" ? PATH : ".") "']='" KEYS[(PATH != "" ? PATH : ".")] "'" \
-        (NPATH != "" ? "\n" JSONKEYS "['" NPATH "']='" KEYS[PATH] "'" : "")
+  print JSONKEYS "['" PATH "']='" KEYS[PATH] "'"
+}
+
+function json_values() {
+  print JSONVALUES "['" PATH "']='" VALUES[PATH] "'"
+}
+
+function json_length(n) {
+  print JSONLENGTH "['" PATH "']='" n "'"
+}
+
+function set_path(child) {
+  if (PATH == ".") PATH = PATH child
+  else PATH = PATH "." child
 }
 
 function json_object(token,
-                     previous, nprevious) {
+                     i, parent) {
   json_kind("object")
+  i = 0
   token = next_token()
   while (token != "}") {
     if (token !~ JSON_STRING) unexpected("string", token)
     if (PATH in KEYS) {
       # '\n' is used as separator between keys because it needs to be escaped in JSON strings
-      KEYS[(PATH != "" ? PATH : ".")] = KEYS[(PATH != "" ? PATH : ".")] "\n." token
-    } else KEYS[(PATH != "" ? PATH : ".")] = "." token
-    previous = PATH
-    PATH = PATH "." token
-    if (NPATH != "") {
-      nprevious = NPATH
-      NPATH = NPATH "." token
-    }
+      KEYS[PATH] = KEYS[PATH] "\n." token
+    } else KEYS[PATH] = "." token
+    parent = PATH
+    set_path(token)
+    PARENT[PATH] = parent
     token = next_token()
     if (token != ":") unexpected(":", token)
     token = next_token()
     json_value(token)
-    PATH = previous
-    if (NPATH != "") NPATH = nprevious
+    PATH = parent
+    i++
     token = next_token()
     if (token == "}") break
     else if (token != ",") unexpected("}> or <,", token)
     token = next_token()
   }
   json_keys()
+  json_values()
+  json_length(i)
 }
 
 function json_array(token,
-                    i, previous, nprevious) {
+                    i, parent) {
   json_kind("array")
   i = 0
   token = next_token()
   while (token != "]") {
-    previous = PATH
-    NPATH = PATH "<-" (i + 1) ">"
+    parent = PATH
     PATH = PATH "<" i ">"
+    PARENT[PATH] = parent
     json_value(token)
-    PATH = previous
-    NPATH = ""
+    PATH = parent
+    i++
     token = next_token()
     if (token == "]") break
     else if (token != ",") unexpected("]> or <,", token)
     token = next_token()
-    i += 1
   }
+  json_values()
+  json_length(i)
 }
 
-function json_string(token) {
+function json_string(token,
+                     unescaped) {
   json_kind("string")
   token = substr(token, 2, length(token) - 2)
-  gsub(JSON_ALLOWED_ESCAPED_CHARS, "", token)
-  if (token ~ /["\\\000-\037]/) error("missing or invalid character escape")
+  json_length(length(token))
+  unescaped = token
+  gsub(JSON_ALLOWED_ESCAPED_CHARS, "", unescaped)
+  if (unescaped ~ /["\\\000-\037]/) error("missing or invalid character escape")
   gsub("'", "'\"'\"'", token)
   json_primitive(token)
 }
@@ -108,14 +122,17 @@ function json_null(token) {
   json_primitive(token)
 }
 
-function json_primitive(token) {
-  print JSONGET "['" PATH "']='" token "'" \
-        (NPATH != "" ? "\n" JSONGET "['" NPATH "']='" token "'" : "")
+function json_primitive(token,
+                        path) {
+  if (PARENT[PATH] in VALUES) {
+    # '\n' is used as separator between values because it needs to be escaped in JSON strings
+    VALUES[PARENT[PATH]] = VALUES[PARENT[PATH]] "\n" token
+  } else VALUES[PARENT[PATH]] = token
+  print JSONGET "['" PATH "']='" token "'"
 }
 
 function json_kind(kind) {
-  print JSONKIND "['" (PATH != "" ? PATH : ".") "']='" kind "'" \
-        (NPATH != "" ? "\n" JSONKIND "['" NPATH "']='" kind "'" : "")
+  print JSONKIND "['" PATH "']='" kind "'"
 }
 
 function unexpected(expected, got) {
