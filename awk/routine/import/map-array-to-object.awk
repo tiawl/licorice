@@ -4,22 +4,14 @@
 # 2. Imported filepaths are relative to the file they are into: so here we absolute them
 BEGIN {
   i = 0
-  get = ""
-  kind = ""
-  unset = "unset"
-  keys = ""
-  values = ""
+  values = repeat(q("null") " ", LENGTH)
   while (i < LENGTH) {
-    get = get "JSONGET_file[" q(ROOT "/") dq("${JSONGET_file[" q("." edq("import") "[" i "]") "]}") "]=" q("null") "\n"
-    kind = kind "JSONKIND_file[" q(ROOT "/") dq("${JSONGET_file[" q("." edq("import") "[" i "]") "]}") "]=" q("null") "\n"
-    keys = keys q(ROOT "/") dq("${JSONGET_file[" q("." edq("import") "[" i "]") "]}") " "
-    values = values q("null") " "
-    unset = unset " " q("JSONGET_file[" dq("." edq("import") "[" i "]") "]") " " \
-          q("JSONKIND_file[" dq("." edq("import") "[" i "]") "]")
+    print "JSONGET_file[" q(ROOT "/") dq("${JSONGET_file[" q("." edq("import") "[" i "]") "]}") "]=" q("null") "\n" \
+          "JSONKIND_file[" q(ROOT "/") dq("${JSONGET_file[" q("." edq("import") "[" i "]") "]}") "]=" q("null")
     i++
   }
-  print get kind unset "\n" \
-           "JSONKEYS_file[" q("." dq("import")) "]=" q(sub(keys, 1, length(keys) - 1)) "\n" \
-           "JSONVALUES_file[" q("." dq("import")) "]=" q(sub(values, 1, length(values) - 1)) "\n" \
-           "JSONKIND_file[" q("." dq("import")) "]=" q("object")
+  print "JSONKEYS_file[" q("." dq("import")) "]=" q(ROOT "/") dq("${JSONVALUES_file[" q("." edq("import")) "]//$" q("\n") "/$" q("\n" ROOT "/") "}") "\n" \
+        "JSONVALUES_file[" q("." dq("import")) "]=" q(sub(values, 1, length(values) - 1)) "\n" \
+        "unset " q("JSON") "{GET,KIND}" q("_file[") dq("'") q("." dq("import") "<") "{0.." (LENGTH - 1) "}" q(">") dq("'") q("]") "\n" \
+        "JSONKIND_file[" q("." dq("import")) "]=" q("object")
 }

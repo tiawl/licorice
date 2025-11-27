@@ -75,7 +75,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     then
       json::kind::assert 'file' '."import"' 'array' "${FUNCNAME[1]}.${FUNCNAME[0]}"
 
-      local root
+      local root i
       root="$(path::dir "${1}")"
 
       set -f
@@ -86,7 +86,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       fi
       set +f
 
-      awk -v "LENGTH=${JSONLENGTH_file['."import"']}" -v "ROOT=${root}" "${awk[quoting]}${awk[routine/import/map-array-to-object]}" \
+      awk -v "LENGTH=${JSONLENGTH_file['."import"']}" -v "ROOT=${root}" "${awk[quoting]}${awk[repeat]}${awk[routine/import/map-array-to-object]}" \
          | source /proc/self/fd/0
 
       IFS=$'\n'
@@ -107,18 +107,19 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     fi
   }
 
-  TODO () {
+  import::resolve () {
+    # TODO:
     # 2. On traverse les imports déjà résolus:
     #   1. On selectionne les imports qui viennent d'être mergés
     #   2. On parse et conserve leur contenu tout en remplaçant la valeur des clés "imported" par le chemin absolu des fichiers auquels elles correspondent
   }
 
   local rainbow filepath import visited
-  local -A raw_import raw_visited
   rainbow=( '21' '27' '33' '39' '45' '51' '50' '49' '48' '47' '46' '82' '118' '154' '190' '226' '220' '214' '208' '202' '196' '197' '198' '199' '200' '201' '165' '129' '93' '57' )
-
   shuffle rainbow
   readonly rainbow
+
+  local -A raw_import raw_visited # remove it later
 
   filepath="$(path::normalized "${1}")"
   print '{"inventory": {}}' | json::parse 'inventory'
@@ -135,6 +136,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     inventory::resolve::recursively
     inventory::resolve::file
     import::merge "${filepath}"
+    import::resolve
 
     # TODO: remove jq code here
 

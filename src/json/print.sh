@@ -3,8 +3,8 @@
 json::print::pretty () {
   local input
   input="$(cat)"
-  # TODO: print '%s' "${input:-"{}"}" | json::tokenize | awk "${awk[json/pretty-print]}"
-  print '%s' "${input:-"{}"}" | json::tokenize | awk -f ./awk/json/pretty-print.awk
+  # TODO: print '%s' "${input:-"{}"}" | json::tokenize | awk "${awk[repeat]}${awk[json/pretty-print]}"
+  print '%s' "${input:-"{}"}" | json::tokenize | awk -f ./awk/repeat.awk -f ./awk/json/pretty-print.awk
 }
 
 json::print::compact () {

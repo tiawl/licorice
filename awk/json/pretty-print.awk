@@ -1,9 +1,6 @@
 #! /usr/bin/env --split-string awk -f
 
 {
-  TOKENS[0]=$0
-  while (getline == 1) TOKENS[length(TOKENS)] = $0
-  I = 0
   OFFSET = 0
   delete COLOR
   COLOR["NULL"] = "\033[0;90m"
@@ -14,105 +11,99 @@
   COLOR["OBJECT"] = "\033[1;39m"
   COLOR["KEY"] = "\033[0;36m"
   RESET = "\033[m"
-  out = json_value(TOKENS[I])
-  print out
+  LINE = ""
+  json_value($0)
+  if (LINE != "") print LINE
 }
 
-function json_value(token,
-                    out) {
-  out = ""
+function json_value(token) {
   if (token == "{") {
-    out = json_object(token)
+    json_object(token)
   } else if (token == "[") {
-    out = json_array(token)
+    json_array(token)
   } else if (token ~ /^".*"$/) {
-    out = json_string(token)
+    json_string(token)
   } else if (token == "true" || token == "false") {
-    out = json_boolean(token)
+    json_boolean(token)
   } else if (token == "null") {
-    out = json_null()
+    json_null()
   } else {
-    out = json_number(token)
+    json_number(token)
   }
-  return out
 }
 
-function json_object(token,
-                     out) {
-  out = COLOR["OBJECT"] "{" RESET
+function json_object(token) {
   OFFSET += 2
   token = next_token()
   if (token == "}") {
     OFFSET -= 2
-    out = out COLOR["OBJECT"] "}" RESET
+    LINE = LINE COLOR["OBJECT"] "{}" RESET
   } else {
-    out = out "\n"
-    while (1) {
-      out = out indent() COLOR["KEY"] token RESET
+    print LINE COLOR["OBJECT"] "{" RESET
+    LINE = ""
+    while (token != "}") {
+      LINE = LINE indent() COLOR["KEY"] token COLOR["OBJECT"] ": " RESET
       token = next_token()
-      out = out COLOR["OBJECT"] ": " RESET
       token = next_token()
-      out = out json_value(token)
+      json_value(token)
       token = next_token()
-      if (token == "}") {
-        break
-      } else if (token == ",") {
-        out = out COLOR["OBJECT"] "," RESET "\n"
+      if (token == ",") {
+        print LINE COLOR["OBJECT"] "," RESET
+        LINE = ""
+        token = next_token()
       }
-      token = next_token()
     }
     OFFSET -= 2
-    out = out "\n" indent() COLOR["OBJECT"] "}" RESET
+    print LINE
+    LINE = indent() COLOR["OBJECT"] "}" RESET
   }
-  return out
 }
 
-function json_array(token,
-                    out) {
-  out = COLOR["ARRAY"] "[" RESET
+function json_array(token) {
   OFFSET += 2
   token = next_token()
   if (token == "]") {
     OFFSET -= 2
-    out = out COLOR["ARRAY"] "]" RESET
+    LINE = LINE COLOR["ARRAY"] "[]" RESET
   } else {
-    out = out "\n"
-    while (1) {
-      out = out indent() json_value(token)
+    print LINE COLOR["ARRAY"] "[" RESET
+    LINE = ""
+    while (token != "]") {
+      LINE = LINE indent()
+      json_value(token)
       token = next_token()
-      if (token == "]") {
-        break
-      } else if (token == ",") {
-        out = out COLOR["ARRAY"] "," RESET "\n"
+      if (token == ",") {
+        print LINE COLOR["ARRAY"] "," RESET
+        LINE = ""
+        token = next_token()
       }
-      token = next_token()
     }
     OFFSET -= 2
-    out = out "\n" indent() COLOR["ARRAY"] "]" RESET
+    print LINE
+    LINE = indent() COLOR["ARRAY"] "]" RESET
   }
-  return out
 }
 
 function json_string(token) {
-  return COLOR["STRING"] token RESET
+  LINE = LINE COLOR["STRING"] token RESET
 }
 
 function json_number(token) {
-  return COLOR["NUMBER"] token RESET
+  LINE = LINE COLOR["NUMBER"] token RESET
 }
 
 function json_boolean(token) {
-  return COLOR["BOOLEAN"] token RESET
+  LINE = LINE COLOR["BOOLEAN"] token RESET
 }
 
 function json_null() {
-  return COLOR["NULL"] "null" RESET
+  LINE = LINE COLOR["NULL"] "null" RESET
 }
 
-function next_token() {
-  return TOKENS[++I]
+function next_token(token) {
+  if (getline token == 1) return token
 }
 
 function indent() {
-  return sprintf("%*s", OFFSET, "")
+  return repeat(" ", OFFSET)
 }
