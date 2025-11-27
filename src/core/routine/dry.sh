@@ -75,14 +75,13 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     then
       json::kind::assert 'file' '."import"' 'array' "${FUNCNAME[1]}.${FUNCNAME[0]}"
 
-      local i
+      local root i
       for (( i = 0; i < JSONLENGTH_file['."import"']; i++ ))
       do
         json::kind::assert 'file' ".\"import\"<${i}>" 'string' "${FUNCNAME[1]}.${FUNCNAME[0]}"
         json::kind::assert 'file' ".\"import\"<-$(( i + 1 ))>" 'string' "${FUNCNAME[1]}.${FUNCNAME[0]}"
       done
 
-      local root
       root="$(path::dir "${1}")"
 
       set -f
@@ -93,6 +92,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       fi
       set +f
 
+      # This loop fully relies on lastpipe shell option
       awk -v "LENGTH=${JSONLENGTH_file['."import"']}" -v "ROOT=${root}" "${awk[quoting]}${awk[repeat]}${awk[routine/import/map-array-to-object]}" \
          | source /proc/self/fd/0
 
@@ -118,18 +118,16 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     #   2. On parse et conserve leur contenu tout en remplaçant la valeur des clés "imported" par le chemin absolu des fichiers auquels elles correspondent
   }
 
-  local rainbow filepath import visited
+  local rainbow filepath visited
   rainbow=( '21' '27' '33' '39' '45' '51' '50' '49' '48' '47' '46' '82' '118' '154' '190' '226' '220' '214' '208' '202' '196' '197' '198' '199' '200' '201' '165' '129' '93' '57' )
   shuffle rainbow
   readonly rainbow
-
-  local -A raw_import raw_visited # remove it later
 
   filepath="$(path::normalized "${1}")"
   print '{"inventory": {}}' | json::parse 'inventory'
   print '{"import": {}}' | json::parse 'import'
 
-  while is not var "raw_visited[${filepath}]"
+  while str not empty "${filepath}" && is not var "visited[${filepath}]"
   do
     if is not file "${filepath}"
     then
@@ -175,32 +173,48 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
            fi"
       ] | join(";"))
     ')"
-    import="$(json::encode raw_import)"
 
-    raw_visited["${filepath}"]='true'
-    visited="$(json::encode raw_visited)"
-    filepath="$(path::normalized "$(json::program --slurpfile ROUTINE_IMPORT <(print '{"import": %s}' "${import}") --slurpfile ROUTINE_VISITED <(print '%s' "${visited}") '
-      (if ($ROUTINE_VISITED | type == "array") then $ROUTINE_VISITED[0] else $ROUTINE_VISITED end) as $ROUTINE_VISITED |
-      (if ($ROUTINE_IMPORT | type == "array") then $ROUTINE_IMPORT[0] else $ROUTINE_IMPORT end) as $ROUTINE_IMPORT |
-      [[$ROUTINE_IMPORT.import, $ROUTINE_VISITED][] | keys] | [.[0] - .[1], .[1] - .[0]] | add | unique[0] // empty')")"
+    visited["${filepath}"]='true'
+
+    # It keeps the first unvisited imported filepath (if there are not, it's an empty string)
+    filepath="$(
+      set -f
+      IFS=$'\n'
+      printf '%s\n' ${JSONKEYS_import['."import"']} "${!visited[@]}" \
+        | awk '
+            {
+              arr[$1]++
+            }
+            END {
+              for (i in arr) {
+                if (arr[i]==1) {
+                  print i
+                  exit
+                }
+              }
+            }'
+    )"
   done
 
-  readonly inv import
+  normalize_imported_paths_into_main="$(json::from::yaml \
+      --arg ROOT "$(path::normalized "$(path::dir "${1}")")/" \
+      --slurpfile ROUTINE_INV <(print '%s' "${inv}") \
+      --slurpfile ROUTINE_IMPORT <(print '{"import": %s}' "${import}") '
+        (if ($ROUTINE_IMPORT | type == "array") then $ROUTINE_IMPORT[0] else $ROUTINE_IMPORT end) as $ROUTINE_IMPORT |
+        (if ($ROUTINE_INV | type == "array") then $ROUTINE_INV[0] else $ROUTINE_INV end) as $ROUTINE_INV |
+        . * $ROUTINE_IMPORT * $ROUTINE_INV | '"${jq[routine/common]}${jq[routine/replacer]}"' |
+        .group |= walk(
+          if (type == "object") then (
+            with_entries(
+              if (.key == "imported") then (
+                .value |= $ARGS.named.ROOT + (. | sub("^[.]/"; ""))
+              ) else . end
+            )
+          ) else . end
+        )' "${1}")"
 
   # TODO: check routine JSON schema here
 
   json::filter "${jq[routine/common]}${jq[routine/types]}${jq[routine/codegen]}${jq[routine/writer]}" --arg NAMESPACE_SEP "${sep[namespace]}" --arg EXE "${exe}" --arg BACKEND "${backend}" --rawfile FUNCTIONS <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \
-    <<< "$(json::from::yaml --arg ROOT "$(path::normalized "$(path::dir "${1}")")/" --slurpfile ROUTINE_INV <(print '%s' "${inv}") --slurpfile ROUTINE_IMPORT <(print '{"import": %s}' "${import}") '
-            (if ($ROUTINE_IMPORT | type == "array") then $ROUTINE_IMPORT[0] else $ROUTINE_IMPORT end) as $ROUTINE_IMPORT |
-            (if ($ROUTINE_INV | type == "array") then $ROUTINE_INV[0] else $ROUTINE_INV end) as $ROUTINE_INV |
-            . * $ROUTINE_IMPORT * $ROUTINE_INV | '"${jq[routine/common]}${jq[routine/replacer]}"' |
-            .group |= walk(
-              if (type == "object") then (
-                with_entries(
-                  if (.key == "imported") then (
-                    .value |= $ARGS.named.ROOT + (. | sub("^[.]/"; ""))
-                  ) else . end
-                )
-              ) else . end
-            )' "${1}")"
+    <<< "${normalize_imported_paths_into_main}"
 }
