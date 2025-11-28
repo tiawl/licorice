@@ -86,7 +86,7 @@ function json_array(token,
   token = next_token()
   while (token != "]") {
     parent = PATH
-    PATH = PATH "<" i ">"
+    PATH = PATH "." i
     PARENT[PATH] = parent
     json_parent()
     json_value(token)
@@ -146,7 +146,7 @@ function unexpected(expected, got) {
 }
 
 function error(msg) {
-  print msg >"/dev/stderr"
+  print msg > "/dev/stderr"
   exit 1
 }
 

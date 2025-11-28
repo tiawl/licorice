@@ -2,18 +2,20 @@
 
 ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
   inventory::merge () {
-    local old_ifs
-    old_ifs="${IFS}"
-    readonly old_ifs
-
-    json::from::yaml '.' "${1}" | json::parse 'file'
-    if json::object::has 'file' '."inventory"'
+    if json::object::has "${1}" '."inventory"'
     then
-      json::kind::error 'file' '."inventory"' 'object' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+      json::kind::error "${1}" '."inventory"' 'object' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+
+      local old_ifs
+      old_ifs="${IFS}"
+      readonly old_ifs
+
+      local -n keysref
+      keysref="JSONKEYS_${1}"
 
       IFS=$'\n'
       set -f
-      if not unique ${JSONKEYS_file['."inventory"']} ${JSONKEYS_inventory['."inventory"']}
+      if not unique ${keysref['."inventory"']} ${JSONKEYS_inventory['."inventory"']}
       then
         set +f
         IFS="${old_ifs}"
@@ -22,7 +24,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       set +f
       IFS="${old_ifs}"
 
-      json::object::merge 'inventory' '."inventory"' 'file' '."inventory"'
+      json::object::merge 'inventory' '."inventory"' "${1}" '."inventory"'
     fi
   }
 
@@ -52,7 +54,10 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
   }
 
   inventory::resolve::file () {
-    json::object::delete 'file' '."inventory"'
+    json::object::delete "${1}" '."inventory"'
+
+    local -n kindref
+    kindref="JSONKIND_${1}"
 
     while :
     do
@@ -60,8 +65,8 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       # 2) The goal of this loop is to resolve inventory into 'file' object,
       #    while there are keys that ends with '."inventory"', the loop
       #    replaces these keys with the content of inventory variables
-      if print '%s\n' "${!JSONKIND_file[@]}" | match '.\."inventory"$' \
-        | awk "${awk[quoting]}${awk[routine/import/resolve/file]}" \
+      if print '%s\n' "${!kindref[@]}" | match '.\."inventory"$' \
+        | awk -v "HEX=${1}" "${awk[quoting]}${awk[routine/import/resolve/file]}" \
         | source /proc/self/fd/0
       then
         continue
@@ -71,33 +76,38 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
   }
 
   import::merge () {
-    if json::object::has 'file' '."import"'
+    if json::object::has "${1}" '."import"'
     then
-      json::kind::error 'file' '."import"' 'array' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+      json::kind::error "${1}" '."import"' 'array' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+
+      local -n lenref valref keysref
+      lenref="JSONLENGTH_${1}"
+      valref="JSONVALUES_${1}"
+      keysref="JSONKEYS_${1}"
 
       local root i
-      for (( i = 0; i < JSONLENGTH_file['."import"']; i++ ))
+      for (( i = 0; i < lenref['."import"']; i++ ))
       do
-        json::kind::error 'file' ".\"import\"<${i}>" 'string' "${FUNCNAME[1]}.${FUNCNAME[0]}"
+        json::kind::error "${1}" ".\"import\".${i}" 'string' "${FUNCNAME[1]}.${FUNCNAME[0]}"
       done
 
-      root="$(path::dir "${1}")"
+      root="$(path::dir "${2}")"
 
       set -f
-      if not unique ${JSONVALUES_file['."import"']}
+      if not unique ${valref['."import"']}
       then
         set +f
-        error 'Duplicated imported file into: %s' "${1}"
+        error 'Duplicated imported file into: %s' "${2}"
       fi
       set +f
 
       # This loop fully relies on lastpipe shell option
-      awk -v "LENGTH=${JSONLENGTH_file['."import"']}" -v "ROOT=${root}" "${awk[quoting]}${awk[repeat]}${awk[routine/import/map-array-to-object]}" \
+      awk -v "LENGTH=${lenref['."import"']}" -v "ROOT=${root}" -v "HEX=${1}" "${awk[quoting]}${awk[repeat]}${awk[routine/import/map-array-to-object]}" \
          | source /proc/self/fd/0
 
       IFS=$'\n'
       set -f
-      if not unique ${JSONKEYS_file['."import"']} ${JSONKEYS_import['."import"']}
+      if not unique ${keysref['."import"']} ${JSONKEYS_import['."import"']}
       then
         set +f
         IFS="${old_ifs}"
@@ -106,49 +116,13 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       set +f
       IFS="${old_ifs}"
 
-      json::object::merge 'import' '."import"' 'file' '."import"'
+      json::object::merge 'import' '."import"' "${1}" '."import"'
     fi
   }
 
-  import::resolve () {
-    # TODO:
-    # 2. On traverse les imports déjà résolus:
-    #   1. On selectionne les imports qui viennent d'être mergés
-    #   2. On parse et conserve leur contenu tout en remplaçant la valeur des clés "imported" par le chemin absolu des fichiers auquels elles correspondent
-    source /proc/self/fd/0 <<< "$(json::program --slurpfile ROUTINE_JSON <(print '%s' "${json}") --slurpfile ROUTINE_IMPORT <(print '{"import": %s}' "${import:-"{}"}") --arg ROOT "$(path::dir "${filepath}")/" "${jq[routine/common]}"'
-      (if ($ROUTINE_JSON | type == "array") then $ROUTINE_JSON[0] else $ROUTINE_JSON end) as $ROUTINE_JSON |
-      (if ($ROUTINE_IMPORT | type == "array") then $ROUTINE_IMPORT[0] else $ROUTINE_IMPORT end) as $ROUTINE_IMPORT |
-      $ROUTINE_JSON |
-      if (has("import")) then (
-        {import: (.import | map({($ARGS.named.ROOT + .): null}) | add)} as $json_import |
-        if (keys | any(IN($ROUTINE_IMPORT.import | keys[]))) then (
-          "Conflicting import" | exit
-        ) else (
-          ($json_import * $ROUTINE_IMPORT)
-        ) end
-      ) else (
-        $ROUTINE_IMPORT
-      ) end | ([
-        .import | to_entries[] | select(.value == null) | .key |
-          "if is not var \"raw_import[" + . + "]\";
-           then
-             raw_import[" + . + "]=\"$(
-               json::from::yaml \".group |= walk(
-                 if type == \\\"object\\\" then
-                   with_entries(
-                     if .key == \\\"imported\\\" then
-                       .value |= \\\"$(path::normalized \"$(path::dir " + . + ")\")/\\\" + (. | sub(\\\"^[.]/\\\"; \\\"\\\"))
-                     else . end
-                   )
-                 else . end
-               )\" " + . + "
-             )\";
-           fi"
-      ] | join(";"))
-    ')"
-  }
-
-  local rainbow filepath visited
+  local filepath
+  local -a rainbow
+  local -A hex
   rainbow=( '21' '27' '33' '39' '45' '51' '50' '49' '48' '47' '46' '82' '118' '154' '190' '226' '220' '214' '208' '202' '196' '197' '198' '199' '200' '201' '165' '129' '93' '57' )
   shuffle rainbow
   readonly rainbow
@@ -157,50 +131,40 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
   print '{"inventory": {}}' | json::parse 'inventory'
   print '{"import": {}}' | json::parse 'import'
 
-  while str not empty "${filepath}" && is not var "visited[${filepath}]"
+  while str not empty "${filepath}"
   do
     if is not file "${filepath}"
     then
       error 'Can not find %s' "${filepath}"
     fi
 
-    inventory::merge "${filepath}"
-    inventory::resolve::recursively
-    inventory::resolve::file
-    import::merge "${filepath}"
-    import::resolve
+    str hex "${filepath}"
+    json::from::yaml '.' "${filepath}" | json::parse "${hex["${filepath}"]}"
+    inventory::merge "${hex["${filepath}"]}"
+    import::merge "${hex["${filepath}"]}" "${filepath}"
 
-    visited["${filepath}"]='true'
+    if json::object::has 'import' ".\"import\".\"${filepath}\""
+    then
+      JSONGET_import[".\"import\".\"${filepath}\""]="$(< "${filepath}")"
+      JSONKIND_import[".\"import\".\"${filepath}\""]='string'
+      # TODO: how to change JSONVALUES_import here ?
+      # (declare -a t; i=2; VALUES=$'ww\nee\nrr\ntt'; IFS=$'\n'; t=( $VALUES ); t[$i]=vbvb; echo "${t[*]}")
+    fi
 
     # It keeps the first unvisited imported filepath (if there are not, it's an empty string)
     filepath="$(
       set -f
       IFS=$'\n'
-      printf '%s\n' ${JSONKEYS_import['."import"']} "${!visited[@]}" \
-        | awk '{arr[$1]++} END {for (i in arr) {if (arr[i]==1) {print i; exit}}}'
+      printf '%s\n' ${JSONKEYS_import['."import"']} ${JSONVALUES_import['."import"']} \
+        | awk '{IMPORTS[(NR-1)]=$0} END {for (i = NR/2; i <= NR; i++) {if (IMPORTS[i] == "null") {print IMPORTS[(i - (NR/2))]; exit}}}'
     )"
   done
 
-  normalize_imported_paths_into_main="$(json::from::yaml \
-      --arg ROOT "$(path::normalized "$(path::dir "${1}")")/" \
-      --slurpfile ROUTINE_INV <(print '%s' "${inv}") \
-      --slurpfile ROUTINE_IMPORT <(print '{"import": %s}' "${import}") '
-        (if ($ROUTINE_IMPORT | type == "array") then $ROUTINE_IMPORT[0] else $ROUTINE_IMPORT end) as $ROUTINE_IMPORT |
-        (if ($ROUTINE_INV | type == "array") then $ROUTINE_INV[0] else $ROUTINE_INV end) as $ROUTINE_INV |
-        . * $ROUTINE_IMPORT * $ROUTINE_INV | '"${jq[routine/common]}${jq[routine/replacer]}"' |
-        .group |= walk(
-          if (type == "object") then (
-            with_entries(
-              if (.key == "imported") then (
-                .value |= $ARGS.named.ROOT + (. | sub("^[.]/"; ""))
-              ) else . end
-            )
-          ) else . end
-        )' "${1}")"
+  inventory::resolve::recursively
+  # TODO: inventory::resolve::imports
+  # TODO: import::resolve::main
+  inventory::resolve::main # inventory::resolve::file "${hex}" ??
 
-  # TODO: resolve imported files into main here
-  # TODO: check routine JSON schema here
-
-  json::filter "${jq[routine/common]}${jq[routine/types]}${jq[routine/codegen]}${jq[routine/writer]}" --arg NAMESPACE_SEP "${sep[namespace]}" --arg EXE "${exe}" --arg BACKEND "${backend}" --rawfile FUNCTIONS <(declare -f "${fns[@]}") --args -- "${rainbow[@]}" \
-    <<< "${normalize_imported_paths_into_main}"
+  # TODO: check routine JSON schema
+  # TODO: codegen
 }
