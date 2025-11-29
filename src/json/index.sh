@@ -57,18 +57,21 @@ json::parse () {
     unreachable "${FUNCNAME[0]}" 'lastpipe must be used to define new variables into current environment from JSON parsing'
   fi
 
-  json::free "${1:-stdin}"
-  json::new "${1:-stdin}"
-  json::tokenize | awk -v "JSONGET=JSONGET_${1:-stdin}" -v "JSONKIND=JSONKIND_${1:-stdin}" -v "JSONKEYS=JSONKEYS_${1:-stdin}" -v "JSONVALUES=JSONVALUES_${1:-stdin}" -v "JSONLENGTH=JSONLENGTH_${1:-stdin}" -v "JSONPARENT=JSONPARENT_${1:-stdin}" -f ./awk/json/parse.awk
-  # TODO: remove above and uncomment below:
-  #source /proc/self/fd/0 <<< "
-  #  $(json::tokenize | awk -v "JSONGET=JSONGET_${1:-stdin}" \
-  #                         -v "JSONKIND=JSONKIND_${1:-stdin}" \
-  #                         -v "JSONKEYS=JSONKEYS_${1:-stdin}" \
-  #                         -v "JSONVALUES=JSONVALUES_${1:-stdin}" \
-  #                         -v "JSONLENGTH=JSONLENGTH_${1:-stdin}" \
-  #                         -v "JSONPARENT=JSONPARENT_${1:-stdin}" \
-  #                         "${awk[json/parse]}")"
+  if eq "${#}" '1'
+  then
+    set -- '' "${1}"
+  fi
+
+  json::free "${2}"
+  json::new "${2}"
+  json::tokenize "${1:-}" | awk -v "JSONGET=JSONGET_${2}" \
+                                -v "JSONKIND=JSONKIND_${2}" \
+                                -v "JSONKEYS=JSONKEYS_${2}" \
+                                -v "JSONVALUES=JSONVALUES_${2}" \
+                                -v "JSONLENGTH=JSONLENGTH_${2}" \
+                                -v "JSONPARENT=JSONPARENT_${2}" \
+                                -f ./awk/json/parse.awk
+  # TODO:                       "${awk[json/parse]}" | source /proc/self/fd/0
 }
 
 # TODO: rework everything below this comment:
@@ -87,9 +90,4 @@ json::test () {
 
 json::to::queryString () {
   json::filter --null-input --argjson CONVERTME "${1}" '[$CONVERTME | to_entries[] | .key + "=" + (.value | tostring)] | join("&")'
-}
-
-# TODO: remove YAML support
-json::from::yaml () {
-  json::filter --yaml-input --monochrome-output --compact-output "${@}"
 }

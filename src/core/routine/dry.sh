@@ -25,53 +25,64 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       IFS="${old_ifs}"
 
       json::object::merge 'inventory' '."inventory"' "${1}" '."inventory"'
+      json::object::delete "${1}" '."inventory"'
     fi
   }
 
   inventory::resolve::recursively () {
     local -a resolved
 
-    while :
-    do
-      # 1) This loop fully relies on lastpipe and pipefail shell options.
-      # 2) The goal of this loop is to resolve inventory recursively. Into
-      #    'inventory' object, while there are keys that ends with
-      #    '."inventory"', the loop:
-      #    a) replaces these keys with the content of inventory variables
-      #    b) sends error if a cycle is detected
-      if print '%s\n' "${!JSONKIND_inventory[@]}" | match '.\."inventory"$' \
-        | awk "${awk[quoting]}${awk[routine/inventory/resolve/recursively]}" \
-        | source /proc/self/fd/0
+    local old_ifs
+    old_ifs="${IFS}"
+    readonly old_ifs
+
+    IFS=$'\n'
+    # 1) This loop fully relies on lastpipe and pipefail shell options.
+    # 2) The goal of this loop is to resolve inventory recursively. Into
+    #    'inventory' object, while there are keys that ends with
+    #    '."inventory"', the loop:
+    #    a) replaces these keys with the content of inventory variables
+    #    b) sends error if a cycle is detected
+    while {{
+        match '.\."inventory"$' \
+          | awk "${awk[quoting]}${awk[routine/inventory/resolve/recursively]}" \
+          | source /proc/self/fd/0
+      } <<< "${!JSONKIND_inventory[@]}"
+    } do
+      IFS="${old_ifs}"
+      if not unique "${resolved[@]}"
       then
-        if not unique "${resolved[@]}"
-        then
-          error 'Inventory cycle detected'
-        fi
-        continue
+        error 'Inventory cycle detected'
       fi
-      break
     done
+    IFS="${old_ifs}"
   }
 
-  inventory::resolve::file () {
-    json::object::delete "${1}" '."inventory"'
-
-    local -n kindref
-    kindref="JSONKIND_${1}"
-
-    while :
+  inventory::resolve () {
+    while gt "${#}" '0'
     do
+      local -n kindref
+      kindref="JSONKIND_${1}"
+
+      local old_ifs
+      old_ifs="${IFS}"
+      readonly old_ifs
+
+      IFS=$'\n'
       # 1) This loop fully relies on lastpipe and pipefail shell options.
       # 2) The goal of this loop is to resolve inventory into 'file' object,
       #    while there are keys that ends with '."inventory"', the loop
       #    replaces these keys with the content of inventory variables
-      if print '%s\n' "${!kindref[@]}" | match '.\."inventory"$' \
-        | awk -v "HEX=${1}" "${awk[quoting]}${awk[routine/import/resolve/file]}" \
-        | source /proc/self/fd/0
-      then
-        continue
-      fi
-      break
+      while {{
+          match '.\."inventory"$' \
+            | awk -v "HEX=${1}" "${awk[quoting]}${awk[routine/inventory/resolve/file]}" \
+            | source /proc/self/fd/0
+        } <<< "${!kindref[@]}"
+      } do :; done
+      IFS="${old_ifs}"
+
+      shift
+      unset -n kindref
     done
   }
 
@@ -105,6 +116,10 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       awk -v "LENGTH=${lenref['."import"']}" -v "ROOT=${root}" -v "HEX=${1}" "${awk[quoting]}${awk[repeat]}${awk[routine/import/map-array-to-object]}" \
          | source /proc/self/fd/0
 
+      local old_ifs
+      old_ifs="${IFS}"
+      readonly old_ifs
+
       IFS=$'\n'
       set -f
       if not unique ${keysref['."import"']} ${JSONKEYS_import['."import"']}
@@ -117,19 +132,21 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       IFS="${old_ifs}"
 
       json::object::merge 'import' '."import"' "${1}" '."import"'
+      json::object::delete "${1}" '."import"'
     fi
   }
 
-  local filepath
+  local filepath old_ifs
   local -a rainbow
   local -A hex
   rainbow=( '21' '27' '33' '39' '45' '51' '50' '49' '48' '47' '46' '82' '118' '154' '190' '226' '220' '214' '208' '202' '196' '197' '198' '199' '200' '201' '165' '129' '93' '57' )
   shuffle rainbow
-  readonly rainbow
+  old_ifs="${IFS}"
+  readonly rainbow old_ifs
 
   filepath="$(path::normalized "${1}")"
-  print '{"inventory": {}}' | json::parse 'inventory'
-  print '{"import": {}}' | json::parse 'import'
+  json::parse 'inventory' <<< '{"inventory": {}}'
+  json::parse 'import' <<< '{"import": {}}'
 
   while str not empty "${filepath}"
   do
@@ -138,32 +155,33 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       error 'Can not find %s' "${filepath}"
     fi
 
-    str hex "${filepath}"
-    json::from::yaml '.' "${filepath}" | json::parse "${hex["${filepath}"]}"
+    # This loop fully relies on lastpipe shell option
+    {
+      awk -v "KEY=${filepath}" "${awk[quoting]}${awk[str2hex]}" \
+        | source /proc/self/fd/0
+    } <<< "${filepath}"
+
+    json::parse "${filepath}" "${hex["${filepath}"]}"
     inventory::merge "${hex["${filepath}"]}"
     import::merge "${hex["${filepath}"]}" "${filepath}"
 
     if json::object::has 'import' ".\"import\".\"${filepath}\""
     then
-      JSONGET_import[".\"import\".\"${filepath}\""]="$(< "${filepath}")"
-      JSONKIND_import[".\"import\".\"${filepath}\""]='string'
-      # TODO: how to change JSONVALUES_import here ?
-      # (declare -a t; i=2; VALUES=$'ww\nee\nrr\ntt'; IFS=$'\n'; t=( $VALUES ); t[$i]=vbvb; echo "${t[*]}")
+      JSONGET_import[".\"import\".\"${filepath}\""]='true'
+      JSONVALUES_import['."import"']="${JSONVALUES_import[".\"import\".\"${filepath}\""]/false/true}"
     fi
 
     # It keeps the first unvisited imported filepath (if there are not, it's an empty string)
     filepath="$(
-      set -f
       IFS=$'\n'
-      printf '%s\n' ${JSONKEYS_import['."import"']} ${JSONVALUES_import['."import"']} \
-        | awk '{IMPORTS[(NR-1)]=$0} END {for (i = NR/2; i <= NR; i++) {if (IMPORTS[i] == "null") {print IMPORTS[(i - (NR/2))]; exit}}}'
+      awk '{IMPORTS[(NR-1)]=$0} END {for (i = NR/2; i <= NR; i++) {if (IMPORTS[i] == "false") {print IMPORTS[(i - (NR/2))]; exit}}}' \
+        <<< "${JSONKEYS_import['."import"']}" "${JSONVALUES_import['."import"']}"
     )"
   done
 
   inventory::resolve::recursively
-  # TODO: inventory::resolve::imports
+  inventory::resolve "${!hex[@]}"
   # TODO: import::resolve::main
-  inventory::resolve::main # inventory::resolve::file "${hex}" ??
 
   # TODO: check routine JSON schema
   # TODO: codegen

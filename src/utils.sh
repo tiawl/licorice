@@ -53,11 +53,6 @@ str () {
   ( 'in' ) case "${3}" in ( *" ${2} "* ) return 0 ;; ( * ) return 1 ;; esac ;;
   ( 'starts' ) case "${2}" in ( "${3}"* ) return 0 ;; ( * ) return 1 ;; esac ;;
   ( 'ends' ) case "${2}" in ( *"${3}" ) return 0 ;; ( * ) return 1 ;; esac ;;
-  ( 'hex' )
-    # This loop fully relies on lastpipe shell option
-    printf '%s' "${1}" \
-      | awk -v "KEY=${1}" "${awk[quoting]}"'{ gsub(/./, "&,"); print "printf -v " q("hex[" KEY "]") " " q("%02x") " " dq("\047") "{" substr($0, 1, length($0) - 1) "}" }'
-      | source /proc/self/fd/0 ;;
   esac
 }
 

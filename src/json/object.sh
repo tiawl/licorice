@@ -57,7 +57,9 @@ json::object::delete () {
     regex="${2}"
     json::object::__::fix_regex 'regex'
 
-    print '%s\n' "${!kindref[@]}" | match "^${regex}" \
+    IFS=$'\n'
+    {
+      match "^${regex}" \
       | awk -v "JSONGET=JSONGET_${1}" \
             -v "JSONKIND=JSONKIND_${1}" \
             -v "JSONKEYS=JSONKEYS_${1}" \
@@ -67,11 +69,12 @@ json::object::delete () {
             "${awk[quoting]}"'{
                 print JSONGET "[" q($0) "]\n" \
                       JSONKIND "[" q($0) "]\n" \
-                      JSONKEYS "[" q($0) "]\n \
-                      JSONVALUES "[" q($0) "]\n \
-                      JSONLENGTH "[" q($0) "]\n \
+                      JSONKEYS "[" q($0) "]\n" \
+                      JSONVALUES "[" q($0) "]\n" \
+                      JSONLENGTH "[" q($0) "]\n" \
                       JSONPARENT "[" q($0) "]"
              }'
+    } <<< "${!kindref[@]}"
   )
   set +f
   IFS="${old_ifs}"

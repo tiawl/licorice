@@ -4,10 +4,10 @@
 # 2. Imported filepaths are relative to the file they are into: so here we absolute them
 BEGIN {
   i = 0
-  values = repeat(q("null") " ", LENGTH)
+  values = repeat(q("false") " ", LENGTH)
   while (i < LENGTH) {
-    print "JSONGET_" HEX "[" q(ROOT "/") dq("${JSONGET_" HEX "[" q("." edq("import") "[" i "]") "]}") "]=" q("null") "\n" \
-          "JSONKIND_" HEX "[" q(ROOT "/") dq("${JSONGET_" HEX "[" q("." edq("import") "[" i "]") "]}") "]=" q("null")
+    print "JSONGET_" HEX "[" q(ROOT "/") dq("${JSONGET_" HEX "[" q("." edq("import") "[" i "]") "]}") "]=" q("false") "\n" \
+          "JSONKIND_" HEX "[" q(ROOT "/") dq("${JSONGET_" HEX "[" q("." edq("import") "[" i "]") "]}") "]=" q("boolean")
     i++
   }
   print "JSONKEYS_" HEX "[" q("." dq("import")) "]=" q(ROOT "/") dq("${JSONVALUES_" HEX "[" q("." edq("import")) "]//$" q("\n") "/$" q("\n" ROOT "/") "}") "\n" \

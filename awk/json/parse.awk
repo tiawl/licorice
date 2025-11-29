@@ -43,24 +43,27 @@ function json_parent() {
   print JSONPARENT "['" PATH "']='" PARENT[PATH] "'"
 }
 
-function set_path(child) {
-  if (PATH == ".") PATH = PATH child
-  else PATH = PATH "." child
+function json_structured_value () {
+  if (PARENT[PATH] in VALUES) {
+    # '\n' is used as separator between values
+    VALUES[PARENT[PATH]] = VALUES[PARENT[PATH]] "\n"
+  } else VALUES[PARENT[PATH]] = ""
 }
 
 function json_object(token,
                      i, parent) {
   json_kind("object")
+  json_structured_value()
   i = 0
   token = next_token()
   while (token != "}") {
     if (token !~ JSON_STRING) unexpected("string", token)
     if (PATH in KEYS) {
-      # '\n' is used as separator between keys because it needs to be escaped in JSON strings
+      # '\n' is used as separator between keys
       KEYS[PATH] = KEYS[PATH] "\n." token
     } else KEYS[PATH] = "." token
     parent = PATH
-    set_path(token)
+    PATH = PATH (PATH == "." ? "" : ".") token
     PARENT[PATH] = parent
     json_parent()
     token = next_token()
@@ -82,6 +85,7 @@ function json_object(token,
 function json_array(token,
                     i, parent) {
   json_kind("array")
+  json_structured_value()
   i = 0
   token = next_token()
   while (token != "]") {
@@ -131,7 +135,7 @@ function json_null(token) {
 function json_primitive(token,
                         path) {
   if (PARENT[PATH] in VALUES) {
-    # '\n' is used as separator between values because it needs to be escaped in JSON strings
+    # '\n' is used as separator between values
     VALUES[PARENT[PATH]] = VALUES[PARENT[PATH]] "\n" token
   } else VALUES[PARENT[PATH]] = token
   print JSONGET "['" PATH "']='" token "'"
