@@ -6,6 +6,8 @@
   JSON_STRING = "^(\"[^\"\\\000-\037]*((\\[^u\000-\037]|\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F])[^\"\\\000-\037]*)*\")$"
   JSON_NUMBER = "^-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?$"
   JSON_ALLOWED_ESCAPED_CHARS = "\\[\"\\\/bfnrt]|\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]"
+  print "unset $(compgen -v -X '!JSON*')\n" \
+        "declare -g -A " q("JSON") "{GET,KIND,KEYS,VALUES,LENGTH,PARENT}" dq("_${1}")
   json_value($0)
 }
 
@@ -28,19 +30,19 @@ function json_value(token) {
 }
 
 function json_keys() {
-  print JSONKEYS "['" PATH "']='" KEYS[PATH] "'"
+  print "JSONKEYS_" ID "['" PATH "']='" KEYS[PATH] "'"
 }
 
 function json_values() {
-  print JSONVALUES "['" PATH "']='" VALUES[PATH] "'"
+  print "JSONVALUES_" ID "['" PATH "']='" VALUES[PATH] "'"
 }
 
 function json_length(n) {
-  print JSONLENGTH "['" PATH "']='" n "'"
+  print "JSONLENGTH_" ID "['" PATH "']='" n "'"
 }
 
 function json_parent() {
-  print JSONPARENT "['" PATH "']='" PARENT[PATH] "'"
+  print "JSONPARENT_" ID "['" PATH "']='" PARENT[PATH] "'"
 }
 
 function json_structured_value () {
@@ -138,11 +140,11 @@ function json_primitive(token,
     # '\n' is used as separator between values
     VALUES[PARENT[PATH]] = VALUES[PARENT[PATH]] "\n" token
   } else VALUES[PARENT[PATH]] = token
-  print JSONGET "['" PATH "']='" token "'"
+  print "JSONGET_" ID "['" PATH "']='" token "'"
 }
 
 function json_kind(kind) {
-  print JSONKIND "['" PATH "']='" kind "'"
+  print "JSONKIND_" ID "['" PATH "']='" kind "'"
 }
 
 function unexpected(expected, got) {

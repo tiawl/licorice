@@ -43,33 +43,22 @@ json::kind::error () {
   fi
 }
 
-json::new () {
-  declare -g -A 'JSON'{GET,KIND,KEYS,VALUES,LENGTH,PARENT}"_${1}"
-}
-
-json::free () {
-  unset 'JSON'{GET,KIND,KEYS,VALUES,LENGTH,PARENT}"_${1}"
+json::__::check::lastpipe () {
+  if is not set 'lastpipe'
+  then
+    unreachable "${1}" 'This function needs lastpipe shell option to be used'
+  fi
 }
 
 json::parse () {
-  if is not set 'lastpipe'
-  then
-    unreachable "${FUNCNAME[0]}" 'lastpipe must be used to define new variables into current environment from JSON parsing'
-  fi
+  json::__::check::lastpipe "${FUNCNAME[0]}"
 
   if eq "${#}" '1'
   then
     set -- '' "${1}"
   fi
 
-  json::free "${2}"
-  json::new "${2}"
-  json::tokenize "${1:-}" | awk -v "JSONGET=JSONGET_${2}" \
-                                -v "JSONKIND=JSONKIND_${2}" \
-                                -v "JSONKEYS=JSONKEYS_${2}" \
-                                -v "JSONVALUES=JSONVALUES_${2}" \
-                                -v "JSONLENGTH=JSONLENGTH_${2}" \
-                                -v "JSONPARENT=JSONPARENT_${2}" \
+  json::tokenize "${1:-}" | awk -v "ID=${2}" \
                                 -f ./awk/json/parse.awk
   # TODO:                       "${awk[json/parse]}" | source /proc/self/fd/0
 }

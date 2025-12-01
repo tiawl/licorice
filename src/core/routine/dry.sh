@@ -15,7 +15,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
 
       IFS=$'\n'
       set -f
-      if not unique ${keysref['."inventory"']} ${JSONKEYS_inventory['."inventory"']}
+      if not unique ${keysref['."inventory"']} ${JSONKEYS_inventory['.']}
       then
         set +f
         IFS="${old_ifs}"
@@ -24,12 +24,15 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       set +f
       IFS="${old_ifs}"
 
-      json::object::merge 'inventory' '."inventory"' "${1}" '."inventory"'
+      json::object::merge 'inventory' '.' "${1}" '."inventory"'
       json::object::delete "${1}" '."inventory"'
     fi
   }
 
   inventory::resolve::recursively () {
+    # TODO: how to check for inventory cycles ?
+    # - We must accept if a variable is used several times in an other variable in a same resolve
+    # - we must refuse if a variable is used in an other variable in different resolves
     local -a resolved
 
     local old_ifs
@@ -44,7 +47,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     #    a) replaces these keys with the content of inventory variables
     #    b) sends error if a cycle is detected
     while {{
-        match '.\."inventory"$' \
+        match '\."inventory"$' \
           | awk "${awk[quoting]}${awk[routine/inventory/resolve/recursively]}" \
           | source /proc/self/fd/0
       } <<< "${!JSONKIND_inventory[@]}"
@@ -74,7 +77,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       #    while there are keys that ends with '."inventory"', the loop
       #    replaces these keys with the content of inventory variables
       while {{
-          match '.\."inventory"$' \
+          match '\."inventory"$' \
             | awk -v "HEX=${1}" "${awk[quoting]}${awk[routine/inventory/resolve/file]}" \
             | source /proc/self/fd/0
         } <<< "${!kindref[@]}"
@@ -122,7 +125,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
 
       IFS=$'\n'
       set -f
-      if not unique ${keysref['."import"']} ${JSONKEYS_import['."import"']}
+      if not unique ${keysref['."import"']} ${JSONKEYS_import['.']}
       then
         set +f
         IFS="${old_ifs}"
@@ -131,22 +134,47 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       set +f
       IFS="${old_ifs}"
 
-      json::object::merge 'import' '."import"' "${1}" '."import"'
+      json::object::merge 'import' '.' "${1}" '."import"'
       json::object::delete "${1}" '."import"'
     fi
   }
 
-  local filepath old_ifs
+  import::resolve () {
+    # TODO: Fix it:
+    local -a resolved
+    local -n kindref
+    kinfref="JSONKIND_${1}"
+
+    local old_ifs
+    old_ifs="${IFS}"
+    readonly old_ifs
+
+    IFS=$'\n'
+    while {{
+        match '\."imported"$' \
+          | awk "${awk[quoting]}${awk[routine/import/resolve]}" \
+          | source /proc/self/fd/0
+      } <<< "${!kindref[@]}"
+    } do
+      IFS="${old_ifs}"
+      if not unique "${resolved[@]}"
+      then
+        error 'Import cycle detected'
+      fi
+    done
+    IFS="${old_ifs}"
+  }
+
+  local filepath
   local -a rainbow
   local -A hex
   rainbow=( '21' '27' '33' '39' '45' '51' '50' '49' '48' '47' '46' '82' '118' '154' '190' '226' '220' '214' '208' '202' '196' '197' '198' '199' '200' '201' '165' '129' '93' '57' )
   shuffle rainbow
-  old_ifs="${IFS}"
-  readonly rainbow old_ifs
+  readonly rainbow
 
   filepath="$(path::normalized "${1}")"
-  json::parse 'inventory' <<< '{"inventory": {}}'
-  json::parse 'import' <<< '{"import": {}}'
+  json::parse 'inventory' <<< '{}'
+  json::parse 'import' <<< '{}'
 
   while str not empty "${filepath}"
   do
@@ -165,23 +193,23 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     inventory::merge "${hex["${filepath}"]}"
     import::merge "${hex["${filepath}"]}" "${filepath}"
 
-    if json::object::has 'import' ".\"import\".\"${filepath}\""
+    if json::object::has 'import' ".\"${filepath}\""
     then
-      JSONGET_import[".\"import\".\"${filepath}\""]='true'
-      JSONVALUES_import['."import"']="${JSONVALUES_import[".\"import\".\"${filepath}\""]/false/true}"
+      JSONGET_import[".\"${filepath}\""]='true'
+      JSONVALUES_import['.']="${JSONVALUES_import[".\"${filepath}\""]/false/true}"
     fi
 
     # It keeps the first unvisited imported filepath (if there are not, it's an empty string)
     filepath="$(
       IFS=$'\n'
       awk '{IMPORTS[(NR-1)]=$0} END {for (i = NR/2; i <= NR; i++) {if (IMPORTS[i] == "false") {print IMPORTS[(i - (NR/2))]; exit}}}' \
-        <<< "${JSONKEYS_import['."import"']}" "${JSONVALUES_import['."import"']}"
+        <<< "${JSONKEYS_import['.']}" "${JSONVALUES_import['.']}"
     )"
   done
 
   inventory::resolve::recursively
   inventory::resolve "${!hex[@]}"
-  # TODO: import::resolve::main
+  import::resolve
 
   # TODO: check routine JSON schema
   # TODO: codegen
