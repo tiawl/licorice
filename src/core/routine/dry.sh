@@ -6,10 +6,6 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     then
       json::kind::error "${1}" '."inventory"' 'object' "${FUNCNAME[1]}.${FUNCNAME[0]}"
 
-      local old_ifs
-      old_ifs="${IFS}"
-      readonly old_ifs
-
       local -n keysref
       keysref="JSONKEYS_${1}"
 
@@ -18,47 +14,43 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       if not unique ${keysref['."inventory"']} ${JSONKEYS_inventory['.']}
       then
         set +f
-        IFS="${old_ifs}"
+        IFS="${OLD_IFS}"
         error 'Conflict: inventories must contain keys not already used by an other inventory'
       fi
       set +f
-      IFS="${old_ifs}"
+      IFS="${OLD_IFS}"
 
       json::object::merge 'inventory' '.' "${1}" '."inventory"'
       json::object::delete "${1}" '."inventory"'
     fi
   }
 
-  inventory::resolve::recursively () {
-    # TODO: how to check for inventory cycles ?
-    # - We must accept if a variable is used several times in an other variable in a same resolve
-    # - we must refuse if a variable is used in an other variable in different resolves
-    local -a resolved
+  # The goal of the 2 following functions is to resolve inventory recursively.
+  # Into 'inventory' object, while there are keys that ends with
+  # '."inventory"', the loop:
+  # a) replaces these keys with the content of inventory variables
+  # b) sends error if a cycle is detected
+  inventory::resolve::inventory::rec () {
+    IFS="${OLD_IFS}"
+    json::kind::error 'inventory' "${1}" 'string' "${FUNCNAME[0]}"
+    json::object::set 'inventory' "${2}" 'inventory' '.'"${3}"
+    inventory::resolve::inventory "${@:4}" "${3}"
+  }
 
-    local old_ifs
-    old_ifs="${IFS}"
-    readonly old_ifs
+  inventory::resolve::inventory () {
+    if not unique "${@}"
+    then
+      error 'Inventory cycle detected'
+    fi
 
+    # This loop fully relies on lastpipe and pipefail shell options.
     IFS=$'\n'
-    # 1) This loop fully relies on lastpipe and pipefail shell options.
-    # 2) The goal of this loop is to resolve inventory recursively. Into
-    #    'inventory' object, while there are keys that ends with
-    #    '."inventory"', the loop:
-    #    a) replaces these keys with the content of inventory variables
-    #    b) sends error if a cycle is detected
-    while {{
-        match '\."inventory"$' \
-          | awk "${awk[quoting]}${awk[routine/inventory/resolve/recursively]}" \
-          | source /proc/self/fd/0
-      } <<< "${!JSONKIND_inventory[@]}"
-    } do
-      IFS="${old_ifs}"
-      if not unique "${resolved[@]}"
-      then
-        error 'Inventory cycle detected'
-      fi
-    done
-    IFS="${old_ifs}"
+    {
+      match '\."inventory"$' \
+        | awk "${awk[quoting]}${awk[routine/inventory/resolve/inventory]}" \
+        | source /proc/self/fd/0
+    } <<< "${!JSONKIND_inventory[@]}"
+    IFS="${OLD_IFS}"
   }
 
   inventory::resolve () {
@@ -66,10 +58,6 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     do
       local -n kindref
       kindref="JSONKIND_${1}"
-
-      local old_ifs
-      old_ifs="${IFS}"
-      readonly old_ifs
 
       IFS=$'\n'
       # 1) This loop fully relies on lastpipe and pipefail shell options.
@@ -82,7 +70,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
             | source /proc/self/fd/0
         } <<< "${!kindref[@]}"
       } do :; done
-      IFS="${old_ifs}"
+      IFS="${OLD_IFS}"
 
       shift
       unset -n kindref
@@ -119,20 +107,16 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
       awk -v "LENGTH=${lenref['."import"']}" -v "ROOT=${root}" -v "HEX=${1}" "${awk[quoting]}${awk[repeat]}${awk[routine/import/map-array-to-object]}" \
          | source /proc/self/fd/0
 
-      local old_ifs
-      old_ifs="${IFS}"
-      readonly old_ifs
-
       IFS=$'\n'
       set -f
       if not unique ${keysref['."import"']} ${JSONKEYS_import['.']}
       then
         set +f
-        IFS="${old_ifs}"
+        IFS="${OLD_IFS}"
         error 'Conflict: import arrays must not contain files already used by an other import arrays'
       fi
       set +f
-      IFS="${old_ifs}"
+      IFS="${OLD_IFS}"
 
       json::object::merge 'import' '.' "${1}" '."import"'
       json::object::delete "${1}" '."import"'
@@ -145,10 +129,6 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     local -n kindref
     kinfref="JSONKIND_${1}"
 
-    local old_ifs
-    old_ifs="${IFS}"
-    readonly old_ifs
-
     IFS=$'\n'
     while {{
         match '\."imported"$' \
@@ -156,13 +136,13 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
           | source /proc/self/fd/0
       } <<< "${!kindref[@]}"
     } do
-      IFS="${old_ifs}"
+      IFS="${OLD_IFS}"
       if not unique "${resolved[@]}"
       then
         error 'Import cycle detected'
       fi
     done
-    IFS="${old_ifs}"
+    IFS="${OLD_IFS}"
   }
 
   local filepath
@@ -207,7 +187,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
     )"
   done
 
-  inventory::resolve::recursively
+  inventory::resolve::inventory
   inventory::resolve "${!hex[@]}"
   import::resolve
 

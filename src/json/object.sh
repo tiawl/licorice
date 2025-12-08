@@ -49,9 +49,12 @@ json::object::delete () {
   json::kind::assert "${1}" "${parentref["${2}"]}" 'object' "${FUNCNAME[0]}"
   json::object::has::assert "${1}" "${2}" "${FUNCNAME[0]}"
 
-  local old_ifs
-  old_ifs="${IFS}"
-  readonly old_ifs
+  if is not var 'OLD_IFS'
+  then
+    local old_ifs
+    old_ifs="${IFS}"
+    readonly old_ifs
+  fi
 
   IFS=$'\n'
   set -f
@@ -77,7 +80,7 @@ json::object::delete () {
     } <<< "${!kindref[@]}"
   )
   set +f
-  IFS="${old_ifs}"
+  IFS="${OLD_IFS:-"${old_ifs}"}"
 }
 
 json::object::merge () {
