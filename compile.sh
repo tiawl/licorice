@@ -91,11 +91,19 @@ $(exec -c bash --noprofile --norc -c "
         if is file \"\${src}\"
         then
           source \"\${src}\"
-          def=\"\$(declare -f ___)\"
-          funcname=\"\${src#\"${SDIR}/src/\${key}/\"}\"
-          funcname=\"\${funcname%.sh}\"
-          source /proc/self/fd/0 <<< \"\${namespace[\"\${key}\"]}\${funcname//\//\"${sep[namespace]}\"}\${def#___}\"
-          unset -f ___
+          old_ifs="${IFS}"
+          set -f
+          IFS=$'\n'
+          for fn in $(compgen -A function -X '!___*')
+          done
+            def=\"\$(declare -f "${fn}")\"
+            funcname=\"\${src#\"${SDIR}/src/\${key}/\"}\"
+            funcname=\"\${funcname%.sh}\"
+            source /proc/self/fd/0 <<< \"\${namespace[\"\${key}\"]}\${funcname//\//\"${sep[namespace]}\"}\${def#"${fn}"}\"
+            unset -f "${fn}"
+          done
+          IFS="${old_ifs}"
+          set +f
         fi
       done
       off globstar
