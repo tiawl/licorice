@@ -2,10 +2,10 @@
 
 ___ () { #HELP <pattern>|Remove unused images matching <pattern>
   local img
-  set -f
+  on noglob
   for img in $(${namespace[core]}image list "${1}")
   do
     ${namespace[core]}image remove "${img%:*}" "${img#*:}"
   done
-  set +f
+  off noglob
 }

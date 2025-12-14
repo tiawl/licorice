@@ -11,6 +11,7 @@ can () {
   case "${1}" in
   ( 'not' ) not can "${@:2}" ;;
   ( 'exec' ) [[ -x "${2}" ]] ;;
+  ( * ) unreachable "${FUNCNAME[0]}" "Unknown case: '${1}'" ;;
   esac
 }
 
@@ -24,6 +25,7 @@ is () {
   ( 'present' ) [[ -e "${2}" ]] ;;
   ( 'file' ) [[ -f "${2}" ]] ;;
   ( 'dir' ) [[ -d "${2}" ]] ;;
+  ( 'pipe' ) [[ -p "${2}" ]] ;;
   ( 'socket' ) [[ -S "${2}" ]] ;;
   ( 'indexed' ) case "$(declare -p "${2}" 2> /dev/null)" in ( "declare -a ${2}="* ) return 0 ;; ( * ) return 1 ;; esac ;;
   ( 'associative' ) case "$(declare -p "${2}" 2> /dev/null)" in ( "declare -A ${2}="* ) return 0 ;; ( * ) return 1 ;; esac ;;
@@ -31,6 +33,19 @@ is () {
   ( 'var' ) [[ -v "${2}" ]] ;;
   ( 'set' ) [[ -o "${2}" ]] || shopt -q "${2}" 2> /dev/null ;;
   ( 'uint' ) case "${2}" in ( ''|*[!0-9]* ) return 1 ;; ( * ) return 0 ;; esac ;;
+  ( * ) unreachable "${FUNCNAME[0]}" "Unknown case: '${1}'" ;;
+  esac
+}
+
+word () {
+  case "${1}" in
+  ( 'splitting' )
+    shift
+    case "${1}" in
+    ( 'reset' ) IFS="${OLD_IFS}" ;;
+    ( * ) OLD_IFS="${IFS}"; IFS="${1}" ;;
+    esac ;;
+  ( * ) unreachable "${FUNCNAME[0]}" "Unknown case: '${1}'" ;;
   esac
 }
 
@@ -53,6 +68,7 @@ str () {
   ( 'in' ) case "${3}" in ( *" ${2} "* ) return 0 ;; ( * ) return 1 ;; esac ;;
   ( 'starts' ) case "${2}" in ( "${3}"* ) return 0 ;; ( * ) return 1 ;; esac ;;
   ( 'ends' ) case "${2}" in ( *"${3}" ) return 0 ;; ( * ) return 1 ;; esac ;;
+  ( * ) unreachable "${FUNCNAME[0]}" "Unknown case: '${1}'" ;;
   esac
 }
 
@@ -125,14 +141,13 @@ defer () {
     fi
   done
 
-  local stage pfx ppfx c old_ifs prev_return_trap prev_err_trap caller_id min max x fn_prev_return_trap fn_prev_err_trap fn_prev_return_trap_def fn_prev_err_trap_def prev_err_trap_arg
+  local stage pfx ppfx c prev_return_trap prev_err_trap caller_id min max x fn_prev_return_trap fn_prev_err_trap fn_prev_return_trap_def fn_prev_err_trap_def prev_err_trap_arg
   local -a caller
-  old_ifs="${IFS}"
   stage='0'
   c='_'
   prev_return_trap="$(trap -p RETURN)"
   prev_return_trap="${prev_return_trap#"trap -- '' RETURN"}"
-  readonly old_ifs c prev_return_trap
+  readonly c prev_return_trap
 
   caller=("${BASH_LINENO[@]:2}" "${FUNCNAME[@]:1}")
   min='0'
@@ -145,9 +160,9 @@ defer () {
     (( min++, max-- ))
   done
   ppfx="${c}${c}deferred${c}"
-  IFS="${c}"
+  word splitting "${c}"
   caller_id="${caller[*]}"
-  IFS="${old_ifs}"
+  word splitting reset
   pfx="${ppfx}${caller_id}${c}"
   fn_prev_return_trap="${c}${c}restore${c}previous${c}return${c}trap${c}${caller_id}"
   fn_prev_err_trap="${c}${c}restore${c}previous${c}err${c}trap${c}${caller_id}"
@@ -299,6 +314,7 @@ url () {
   ( decode )
     : "${2//+/ }"
     print -- '%b\n' "${_//%/\\x}" ;;
+  ( * ) unreachable "${FUNCNAME[0]}" "Unknown case: '${1}'" ;;
   esac
 }
 
@@ -313,11 +329,10 @@ nchar () {
 }
 
 gengetopt () {
-  local reset_ifs c short short_noarg short_1arg long_1arg_pattern opts
+  local c short short_noarg short_1arg long_1arg_pattern opts
   local -a opt long long_1arg
   c=':'
   readonly c
-  reset_ifs="${IFS}"
   until eq "${#}" '0'
   do
     local ncolon="${1}"
@@ -327,9 +342,9 @@ gengetopt () {
       error 'Each argument must match this pattern: "short-form%clong-form%cnb-args"' "${c}" "${c}"
     fi
     on noglob
-    IFS="${c}"
+    word splitting "${c}"
     opt=( ${1} )
-    IFS="${reset_ifs}"
+    word splitting reset
     off noglob
     shift
     if gt "${#opt[0]}" '1'
@@ -359,11 +374,11 @@ gengetopt () {
     fi
     if str not empty "${opt[1]}"
     then
-      IFS=' '
+      word splitting ' '
       case " ${long[*]} " in
       ( *" ${opt[1]} "* ) error '"%s" long-form is already used' "${opt[1]}" ;;
       esac
-      IFS="${reset_ifs}"
+      word splitting reset
     fi
     if str not empty "${opt[0]}"; then short="${short:-}${opt[0]}"; fi
     if str not empty "${opt[1]}"; then long+=( "${opt[1]}" ); fi
@@ -376,9 +391,9 @@ gengetopt () {
     esac
     opts="${opts}${opts:+        }( ${opt[0]:+-}${opt[0]}${opt[0]:+"${opt[1]:+|}"}${opt[1]:+--}${opt[1]} )${opt[0]:+" getopt['${opt[0]}']='true';"}${opt[1]:+" getopt['${opt[1]}']='true';"} shift ${opt[2]} ;;"$'\n'
   done
-  IFS='|'
+  word splitting '|'
   long_1arg_pattern="${long_1arg[*]}"
-  IFS="${reset_ifs}"
+  word splitting reset
   eval "
     getopt () {
       unset -v getopt

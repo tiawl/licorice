@@ -13,7 +13,7 @@ json::tokenize () {
   keyword='null|false|true'
   space='[[:space:]]+'
 
-  if is file "${1:-}"
+  if is file "${1:-}" || is pipe "${1:-}"
   then
     match -a -o "${string}"'|'"${number}"'|'"${keyword}"'|'"${space}"'|.' "${1}" | match -v '^'"${space}"'$'
   else
@@ -58,9 +58,9 @@ json::parse () {
     set -- '' "${1}"
   fi
 
-  json::tokenize "${1:-}" | awk -v "ID=${2}" \
-                                -f ./awk/json/parse.awk
-  # TODO:                       "${awk[json/parse]}" | source /proc/self/fd/0
+  json::tokenize "${1:-}" \
+    | awk -v "ID=${2}" "${awk[quoting]}${awk[json/parse]}" \
+    | source /proc/self/fd/0
 }
 
 # TODO: rework everything below this comment:

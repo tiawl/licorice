@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-___::inventory::merge () {
+___::merge::inventory () {
   if json::object::has "${1}" '."inventory"'
   then
     json::kind::error "${1}" '."inventory"' 'object' "${FUNCNAME[1]}.${FUNCNAME[0]}"
@@ -8,16 +8,16 @@ ___::inventory::merge () {
     local -n keysref
     keysref="JSONKEYS_${1}"
 
-    IFS=$'\n'
-    set -f
+    word splitting $'\n'
+    on noglob
     if not unique ${keysref['."inventory"']} ${JSONKEYS_inventory['.']}
     then
-      set +f
-      IFS="${OLD_IFS}"
+      off noglob
+      word splitting reset
       error 'Conflict: inventories must contain keys not already used by an other inventory'
     fi
-    set +f
-    IFS="${OLD_IFS}"
+    off noglob
+    word splitting reset
 
     json::object::merge 'inventory' '.' "${1}" '."inventory"'
     json::object::delete "${1}" '."inventory"'
@@ -29,54 +29,53 @@ ___::inventory::merge () {
 # '."inventory"', the loop:
 # a) replaces these keys with the content of inventory variables
 # b) sends error if a cycle is detected
-___::inventory::resolve::inventory::rec () {
-  IFS="${OLD_IFS}"
+___::resolve::inventory::into::inventory::rec () {
+  word splitting reset
   json::kind::error 'inventory' "${1}" 'string' "${FUNCNAME[0]}"
   json::object::set 'inventory' "${2}" 'inventory' '.'"${3}"
-  ${FUNCNAME[0]%"::inventory::resolve::inventory::rec"}::inventory::resolve::inventory "${@:4}" "${3}"
+  ${FUNCNAME[0]%::rec} "${@:4}" "${3}"
 }
 
-___::inventory::resolve::inventory () {
+___::resolve::inventory::into::inventory () {
   if not unique "${@}"
   then
     error 'Inventory cycle detected'
   fi
 
   # This loop fully relies on lastpipe and pipefail shell options.
-  IFS=$'\n'
+  word splitting $'\n'
   {
     match '\."inventory"$' \
-      | awk -v "NAMESPACE=${1}" "${awk[quoting]}${awk[routine/inventory/resolve/inventory]}" \
+      | awk "${awk[quoting]}${awk[routine/inventory/resolve/inventory]}" \
       | source /proc/self/fd/0
   } <<< "${!JSONKIND_inventory[@]}"
-  IFS="${OLD_IFS}"
+  word splitting reset
 }
 
-___::inventory::resolve () {
+___::resolve::inventory () {
   while gt "${#}" '0'
   do
     local -n kindref
     kindref="JSONKIND_${1}"
 
-    IFS=$'\n'
+    word splitting $'\n'
     # 1) This loop fully relies on lastpipe and pipefail shell options.
     # 2) The goal of this loop is to resolve inventory into 'file' object,
     #    while there are keys that ends with '."inventory"', the loop
     #    replaces these keys with the content of inventory variables
-    while {{
-        match '\."inventory"$' \
-          | awk -v "HEX=${1}" "${awk[quoting]}${awk[routine/inventory/resolve/file]}" \
-          | source /proc/self/fd/0
-      } <<< "${!kindref[@]}"
-    } do :; done
-    IFS="${OLD_IFS}"
+    while { {
+      match '\."inventory"$' \
+        | awk -v "HEX=${1}" "${awk[quoting]}${awk[routine/inventory/resolve/file]}" \
+        | source /proc/self/fd/0
+    } <<< "${!kindref[@]}"; } do :; done
+    word splitting reset
 
     shift
     unset -n kindref
   done
 }
 
-___::import::merge () {
+___::merge::import () {
   if json::object::has "${1}" '."import"'
   then
     json::kind::error "${1}" '."import"' 'array' "${FUNCNAME[1]}.${FUNCNAME[0]}"
@@ -94,57 +93,56 @@ ___::import::merge () {
 
     root="$(path::dir "${2}")"
 
-    set -f
+    on noglob
     if not unique ${valref['."import"']}
     then
-      set +f
+      off noglob
       error 'Duplicated imported file into: %s' "${2}"
     fi
-    set +f
+    off noglob
 
     # This loop fully relies on lastpipe shell option
     awk -v "LENGTH=${lenref['."import"']}" -v "ROOT=${root}" -v "HEX=${1}" "${awk[quoting]}${awk[repeat]}${awk[routine/import/map-array-to-object]}" \
        | source /proc/self/fd/0
 
-    IFS=$'\n'
-    set -f
+    word splitting $'\n'
+    on noglob
     if not unique ${keysref['."import"']} ${JSONKEYS_import['.']}
     then
-      set +f
-      IFS="${OLD_IFS}"
+      off noglob
+      word splitting reset
       error 'Conflict: import arrays must not contain files already used by an other import arrays'
     fi
-    set +f
-    IFS="${OLD_IFS}"
+    off noglob
+    word splitting reset
 
     json::object::merge 'import' '.' "${1}" '."import"'
     json::object::delete "${1}" '."import"'
   fi
 }
 
-___::import::resolve () {
+___::resolve::import () {
   # TODO: Fix it:
   local -a resolved
   local -n kindref
   kinfref="JSONKIND_${1}"
 
-  IFS=$'\n'
-  while {{
-      match '\."imported"$' \
-        | awk "${awk[quoting]}${awk[routine/import/resolve]}" \
-        | source /proc/self/fd/0
-    } <<< "${!kindref[@]}"
-  } do
-    IFS="${OLD_IFS}"
+  word splitting $'\n'
+  while { {
+    match '\."imported"$' \
+      | awk "${awk[quoting]}${awk[routine/import/resolve]}" \
+      | source /proc/self/fd/0
+  } <<< "${!kindref[@]}"; } do
+    word splitting reset
     if not unique "${resolved[@]}"
     then
       error 'Import cycle detected'
     fi
   done
-  IFS="${OLD_IFS}"
+  word splitting reset
 }
 
-___::loop () {
+___::resolve () {
   local filepath
   local -A hex
   filepath="$(path::normalized "${1}")"
@@ -153,7 +151,7 @@ ___::loop () {
 
   while str not empty "${filepath}"
   do
-    if is not file "${filepath}"
+    if is not file "${filepath}" && is not pipe "${filepath}"
     then
       error 'Can not find %s' "${filepath}"
     fi
@@ -165,8 +163,8 @@ ___::loop () {
     } <<< "${filepath}"
 
     json::parse "${filepath}" "${hex["${filepath}"]}"
-    ${FUNCNAME[0]%::loop}::inventory::merge "${hex["${filepath}"]}"
-    ${FUNCNAME[0]%::loop}::import::merge "${hex["${filepath}"]}" "${filepath}"
+    ${FUNCNAME[0]%::resolve}::merge::inventory "${hex["${filepath}"]}"
+    ${FUNCNAME[0]%::resolve}::merge::import "${hex["${filepath}"]}" "${filepath}"
 
     if json::object::has 'import' ".\"${filepath}\""
     then
@@ -176,15 +174,15 @@ ___::loop () {
 
     # It keeps the first unvisited imported filepath (if there are not, it's an empty string)
     filepath="$(
-      IFS=$'\n'
+      word splitting $'\n'
       awk '{IMPORTS[(NR-1)]=$0} END {for (i = NR/2; i <= NR; i++) {if (IMPORTS[i] == "false") {print IMPORTS[(i - (NR/2))]; exit}}}' \
         <<< "${JSONKEYS_import['.']}" "${JSONVALUES_import['.']}"
     )"
   done
 
-  ${FUNCNAME[0]%::loop}::inventory::resolve::inventory
-  ${FUNCNAME[0]%::loop}::inventory::resolve "${!hex[@]}"
-  ${FUNCNAME[0]%::loop}::import::resolve
+  ${FUNCNAME[0]}::inventory::into::inventory
+  ${FUNCNAME[0]}::inventory "${hex[@]}"
+  ${FUNCNAME[0]}::import
 }
 
 ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
@@ -193,7 +191,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
   shuffle rainbow
   readonly rainbow
 
-  ${FUNCNAME[0]}::loop
+  ${FUNCNAME[0]}::resolve "${1}"
   # TODO: check routine JSON schema
   # TODO: codegen
 }

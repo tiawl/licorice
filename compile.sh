@@ -91,19 +91,19 @@ $(exec -c bash --noprofile --norc -c "
         if is file \"\${src}\"
         then
           source \"\${src}\"
-          old_ifs="${IFS}"
-          set -f
-          IFS=$'\n'
-          for fn in $(compgen -A function -X '!___*')
+          funcname=\"\${src#\"${SDIR}/src/\${key}/\"}\"
+          funcname=\"\${funcname%.sh}\"
+          funcname=\"\${funcname//\//\"${sep[namespace]}\"}\"
+          on noglob
+          word splitting $'\n'
+          for unprefixed in \$(compgen -A function -X '!___*')
+          do
+            def=\"\$(declare -f \"\${unprefixed}\")\"
+            print '%s\n' \"\${namespace[\"\${key}\"]}\${funcname}\${def#___}\"
+            unset -f \"\${unprefixed}\"
           done
-            def=\"\$(declare -f "${fn}")\"
-            funcname=\"\${src#\"${SDIR}/src/\${key}/\"}\"
-            funcname=\"\${funcname%.sh}\"
-            source /proc/self/fd/0 <<< \"\${namespace[\"\${key}\"]}\${funcname//\//\"${sep[namespace]}\"}\${def#"${fn}"}\"
-            unset -f "${fn}"
-          done
-          IFS="${old_ifs}"
-          set +f
+          word splitting reset
+          off noglob
         fi
       done
       off globstar
@@ -175,8 +175,6 @@ ${namespace[core]}init () {
   readonly sep
 
   global OLD_IFS
-  OLD_IFS="${IFS}"
-  readonly OLD_IFS
 
   harden awk
   harden base64

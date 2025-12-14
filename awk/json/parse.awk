@@ -6,8 +6,8 @@
   JSON_STRING = "^(\"[^\"\\\000-\037]*((\\[^u\000-\037]|\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F])[^\"\\\000-\037]*)*\")$"
   JSON_NUMBER = "^-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?$"
   JSON_ALLOWED_ESCAPED_CHARS = "\\[\"\\\/bfnrt]|\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]"
-  print "unset $(compgen -v -X '!JSON*')\n" \
-        "declare -g -A " q("JSON") "{GET,KIND,KEYS,VALUES,LENGTH,PARENT}" dq("_${1}")
+  print "unset $(compgen -v -X " q("!JSON*_" ID) ")\n" \
+        "declare -g -A " q("JSON") "{GET,KIND,KEYS,VALUES,LENGTH,PARENT}" q("_" ID)
   json_value($0)
 }
 
@@ -25,7 +25,7 @@ function json_value(token) {
   } else if (token == "null") {
     json_null(token)
   } else {
-    error("malformed JSON string: neither array, object, number, string or atom")
+    error("malformed JSON token " q(token) " is neither array, object, number, string or atom")
   }
 }
 

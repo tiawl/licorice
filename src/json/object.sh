@@ -30,6 +30,11 @@ json::object::has () {
   local -n parentref kindref
   parentref="JSONPARENT_${1}"
 
+  if is not var "parentref[${2}]"
+  then
+    return 1
+  fi
+
   json::kind::assert "${1}" "${parentref["${2}"]}" 'object' "${FUNCNAME[0]}"
   kindref="JSONKIND_${1}"
   str not empty "${kindref["${2}"]}"
@@ -49,24 +54,17 @@ json::object::delete () {
   json::kind::assert "${1}" "${parentref["${2}"]}" 'object' "${FUNCNAME[0]}"
   json::object::has::assert "${1}" "${2}" "${FUNCNAME[0]}"
 
-  if is not var 'OLD_IFS'
-  then
-    local old_ifs
-    old_ifs="${IFS}"
-    readonly old_ifs
-  fi
-
-  IFS=$'\n'
-  set -f
+  word splitting $'\n'
+  on noglob
   unset $(
-    set +f
+    off noglob
 
     declare -n kindref
     kindref="JSONKIND_${1}"
     regex="${2}"
     json::object::__::fix_regex 'regex'
 
-    IFS=$'\n'
+    word splitting $'\n'
     {
       match "^${regex}" \
       | awk -v "ID=${1}" "${awk[quoting]}"'{
@@ -79,8 +77,8 @@ json::object::delete () {
             }'
     } <<< "${!kindref[@]}"
   )
-  set +f
-  IFS="${OLD_IFS:-"${old_ifs}"}"
+  off noglob
+  word splitting reset
 }
 
 json::object::merge () {

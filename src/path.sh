@@ -24,7 +24,8 @@ path::dir () {
 path::normalized () {
   if is dir "${1}"
   then
-    env -C "${1}" pwd
+    CDPATH= cd -- "${1}"
+    pwd
   else
     print -- '%s/%s\n' "$(path::normalized "$(path::dir "${1}")")" "$(path::base "${1}")"
   fi

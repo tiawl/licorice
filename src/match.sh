@@ -10,9 +10,9 @@ match () {
     egrep='egrep'
   fi
 
-  set -f
+  on noglob
   ${egrep} --color=never "${@}"
-  set +f
+  off noglob
 }
 
 match::noseparator () {
