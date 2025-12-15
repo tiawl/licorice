@@ -43,7 +43,7 @@ word () {
     shift
     case "${1}" in
     ( 'reset' ) IFS="${OLD_IFS}" ;;
-    ( * ) OLD_IFS="${IFS}"; IFS="${1}" ;;
+    ( * ) global OLD_IFS; OLD_IFS="${IFS}"; IFS="${1}" ;;
     esac ;;
   ( * ) unreachable "${FUNCNAME[0]}" "Unknown case: '${1}'" ;;
   esac

@@ -174,8 +174,6 @@ ${namespace[core]}init () {
 
   readonly sep
 
-  global OLD_IFS
-
   harden awk
   harden base64
   harden cat

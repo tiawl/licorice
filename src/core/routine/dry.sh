@@ -64,6 +64,7 @@ ___::resolve::inventory () {
     #    while there are keys that ends with '."inventory"', the loop
     #    replaces these keys with the content of inventory variables
     while { {
+      # TODO: it loops here
       match '\."inventory"$' \
         | awk -v "HEX=${1}" "${awk[quoting]}${awk[routine/inventory/resolve/file]}" \
         | source /proc/self/fd/0
@@ -122,27 +123,27 @@ ___::merge::import () {
 }
 
 ___::resolve::import () {
-  # TODO: Fix it:
-  local -a resolved
-  local -n kindref
-  kinfref="JSONKIND_${1}"
+  : TODO
+  # local -n kindref
+  # kinfref="JSONKIND_${1}"
 
-  word splitting $'\n'
-  while { {
-    match '\."imported"$' \
-      | awk "${awk[quoting]}${awk[routine/import/resolve]}" \
-      | source /proc/self/fd/0
-  } <<< "${!kindref[@]}"; } do
-    word splitting reset
-    if not unique "${resolved[@]}"
-    then
-      error 'Import cycle detected'
-    fi
-  done
-  word splitting reset
+  # word splitting $'\n'
+  # while { {
+  #   match '\."imported"$' \
+  #     | awk "${awk[quoting]}${awk[routine/import/resolve]}" \
+  #     | source /proc/self/fd/0
+  # } <<< "${!kindref[@]}"; } do
+  #   word splitting reset
+  #   if not unique "${resolved[@]}"
+  #   then
+  #     error 'Import cycle detected'
+  #   fi
+  # done
+  # word splitting reset
 }
 
 ___::resolve () {
+  #set -x
   local filepath
   local -A hex
   filepath="$(path::normalized "${1}")"
