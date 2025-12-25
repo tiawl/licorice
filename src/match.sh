@@ -11,7 +11,11 @@ match () {
   fi
 
   on noglob
-  ${egrep} --color=never "${@}"
+  if not ${egrep} --color=never "${@}"
+  then
+    off noglob
+    return 1
+  fi
   off noglob
 }
 

@@ -33,7 +33,7 @@ ___::resolve::inventory::into::inventory::rec () {
   word splitting reset
   json::kind::error 'inventory' "${1}" 'string' "${FUNCNAME[0]}"
   json::object::set 'inventory' "${2}" 'inventory' '.'"${3}"
-  ${FUNCNAME[0]%::rec} "${@:4}" "${3}"
+  "${FUNCNAME[0]%::rec}" "${@:4}" "${3}"
 }
 
 ___::resolve::inventory::into::inventory () {
@@ -48,7 +48,7 @@ ___::resolve::inventory::into::inventory () {
     match '\."inventory"$' \
       | awk "${awk[quoting]}${awk[routine/inventory/resolve/inventory]}" \
       | source /proc/self/fd/0
-  } <<< "${!JSONKIND_inventory[@]}"
+  } <<< "${!JSONKIND_inventory[@]}" || :
   word splitting reset
 }
 
@@ -64,7 +64,6 @@ ___::resolve::inventory () {
     #    while there are keys that ends with '."inventory"', the loop
     #    replaces these keys with the content of inventory variables
     while { {
-      # TODO: it loops here
       match '\."inventory"$' \
         | awk -v "HEX=${1}" "${awk[quoting]}${awk[routine/inventory/resolve/file]}" \
         | source /proc/self/fd/0
@@ -143,7 +142,6 @@ ___::resolve::import () {
 }
 
 ___::resolve () {
-  #set -x
   local filepath
   local -A hex
   filepath="$(path::normalized "${1}")"
@@ -164,8 +162,8 @@ ___::resolve () {
     } <<< "${filepath}"
 
     json::parse "${filepath}" "${hex["${filepath}"]}"
-    ${FUNCNAME[0]%::resolve}::merge::inventory "${hex["${filepath}"]}"
-    ${FUNCNAME[0]%::resolve}::merge::import "${hex["${filepath}"]}" "${filepath}"
+    "${FUNCNAME[0]%::resolve}"::merge::inventory "${hex["${filepath}"]}"
+    "${FUNCNAME[0]%::resolve}"::merge::import "${hex["${filepath}"]}" "${filepath}"
 
     if json::object::has 'import' ".\"${filepath}\""
     then
@@ -181,9 +179,9 @@ ___::resolve () {
     )"
   done
 
-  ${FUNCNAME[0]}::inventory::into::inventory
-  ${FUNCNAME[0]}::inventory "${hex[@]}"
-  ${FUNCNAME[0]}::import
+  "${FUNCNAME[0]}"::inventory::into::inventory
+  "${FUNCNAME[0]}"::inventory "${hex[@]}"
+  "${FUNCNAME[0]}"::import
 }
 
 ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
@@ -192,7 +190,7 @@ ___ () { #HELP <yaml_file>|Display the routine bash script without executing it
   shuffle rainbow
   readonly rainbow
 
-  ${FUNCNAME[0]}::resolve "${1}"
+  "${FUNCNAME[0]}"::resolve "${1}"
   # TODO: check routine JSON schema
   # TODO: codegen
 }

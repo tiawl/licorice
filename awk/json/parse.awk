@@ -7,7 +7,7 @@
   JSON_NUMBER = "^-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?$"
   JSON_ALLOWED_ESCAPED_CHARS = "\\[\"\\\/bfnrt]|\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]"
   print "unset $(compgen -v -X " q("!JSON*_" ID) ")\n" \
-        "declare -g -A " q("JSON") "{GET,KIND,KEYS,VALUES,LENGTH,PARENT}" q("_" ID)
+        "declare -g -A " q("JSON") "{GET,KIND,KEYS,VALUES,LENGTH,PARENT}" q("_" ID "=()")
   json_value($0)
 }
 

@@ -1,0 +1,10 @@
+{
+  "routine": [
+    {
+      "object1": {
+        "member1": false,
+        "member2": true
+      }
+    }
+  ]
+}
