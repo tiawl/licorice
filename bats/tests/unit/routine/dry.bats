@@ -10,12 +10,12 @@ setup () {
   fi
   source <(head -n-1 "${bin}")
   on errexit inherit_errexit errtrace functrace noclobber nounset pipefail lastpipe extglob
-  exe="$(path::base "${bin}")"
+  exe="$(basename "${bin}")"
   "${exe}"::core::init
 }
 export -f setup
 
-check_env () {
+routine_resolve::check_env () {
   local key id filter
   for key in 'inventory' 'import' 'routine'
   do
@@ -27,12 +27,15 @@ check_env () {
     do
       local -n ref
       ref="JSON${filter^^}_${id}"
-      declare -p "${!ref}"
+      if gt "${BATS_TRACE_LEVEL:-0}" '0'
+      then
+        echo "     ${ref[@]@A}" >&3
+      fi
       jq --exit-status \
         --arg KEY "${key}" \
         --arg FILTER "${filter}" \
         --arg LEN "${#ref[@]}" \
-        '.[$KEY] | .[$FILTER] | length == ($LEN | tonumber)' "bats/tests/unit/routine_resolve/${2}/expected.json" > /dev/null
+        '.[$KEY] | .[$FILTER] | length == ($LEN | tonumber)' "${2}/expected.json" > /dev/null
       jq --exit-status \
         --arg KEY "${key}" \
         --arg FILTER "${filter}" \
@@ -41,23 +44,26 @@ check_env () {
            elif (. == "false") then false
            else . end
          );
-         (($ARGS.positional | [.[:$N], .[$N:]] | transpose | map({ (first): ((last | tonumber?) // (last | tobool)) }) | add) // {}) as $OUTPUT | .[$KEY] | .[$FILTER] == $OUTPUT' "bats/tests/unit/routine_resolve/${2}/expected.json" \
+         (($ARGS.positional | [.[:$N], .[$N:]] | transpose | map({ (first): ((last | tonumber?) // (last | tobool)) }) | add) // {}) as $OUTPUT | .[$KEY] | .[$FILTER] == $OUTPUT' "${2}/expected.json" \
          --argjson N "${#ref[@]}" --args "${!ref[@]}" "${ref[@]}" > /dev/null
       unset -n ref
     done
   done
 }
 
-@test 'TODO' {
-  local test_name test_input hex
-  for test_name in 'base'
+@test 'routine_resolve' {
+  local test_name test_dir
+  for test_dir in "$(realpath bats/tests/unit/routine/resolve)"/*
   do
-    test_input="$(realpath "bats/tests/unit/routine_resolve/${test_name}/input.json")"
-    hex="$(printf '%s' "${test_input}" | hexdump -v -e '/1 "%02x"')"
-    "${exe}"::core::routine::dry::resolve "${test_input}"
+    if is file "${test_dir}/input.json" && is file "${test_dir}/expected.json"
+    then
+      "${exe}"::core::routine::dry::resolve "${test_dir}/input.json"
 
-    eq "${?}" '0'
+      eq "${?}" '0'
 
-    check_env "${hex}" "${test_name}"
+      routine_resolve::check_env "$(printf '%s' "${test_dir}/input.json" | hexdump -v -e '/1 "%02x"')" "${test_dir}"
+
+      printf '   ✓ %s: %s\n' "${BATS_TEST_DESCRIPTION}" "$(basename "${test_dir}")" >&3
+    fi
   done
 }

@@ -1,0 +1,25 @@
+{
+  "inventory": {
+    "object": {
+      "member1": false
+    },
+    "array": [
+      {
+        "inventory": "object"
+      },
+      {
+        "inventory": "object"
+      }
+    ]
+  },
+  "routine": [
+    {
+      "object1": {
+        "member1": {
+          "inventory": "array"
+        },
+        "member2": true
+      }
+    }
+  ]
+}
