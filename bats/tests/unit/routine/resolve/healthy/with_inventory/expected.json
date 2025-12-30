@@ -1,0 +1,84 @@
+{
+  "inventory": {
+    "get": {},
+    "kind": {
+      ".": "object"
+    },
+    "keys": {
+      ".": ""
+    },
+    "values": {
+      ".": ""
+    },
+    "length": {
+      ".": 0
+    },
+    "parent": {}
+  },
+  "import": {
+    "get": {},
+    "kind": {
+      ".": "object"
+    },
+    "keys": {
+      ".": ""
+    },
+    "values": {
+      ".": ""
+    },
+    "length": {
+      ".": 0
+    },
+    "parent": {}
+  },
+  "routine": {
+    "get": {
+      ".\"routine\".0.\"object1\".\"member1\".0.\"member1\"": false,
+      ".\"routine\".0.\"object1\".\"member1\".1.\"member1\"": false,
+      ".\"routine\".0.\"object1\".\"member2\"": true
+    },
+    "kind": {
+      ".": "object",
+      ".\"routine\"": "array",
+      ".\"routine\".0": "object",
+      ".\"routine\".0.\"object1\"": "object",
+      ".\"routine\".0.\"object1\".\"member1\"": "array",
+      ".\"routine\".0.\"object1\".\"member1\".0": "object",
+      ".\"routine\".0.\"object1\".\"member1\".0.\"member1\"": "boolean",
+      ".\"routine\".0.\"object1\".\"member1\".1": "object",
+      ".\"routine\".0.\"object1\".\"member1\".1.\"member1\"": "boolean",
+      ".\"routine\".0.\"object1\".\"member2\"": "boolean"
+    },
+    "keys": {
+      ".": ".\"routine\"",
+      ".\"routine\".0": ".\"object1\"",
+      ".\"routine\".0.\"object1\"": ".\"member1\"\n.\"member2\"",
+      ".\"routine\".0.\"object1\".\"member1\".0": ".\"member1\""
+      ".\"routine\".0.\"object1\".\"member1\".1": ".\"member1\""
+    },
+    "values": {
+      ".": "",
+      ".\"routine\"": "",
+      ".\"routine\".0": "",
+      ".\"routine\".0.\"object1\"": "true"
+    },
+    "length": {
+      ".": 1,
+      ".\"routine\"": 1,
+      ".\"routine\".0": 1,
+      ".\"routine\".0.\"object1\"": 2,
+      ".\"routine\".0.\"object1\".\"member1\"": 2,
+      ".\"routine\".0.\"object1\".\"member1\".0": 1,
+      ".\"routine\".0.\"object1\".\"member1\".1": 1
+    },
+    "parent": {
+      ".\"routine\"": ".",
+      ".\"routine\".0": ".\"routine\"",
+      ".\"routine\".0.\"object1\"": ".\"routine\".0",
+      ".\"routine\".0.\"object1\".\"member1\"": ".\"routine\".0.\"object1\"",
+      ".\"routine\".0.\"object1\".\"member1\".0": ".\"routine\".0.\"object1\".\"member1\"",
+      ".\"routine\".0.\"object1\".\"member1\".1": ".\"routine\".0.\"object1\".\"member1\"",
+      ".\"routine\".0.\"object1\".\"member2\"": ".\"routine\".0.\"object1\""
+    }
+  }
+}

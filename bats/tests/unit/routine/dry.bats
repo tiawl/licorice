@@ -52,18 +52,28 @@ routine_resolve::check_env () {
 }
 
 @test 'routine_resolve' {
-  local test_name test_dir
-  for test_dir in "$(realpath bats/tests/unit/routine/resolve)"/*
+  local test_dir root
+  root='bats/tests/unit/routine/resolve'
+  readonly root
+
+  local -a dirs
+  on globstar
+  mapfile -t dirs < <(printf '%s\n' "$(realpath "${root}")"/**/!(*.json))
+  off globstar
+  readonly dirs
+
+  for test_dir in "${dirs[@]}"
   do
-    if is file "${test_dir}/input.json" && is file "${test_dir}/expected.json"
+    if is not dir "${test_dir}" || is not file "${test_dir}/input.json" || is not file "${test_dir}/expected.json"
     then
-      "${exe}"::core::routine::dry::resolve "${test_dir}/input.json"
-
-      eq "${?}" '0'
-
-      routine_resolve::check_env "$(printf '%s' "${test_dir}/input.json" | hexdump -v -e '/1 "%02x"')" "${test_dir}"
-
-      printf '   ✓ %s: %s\n' "${BATS_TEST_DESCRIPTION}" "$(basename "${test_dir}")" >&3
+      continue
     fi
+
+    "${exe}"::core::routine::dry::resolve "${test_dir}/input.json"
+    eq "${?}" '0'
+
+    routine_resolve::check_env "$(printf '%s' "${test_dir}/input.json" | hexdump -v -e '/1 "%02x"')" "${test_dir}"
+
+    printf '   ✓ %s: %s\n' "${BATS_TEST_DESCRIPTION}" "$(realpath --relative-to="${root}" "${test_dir}")" >&3
   done
 }
